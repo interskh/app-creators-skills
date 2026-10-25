@@ -179,3 +179,41 @@ PWA artifacts emitted in `dist/` (generateSW mode): `manifest.webmanifest`, `reg
 
 **Touches**
 - `../app-creators-fixtures`: new `todo-vite/` tree, one line in root `README.md`, root `.gitleaksignore`. No shared surface in the skills repo.
+
+## Slice B — Task 2 — publish-web skill
+
+**Decisions**
+- Deliberate deviation from spec §5 B.1 "Lighthouse PWA via `npx`": Lighthouse 12.0.0 (2024-04-22) removed the PWA category. Source: Lighthouse changelog 12.0.0 entry (github.com/GoogleChrome/lighthouse/blob/main/changelog.md) and the v12.0.0 release page, checked 2026-10-26. `check-pwa.sh` implements the install criteria directly; `pwa-checklist.md` says why.
+- CLI forms (Vercel docs, checked 2026-10-26): `vercel deploy --prod` (cli/deploy, projects/deploy-from-cli), `vercel link --yes --project` (cli/link), `vercel project ls --filter` / `vercel project create` (cli/project), `vercel list --prod --status READY -m` (cli/list), `vercel domains add|verify` (cli/domains, domains/set-up-custom-domain), `vercel certs ls` (set-up-custom-domain). Cloudflare: `npx wrangler pages project list|create`, `pages deploy <dir> --project-name --commit-hash`, `pages deployment list` (workers/wrangler/commands/pages, pages/get-started/direct-upload). Pages custom domains: dashboard only (pages/configuration/custom-domains).
+- Rerun key for the deploy: `--meta commit=<sha>` on deploy, `vercel list -m commit=<sha>` before; a dirty tree asks the creator to commit first. The dirty check uses `':(exclude).vercel'`, because step 4 creates `.vercel/` (pathspec tested in a scratch repo). `history.result` is a bare token (`live|ready|stopped`); the reason goes in the notes, because `stopped: x` would break the flow mapping.
+- `vercel domains add <domain> <project>` (two args): add-a-domain says pass the project even when linked; set-up-custom-domain shows one arg. The two-arg form is correct under both.
+- node over jq: Node is already there for any Vite/Next build; jq is the fallback. Both paths tested (jq by PATH without node). Neither → exit 2.
+- Icon rule: exact `sizes` token, PNG by `type` or `.png` src, `purpose` unset or containing `any` (MDN icons: `any` is the default). A maskable-only 512 fails; the fixture's two 512 entries made this decision necessary.
+- Service-worker script served as `text/html` → FAIL (catches an SPA rewrite answering for a missing `sw.js`). This is my heuristic, not a vendor rule.
+- `display` accepts standalone|fullscreen|minimal-ui. web.dev also lists `window-controls-overlay`; MDN has it only in `display_override`.
+- Dependent checks after an HTML failure print `FAIL <check>: skipped: ...` and exit 1, so a skipped check never reads as passed.
+- Removed the scaffold's copied `SKILL.zh.md` (byte-identical to the template); Task 3 writes the real one.
+- Hobby is "free, personal, non-commercial" (plans/hobby), so section 2 says a commercial app needs a paid plan.
+
+**Rejected**
+- `npx lighthouse`: no PWA category since 12.0.0.
+- Running `check-pwa.sh` on the unique deployment URL: Standard Protection can put it behind a login (deployment-protection); production domains stay public.
+- Accepting any 512 PNG, regardless of purpose: test (c) would not catch it, and a maskable icon is not a general-purpose icon.
+- Treating "non-empty body" alone as a valid SW script: an HTML fallback passes it.
+
+**Assumptions**
+- `vercel list --prod --status READY -m commit=<sha>` combines filters; the docs show each flag on its own. Check on the level-3 run.
+- `wrangler pages deployment list` output shows the commit hash; the docs do not show its output. The reference says so.
+- The production domain comes from the dashboard Overview tab; generated-urls does not document a `<project>.vercel.app` form or an inspect alias field.
+- The `vite preview` port 4173 is from Vite's static-deploy guide; the `python3 -I -m http.server` preview for static sites and Next exports is my choice, tested here.
+
+**Deferred**
+- Level-3 run and live-URL proof (§5 Slice B proof): blocked. No fixture-only Vercel/Cloudflare account exists, and §3.4 forbids agent runs on the personal account. No `vercel`/`wrangler` command was run.
+- `SKILL.zh.md` (Task 3); the `zh-present` lint finding stays until then.
+- Doc fetch 404s, so their claims are left out: vercel.com/docs/deployments/configure-a-build.md (used builds/configure-a-build.md instead), developer.chrome.com/blog/lighthouse-12-0 (used the changelog and the release page instead). The Vite static-deploy page was read from its source file in the vitejs/vite repo (`docs/guide/static-deploy.md`); Sources cites the published page.
+- `display_override` and the `<base href>` resolution are not handled by the script.
+
+**Touches**
+- `skills/publish-web/` (SKILL.md, scripts/check-pwa.sh, references/{vercel,cloudflare-pages,pwa-checklist,verified-runs}.md).
+- state.md fields written: `targets.web.status|url|provider|domain`, `tools.deploy`, `accounts.vercel`, plus one `history` row. Reads `framework.*`, `targets.web.intent`, `app.slug`, `readiness.web`. Slice C's `app-creators` must set `app.slug` (I added it to the required fields: it is the project name).
+- `README.md` Skills table (shared with every future skill), `AGENTS.md` status line.

@@ -4,4 +4,4 @@
 - Read `docs/specs/2026-10-26-skill-conventions-design.md` before writing or changing any skill; it is the contract.
 - Requirements: `docs/prds/prd-phase1-skills.md`. Work items: `docs/ROADMAP.md`.
 - Thesis, business plans, and the website live in the private workroom repo, not here.
-- No skills, scripts, or CI yet.
+- First skill: `skills/publish-web/`. Lint (`scripts/lint-skills.sh`) and CI (`.github/workflows/lint.yml`) exist.
