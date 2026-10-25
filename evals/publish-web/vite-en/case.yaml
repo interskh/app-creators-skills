@@ -1,0 +1,43 @@
+schema_version: "1.1"
+name: vite-en
+description: >
+  Level-2 eval for publish-web with an English prompt. The workspace is the
+  fixture ../app-creators-fixtures/todo-vite at commit 95c2f95 plus a
+  .app-creators/state.md written as app-creators would leave it. Checks that
+  the skill fires, reads state, names Vercel as the default, asks the creator
+  only for human prerequisites, and runs check-pwa.sh.
+tags: [publish-web, level-2]
+runs: 1
+execution:
+  max_turns: 12
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill, AskUserQuestion]
+  prompt: |
+    Publish this app to the web. I want it installable as a PWA. I already have a Vercel account.
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?publish-web"'
+    arm: both
+  - name: read-state
+    type: tool_used
+    tool: Read
+    input_match: 'state\.md'
+  - name: names-vercel
+    type: regex
+    pattern: 'vercel'
+    flags: i
+    target: last_message
+  - name: asks-only-human-prerequisites
+    type: llm
+    focus: trace
+    criteria: |
+      PASS if every question the assistant put to the creator is about a human-only prerequisite or decision (an account, a custom domain, DNS access, the app's display name or short name) or is a confirmation to proceed, or if the assistant asked no question at all.
+      FAIL if the assistant asked which framework, package manager, build command, or output directory the project uses, or asked the creator for a token or secret value.
+  - name: ran-verify-script
+    type: tool_used
+    tool: Bash
+    input_match: 'check-pwa\.sh'

@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+pin=95c2f95
+case_dir="$(cd "$(dirname "$0")" && pwd)"
+fixture="$case_dir/../../../../app-creators-fixtures/todo-vite"
+
+if [ ! -d "$fixture" ]; then
+  common="$(cd "$case_dir" && git rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
+  if [ -n "$common" ]; then
+    fixture="$(dirname "$common")/../app-creators-fixtures/todo-vite"
+  fi
+fi
+
+if [ ! -d "$fixture" ]; then
+  echo "scaffold: fixture not found; clone app-creators-fixtures next to the plugin repo (expected ../app-creators-fixtures/todo-vite)" >&2
+  exit 1
+fi
+
+head_sha="$(cd "$fixture" && git rev-parse HEAD)"
+case "$head_sha" in
+  "$pin"*) ;;
+  *)
+    echo "scaffold: app-creators-fixtures is at $head_sha; check out $pin" >&2
+    exit 1
+    ;;
+esac
+
+(cd "$fixture" && git archive --format=tar HEAD .) | tar -xf -
+mkdir -p .app-creators
+cp "$case_dir/state.md" .app-creators/state.md

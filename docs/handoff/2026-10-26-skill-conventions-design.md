@@ -217,3 +217,36 @@ PWA artifacts emitted in `dist/` (generateSW mode): `manifest.webmanifest`, `reg
 - `skills/publish-web/` (SKILL.md, scripts/check-pwa.sh, references/{vercel,cloudflare-pages,pwa-checklist,verified-runs}.md).
 - state.md fields written: `targets.web.status|url|provider|domain`, `tools.deploy`, `accounts.vercel`, plus one `history` row. Reads `framework.*`, `targets.web.intent`, `app.slug`, `readiness.web`. Slice C's `app-creators` must set `app.slug` (I added it to the required fields: it is the project name).
 - `README.md` Skills table (shared with every future skill), `AGENTS.md` status line.
+
+## Slice B — Task 3 — SKILL.zh.md and eval cases
+
+Pre-declared before the level-2 run: Bash is not granted, so `ran-verify-script` cannot pass. Ceiling = 4 of 5 equal-weight graders = 0.8 per case; the default `--threshold 1.0` makes the command exit 1 even at the ceiling.
+
+Result (claude 2.1.310, `--runs 1 --ablation none --scaffold --no-publish`, no Bash): vite-en 0.8, vite-zh 0.8 (skill-fired, read-state, names-vercel, asks-only-human-prerequisites PASS 3/3 votes; ran-verify-script FAIL, 0 Bash calls). Cost $0.54 total (en $0.30, zh $0.24), `partial: false`. Exploratory probe run on vite-en: $0.13. Both traces read `.app-creators/state.md` and the fixture files; the zh run loaded `SKILL.zh.md` via the redirect line. Neither run asked about framework, package manager, build command, or a token.
+
+**Decisions**
+- Glossary (fixed once): deploy 部署, production deployment 生产部署, production domain 生产域名, custom domain 自定义域名, apex 根域名, subdomain 子域名, link 关联, preview 预览, readiness 就绪检查 (gate: 就绪检查关口), creator 创作者, provider 服务商, dashboard 控制台, scope kept as `scope`, Cloudflare zone kept as `zone`. UI labels kept in English (Overview, Application, Manifest, Installability, Custom domains); Chrome's Install shown as 安装（Install）.
+- "Takes N minutes" → 要 N 分钟, not the template's 耗时约: 约 would add a hedge the English lacks.
+- Token parity (backtick spans, en vs zh): 129/129 distinct spans, none missing or extra; only count difference is `public` (1 → 2, step 1 `static` line names it twice). URLs 33/33 same order; `**effective**（有副作用）` 3/3; 7 steps; 7 troubleshooting rows.
+- Scaffold cwd finding (probe with `--keep-temp`): the script runs in place from the case dir (`$0` is its absolute path in the plugin tree), cwd is the empty workspace, env is only PATH, HOME/TMPDIR (temp), TERM=dumb, GIT_CONFIG_NOSYSTEM=1. No `EVAL_*` reaches it, so no env override for the fixture path is possible.
+- The brief's `$case/../../../../app-creators-fixtures` resolves only in the canonical checkout; in a worktree the fallback resolves the main checkout via `git rev-parse --git-common-dir`. Both paths reach the same `../app-creators-fixtures/todo-vite`.
+- Copy via `git archive HEAD .` from the fixture subdir: exactly the tracked set at the pinned commit, no node_modules/dist, no uncommitted edits. `HEAD:./` and `HEAD:todo-vite` give an empty tar from a subdir (found by test).
+- Two cases (`vite-en`, `vite-zh`), because one case takes one prompt; §3.4 parity = both pass the same graders. Files identical except name/description/prompt.
+- `ran-verify-script` kept although it cannot pass without Bash: it is the §3.4 contract for the nightly run.
+
+**Rejected**
+- Adding `Bash` to `allowed_tools` (the harness warning suggests it): docs say only read-only tools are granted from the list, but the hard rule was no Bash in this run, so I kept the list as specified. The nightly form passes `--allow-tools Bash`; if that alone does not grant it, add Bash to the list then.
+- Env var for the fixture path: the scaffold env is fixed.
+
+**Assumptions**
+- `read-state` (`tool_used` Read on `state\.md`) passes on any Read call, even of a missing file (the probe passed it with an empty workspace). Tighten with a trace regex on a state value if it turns noisy.
+- The en run used the `Agent` tool though it is not in `allowed_tools`; the harness allows it. Harmless here (no shell in the subagent either).
+- The zh run guessed "大概是 `todo-vite.vercel.app`" for the production domain; the skill says read it from the dashboard. Not graded; watch on the next run.
+
+**Deferred**
+- Level-3 fixture run and live-URL proof: blocked on a fixture-only Vercel account (§3.4 credential boundary).
+- Nightly CI eval: needs that account, `--allow-tools Bash`, and a way to pass the token (`EVAL_*` only) and network through the OS sandbox. README says so.
+- The workspace has no commits (the agent saw "no commits, untracked"), so step 5 asks the creator to commit. A scaffold `git init` + commit would make it realistic; not in scope.
+
+**Touches**
+- `skills/publish-web/SKILL.zh.md` (new), `evals/publish-web/{README.md,vite-en/*,vite-zh/*}` (new), `.gitignore` (`evals/results/`). No shared surface beyond `.gitignore`.
