@@ -83,9 +83,9 @@ English order:
 | 1 | Lint | `scripts/lint-skills.sh`: frontmatter fields and constraints, name equals directory, heading order, line count, zh pair and heading parity, `verified-runs.md` present, no URLs outside `## Sources` and tool docs, no secret-looking strings | CI on every push | merge |
 | 2 | Eval | `claude plugin eval` cases under `evals/<skill>/`: a fixture prompt plus a grader checklist (asked only for human prerequisites, read `state.md`, named the default tool, ran the verify script). Verify `claude plugin eval` availability at scaffold; fall back to a transcript review checklist in `docs/EVAL.md` if absent | doer before handoff, CI nightly | merge of a new or changed skill |
 | 3 | Fixture run | The skill executed by an agent against the fixture app for every step that needs no paid account. For `publish-web` that is the whole skill on a free Vercel account | doer | `metadata.verified` may stay `unverified` |
-| 4 | Human run | Kyle runs the skill on a real app with real accounts, records date, framework, outcome, and surprises in `references/verified-runs.md`, sets `metadata.verified` | Kyle | `metadata.verified` date; README may call the skill verified |
+| 4 | Human run | A maintainer runs the skill on a real app with real accounts, records date, framework, outcome, and surprises in `references/verified-runs.md`, sets `metadata.verified` | maintainer | `metadata.verified` date; README may call the skill verified |
 
 Credential boundary: an agent-run level (2 or 3) uses accounts that
 exist only for fixtures, with the narrowest token the provider offers,
-never Kyle's personal or production accounts. Level 4 is the only
+never a maintainer's personal or production accounts. Level 4 is the only
 level that touches real accounts, and a human holds the session.
