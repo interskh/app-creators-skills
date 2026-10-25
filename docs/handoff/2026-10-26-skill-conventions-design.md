@@ -250,3 +250,35 @@ Result (claude 2.1.310, `--runs 1 --ablation none --scaffold --no-publish`, no B
 
 **Touches**
 - `skills/publish-web/SKILL.zh.md` (new), `evals/publish-web/{README.md,vite-en/*,vite-zh/*}` (new), `.gitignore` (`evals/results/`). No shared surface beyond `.gitignore`.
+
+## Slice B — Gate fix round 1
+
+**Fixes**
+1. Icons pass only on an `image/*` type or a PNG signature; `text/html` fails as a rewrite answering for the icon.
+2. The SW script passes only on the five JavaScript MIME types; any other type fails and is named (W3C Service Workers spec).
+3. `fetch()` keeps curl's rc; a non-zero rc fails the check even after a 200, and the reason carries the curl error.
+4. Registration is inferred when a loaded script mentions `serviceWorker` and `sw.js` next to the page is JavaScript; the PASS line says "(inferred from sw.js)". Tested on a `injectRegister: false` + `registerSW({ immediate: true })` build.
+5. HTML comments (multi-line too) are stripped before the tag scan and the SW grep.
+6. Every run prints the same 12 check lines; dependents print `FAIL <check>: skipped: <reason>`.
+7. Preflight checks curl, grep, sed, awk, head, od, tr, cp, cat, mktemp, rm (exit 2).
+8. Production domain: the CLI docs do not document `vercel inspect` / `vercel project inspect` output, so step 5 asks the creator for the domain on the project's Overview tab when `targets.web.url` is empty.
+9. Rerun guard: the dirty check excludes `.app-creators` and `.vercel`. The key `<src>` is `git log -1 --format=%H -- . ':(exclude).app-creators' ':(exclude).vercel'`, the last commit that changed the app. Reuse only if the deployment `vercel inspect <targets.web.url>` shows is in `vercel list --prod --status READY -m commit=<src>`; otherwise deploy. Outside git, or with no commits: deploy without `--meta`.
+10. The Cloudflare alternative passes `--branch=main` (step 4 creates with `--production-branch=main`; ask the creator if the project existed).
+11. Step 2 covers a server-rendered Next.js app: `<pm> run start` (`next start`, port 3000, Next.js CLI docs).
+12. Step 4 records `vercel` or `cloudflare-pages`, whichever was used.
+13. Both `scaffold.sh` files `git archive` commit `95c2f95` (no HEAD check) and stop when the commit is not fetched; README updated; the files stay identical.
+
+**Decisions**
+- Fix 9 uses `<src>` rather than diffing against the current deployment's meta: the docs show no CLI way to read a deployment's meta (cli/list points to the REST API), and they state no `vercel list` sort order. `-m` filtering is documented, and the `inspect` comparison only needs the deployment identity. A failed or unclear `inspect` means deploy, so the error direction is "build again", never "skip a needed deploy".
+- No `vercel promote`: the promotion docs limit promote to staged deployments; a deployment that was current before needs a rollback (`vercel rollback` was not fetched). Redeploying unchanged code is safe.
+- A JavaScript MIME type is required by the W3C Service Workers spec (MDN `register()` does not say it).
+- New Troubleshooting row for `served as text/html` (reproduced with a SPA-fallback server).
+
+**Deferred**
+- `version` stays `0.1.0`. Steps changed, but the skill is unreleased and unverified (`verified: unverified`, no verified-runs rows), so no prior version exists for a bump to distinguish.
+- That `vercel inspect` accepts a production domain (the docs say "deployment URL or ID") is unverified until the level-3 run; the fallback is to deploy.
+
+**Touches**
+- `skills/publish-web/{SKILL.md,scripts/check-pwa.sh,references/vercel.md,references/cloudflare-pages.md,references/pwa-checklist.md}`, `evals/publish-web/{README.md,vite-en/scaffold.sh,vite-zh/scaffold.sh}`. `SKILL.zh.md` was not touched; the zh doer mirrors steps 2, 4, 5, the new Troubleshooting row, and the Sources additions.
+
+**zh mirror** (`skills/publish-web/SKILL.zh.md`, 147 lines): steps 2, 4, and 5 (all four lines), the new `served as text/html` row before `FAIL https`, and the four Sources entries now match SKILL.md, with the same order and 核对于 2026-10-26. Parity: 137/137 distinct backtick spans, none missing or extra. Count differences are intentional: `public` 1→2, and `vercel domains verify` 1→3, because the bare "verify" became that code span. URLs match 37/37 in the same order. Steps 7/7, troubleshooting rows 8/8. Bare-word fixes: exclude → dropped (SKILL.md removed that aside), stdout → 标准输出, verify → `vercel domains verify` (twice), scope → 作用域, zone → 区域（zone）, http → HTTP, git → Git, state → 状态文件. The prose keeps keep-list words, product and UI names, plus skill and frontmatter as project terms.

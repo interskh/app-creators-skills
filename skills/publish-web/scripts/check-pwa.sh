@@ -32,10 +32,12 @@ case "$url" in
     ;;
 esac
 
-if ! command -v curl >/dev/null 2>&1; then
-  echo "error: check-pwa.sh needs curl" >&2
-  exit 2
-fi
+for tool in curl grep sed awk head od tr cp cat mktemp rm; do
+  if ! command -v "$tool" >/dev/null 2>&1; then
+    echo "error: check-pwa.sh needs $tool" >&2
+    exit 2
+  fi
+done
 if command -v node >/dev/null 2>&1; then
   json_tool=node
 elif command -v jq >/dev/null 2>&1; then
@@ -57,33 +59,59 @@ fail() {
   fails=$((fails + 1))
 }
 
+skip() {
+  local reason="$1" c
+  shift
+  for c in "$@"; do
+    fail "$c" "skipped: $reason"
+  done
+}
+
 code=000
 final=""
 ctype=""
+mime=""
+curl_rc=0
 curl_err=""
 fetch() {
-  local w rc=0 rest
+  local w rest
+  curl_rc=0
   : >"$2"
   w="$(curl -sS -L --max-time 15 --max-redirs 10 -o "$2" \
-    -w '%{http_code}\t%{url_effective}\t%{content_type}' "$1" 2>"$tmp/curl.err")" || rc=$?
+    -w '%{http_code}\t%{url_effective}\t%{content_type}' "$1" 2>"$tmp/curl.err")" || curl_rc=$?
   code="${w%%$'\t'*}"
   rest="${w#*$'\t'}"
   final="${rest%%$'\t'*}"
   ctype="${rest#*$'\t'}"
+  [ "$ctype" != "$w" ] || ctype=""
   [ -n "$code" ] || code=000
   [ -n "$final" ] || final="$1"
+  mime="$(printf '%s' "${ctype%%;*}" | tr 'A-Z' 'a-z' | tr -d ' ')"
   curl_err=""
-  if [ "$rc" -ne 0 ]; then
-    curl_err="curl exit $rc: $(head -n 1 "$tmp/curl.err")"
+  if [ "$curl_rc" -ne 0 ]; then
+    curl_err="curl exit $curl_rc: $(head -n 1 "$tmp/curl.err")"
   fi
+}
+
+fetched() {
+  [ "$curl_rc" -eq 0 ] && [ "$code" = 200 ]
 }
 
 why() {
   if [ "$code" = 000 ]; then
     printf 'no response from %s (%s)' "$1" "$curl_err"
+  elif [ "$curl_rc" -ne 0 ]; then
+    printf 'transfer from %s failed after HTTP %s (%s)' "$final" "$code" "$curl_err"
   else
     printf 'HTTP %s from %s' "$code" "$final"
   fi
+}
+
+is_js_mime() {
+  case "$1" in
+    text/javascript | application/javascript | application/x-javascript | application/ecmascript | text/ecmascript) return 0 ;;
+  esac
+  return 1
 }
 
 normalize_path() {
@@ -135,6 +163,23 @@ resolve_url() {
     *) path="${path%/*}/$ref" ;;
   esac
   printf '%s://%s%s%s' "$scheme" "$host" "$(normalize_path "$path")" "$query"
+}
+
+strip_comments() {
+  LC_ALL=C awk '
+    { s = s $0 "\n" }
+    END {
+      out = ""
+      while ((i = index(s, "<!--")) > 0) {
+        out = out substr(s, 1, i - 1)
+        s = substr(s, i + 4)
+        j = index(s, "-->")
+        if (j == 0) { s = ""; break }
+        s = substr(s, j + 3)
+      }
+      printf "%s%s", out, s
+    }
+  ' "$1"
 }
 
 html_tags() {
@@ -251,14 +296,15 @@ case "$url" in
 esac
 
 # 2. HTML
-fetch "$url" "$tmp/page.html"
+manifest_checks="manifest-name manifest-start-url manifest-display manifest-prefer-related-applications icon-192x192 icon-512x512"
+fetch "$url" "$tmp/page.raw.html"
 page_url="$final"
-if [ "$code" != 200 ]; then
+if ! fetched; then
   fail html "$(why "$url")"
-  fail manifest-link "skipped: HTML not fetched"
-  fail service-worker-registration "skipped: HTML not fetched"
+  skip "HTML not fetched" manifest-link manifest-json $manifest_checks service-worker-registration service-worker-script
   exit 1
 fi
+strip_comments "$tmp/page.raw.html" >"$tmp/page.html"
 case "$url $page_url" in
   https://*" http://"*)
     if [ "$allow_http" -eq 1 ]; then
@@ -274,18 +320,21 @@ esac
 href="$(html_tags manifest "$tmp/page.html")"
 if [ -z "$href" ]; then
   fail manifest-link 'no <link rel="manifest" href="..."> in the HTML'
+  skip "no manifest link" manifest-json $manifest_checks
 else
   manifest_url="$(resolve_url "$page_url" "$href")"
   pass "manifest-link: $manifest_url"
   fetch "$manifest_url" "$tmp/manifest.json"
   manifest_url="$final"
-  if [ "$code" != 200 ]; then
+  if ! fetched; then
     fail manifest-json "$(why "$manifest_url")"
+      skip "manifest not fetched" $manifest_checks
   else
     read_manifest "$tmp/manifest.json" >"$tmp/manifest.tsv"
     err="$(field parse_error)"
     if [ -n "$err" ]; then
       fail manifest-json "$manifest_url is not valid JSON ($err)"
+          skip "manifest is not valid JSON" $manifest_checks
     else
       pass manifest-json
       if [ -n "$(field name)$(field short_name)" ]; then
@@ -316,10 +365,14 @@ else
         fi
         icon_url="$(resolve_url "$manifest_url" "$src")"
         fetch "$icon_url" "$tmp/icon"
-        if [ "$code" = 200 ]; then
+        if ! fetched; then
+          fail "icon-$size" "$(why "$icon_url")"
+        elif [ "$mime" = text/html ]; then
+          fail "icon-$size" "$icon_url is served as text/html; a rewrite answers for the icon"
+        elif [ "${mime#image/}" != "$mime" ] || [ "$(head -c 4 "$tmp/icon" | od -An -tx1 | tr -d ' \n')" = 89504e47 ]; then
           pass "icon-$size: $icon_url"
         else
-          fail "icon-$size" "$(why "$icon_url")"
+          fail "icon-$size" "$icon_url is served as '${mime:-no content-type}', not an image"
         fi
       done
     fi
@@ -329,7 +382,7 @@ fi
 # 4. Service worker
 cp "$tmp/page.html" "$tmp/haystack"
 found=0
-if grep -qE 'navigator\.serviceWorker|serviceWorker\.register\(|registerSW\.js' "$tmp/page.html"; then
+if grep -qE 'serviceWorker\.register\(|registerSW\.js' "$tmp/page.html"; then
   found=1
 fi
 n=0
@@ -338,7 +391,7 @@ while IFS= read -r src; do
   n=$((n + 1))
   [ "$n" -le 10 ] || break
   fetch "$(resolve_url "$page_url" "$src")" "$tmp/script"
-  if [ "$code" = 200 ]; then
+  if fetched; then
     cat "$tmp/script" >>"$tmp/haystack"
     if grep -q 'serviceWorker\.register(' "$tmp/script"; then
       found=1
@@ -346,32 +399,38 @@ while IFS= read -r src; do
   fi
 done < <(html_tags scripts "$tmp/page.html")
 
-if [ "$found" -eq 0 ]; then
-  fail service-worker-registration "no navigator.serviceWorker.register( call or registerSW.js in the page or its scripts"
-  fail service-worker-script "skipped: no registration found"
-else
+sw_script_check() {
+  if ! fetched; then
+    fail service-worker-script "$(why "$1")"
+  elif is_js_mime "$mime"; then
+    pass "service-worker-script: $1 ($mime)"
+  elif [ "$mime" = text/html ]; then
+    fail service-worker-script "$1 is served as text/html; a rewrite or fallback page answers for the script"
+  else
+    fail service-worker-script "$1 is served as '${mime:-no content-type}'; browsers register only scripts with a JavaScript MIME type"
+  fi
+}
+
+if [ "$found" -eq 1 ]; then
   sw_ref="$( (grep -oE "serviceWorker\.register\([[:space:]]*[\"'][^\"']+[\"']" "$tmp/haystack" || true) |
     head -n 1 | sed -E "s/^serviceWorker\.register\([[:space:]]*[\"']//; s/[\"']$//")"
   [ -n "$sw_ref" ] || sw_ref="sw.js"
   sw_url="$(resolve_url "$page_url" "$sw_ref")"
   pass "service-worker-registration: $sw_url"
   fetch "$sw_url" "$tmp/sw.js"
-  lc="$(printf '%s' "$ctype" | tr 'A-Z' 'a-z')"
-  if [ "$code" != 200 ]; then
-    fail service-worker-script "$(why "$sw_url")"
+  sw_script_check "$sw_url"
+elif grep -q 'serviceWorker' "$tmp/haystack"; then
+  sw_url="$(resolve_url "$page_url" sw.js)"
+  fetch "$sw_url" "$tmp/sw.js"
+  if fetched && is_js_mime "$mime"; then
+    pass "service-worker-registration: $sw_url (inferred from sw.js)"
   else
-    case "$lc" in
-      *javascript* | *ecmascript*) pass "service-worker-script: $sw_url ($ctype)" ;;
-      *text/html*) fail service-worker-script "$sw_url is served as text/html; a rewrite or fallback page answers for the script" ;;
-      *)
-        if [ -s "$tmp/sw.js" ]; then
-          pass "service-worker-script: $sw_url (${ctype:-no content-type})"
-        else
-          fail service-worker-script "$sw_url returned an empty body"
-        fi
-        ;;
-    esac
+    fail service-worker-registration "the page mentions serviceWorker but has no register( call, and $sw_url is not a JavaScript file"
   fi
+  sw_script_check "$sw_url"
+else
+  fail service-worker-registration "no navigator.serviceWorker.register( call or registerSW.js in the page or its scripts"
+  skip "no registration found" service-worker-script
 fi
 
 if [ "$fails" -gt 0 ]; then

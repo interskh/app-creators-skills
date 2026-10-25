@@ -17,15 +17,11 @@ if [ ! -d "$fixture" ]; then
   exit 1
 fi
 
-head_sha="$(cd "$fixture" && git rev-parse HEAD)"
-case "$head_sha" in
-  "$pin"*) ;;
-  *)
-    echo "scaffold: app-creators-fixtures is at $head_sha; check out $pin" >&2
-    exit 1
-    ;;
-esac
+if ! (cd "$fixture" && git cat-file -e "$pin^{commit}" 2>/dev/null); then
+  echo "scaffold: commit $pin is not in app-creators-fixtures; run git fetch there" >&2
+  exit 1
+fi
 
-(cd "$fixture" && git archive --format=tar HEAD .) | tar -xf -
+(cd "$fixture" && git archive --format=tar "$pin" .) | tar -xf -
 mkdir -p .app-creators
 cp "$case_dir/state.md" .app-creators/state.md

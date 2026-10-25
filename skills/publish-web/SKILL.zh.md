@@ -46,28 +46,28 @@
    构建失败就停下，把第一条错误给创作者看。
 
 2. 在本地检查 PWA 能否安装。默认：`scripts/check-pwa.sh`。备选：Chrome DevTools 的 Application 面板，Manifest 标签页里的 Installability 部分。
-   执行：`<pm> run preview`（Vite 在 4173 端口托管 `dist`）；`static` 和 Next.js 静态导出用 `python3 -I -m http.server 4173 --directory <output-dir>`。然后对服务器打印的地址运行 `bash scripts/check-pwa.sh --allow-http <preview-url>`。
+   执行：`<pm> run preview`（Vite 在 4173 端口托管 `dist`）；服务端渲染的 Next.js 应用用 `<pm> run start`（`next start`，3000 端口，先运行 `<pm> run build`）；`static` 和 Next.js 静态导出用 `python3 -I -m http.server 4173 --directory <output-dir>`。然后对服务器打印的地址运行 `bash scripts/check-pwa.sh --allow-http <preview-url>`。
    预期：每一行都是 `PASS`。出现 `FAIL` 时，按 `references/pwa-checklist.md` 修好 manifest、图标或 service worker，再重新构建。创作者说不需要安装支持时，继续往下，验证时跳过 PWA 那几行。检查完停掉预览服务器。
 
 3. 安装 CLI 并登录。默认：Vercel CLI。备选：Wrangler，先 `npm i -D wrangler@latest`，再 `npx wrangler login`。
    执行：`npm i -g vercel`；`vercel project ls` 报告未登录时，再运行 `vercel login`。
-   预期：`vercel project ls` 列出创作者 scope 下的项目。
+   预期：`vercel project ls` 列出创作者作用域下的项目。
 
-4. **effective**（有副作用）关联 Vercel 项目。默认：Vercel CLI。备选：`npx wrangler pages project list`，项目不存在时才运行 `npx wrangler pages project create <app.slug>`。
+4. **effective**（有副作用）关联 Vercel 项目。默认：Vercel CLI。备选：`npx wrangler pages project list`，项目不存在时才运行 `npx wrangler pages project create <app.slug> --production-branch=main`。
    先检查：`.vercel/project.json` 存在说明目录已经关联，直接复用，跳到第 5 步。否则运行 `vercel project ls --filter <app.slug>`。
    执行：`--filter` 按子串匹配，要找名字正好是 `<app.slug>` 的项目。有这个项目就运行 `vercel link --yes --project <app.slug>`；没有就先 `vercel project create <app.slug>`，再运行同一条 `vercel link` 命令。
-   预期：生成 `.vercel/project.json`，里面有 `orgId` 和 `projectId`。马上记下 `tools.deploy: vercel` 和 `targets.web.provider: vercel`。
+   预期：生成 `.vercel/project.json`，里面有 `orgId` 和 `projectId`。马上记下 `tools.deploy` 和 `targets.web.provider`，值为 `vercel`，走备选时为 `cloudflare-pages`。
 
-5. **effective**（有副作用）部署到生产环境。默认：Vercel CLI。备选：`npx wrangler pages deploy <output-dir> --project-name=<app.slug> --commit-hash=<sha>`；先在 `npx wrangler pages deployment list --project-name=<app.slug>` 里查这个 commit。
-   先检查：`git rev-parse HEAD` 得到 `<sha>`。`git status --porcelain -- . ':(exclude).vercel'` 有任何输出时，请创作者先 commit，让一次部署对应一个 commit（exclude 排除的是第 4 步创建的关联目录）。然后运行 `vercel list --prod --status READY -m commit=<sha>`。列出了部署就复用，跳过部署命令。
-   执行：`vercel deploy --prod --meta commit=<sha>`
-   预期：stdout 是这次部署的唯一 URL。新项目的第一次部署即使不加 `--prod` 也是生产部署。开了 Standard Protection 时，打开唯一 URL 可能要先登录 Vercel；生产域名仍然公开。生产域名在控制台里项目的 Overview 标签页查看。马上把 `targets.web.url` 记为这个生产域名的 HTTPS URL。在 Cloudflare Pages 上，生产域名是 `<app.slug>.pages.dev`。
+5. **effective**（有副作用）部署到生产环境。默认：Vercel CLI。备选：`npx wrangler pages deploy <output-dir> --project-name=<app.slug> --branch=main --commit-hash=<src>`；`--branch` 必须是项目的生产分支（项目在第 4 步之前就已存在时，问创作者），否则 Wrangler 会生成预览部署。先在 `npx wrangler pages deployment list --project-name=<app.slug>` 里查 `<src>`。
+   先检查（在 Git 仓库里）：`git status --porcelain -- . ':(exclude).app-creators' ':(exclude).vercel'` 有任何输出时，请创作者先 commit。`<src>` 是 `git log -1 --format=%H -- . ':(exclude).app-creators' ':(exclude).vercel'` 的结果，即最后一次改动应用的 commit，所以只改了状态文件的 commit 不会换掉这个键。`targets.web.url` 已有值时，运行 `vercel list --prod --status READY -m commit=<src>` 和 `vercel inspect <targets.web.url>`。`inspect` 显示的部署在这份列表里，说明生产环境已经在提供这份代码，直接复用，跳过部署命令。其他情况一律部署，包括任一命令失败。项目不在 Git 里，或者还没有任何 commit 时，跳过这项检查，部署时不加 `--meta`。
+   执行：`vercel deploy --prod --meta commit=<src>`
+   预期：标准输出是这次部署的唯一 URL。新项目的第一次部署即使不加 `--prod` 也是生产部署。开了 Standard Protection 时，打开唯一 URL 可能要先登录 Vercel；生产域名仍然公开，所以线上检查用生产域名。`targets.web.url` 为空时，请创作者提供 Vercel 控制台里项目 Overview 标签页显示的生产域名。马上把 `targets.web.url` 记为它的 HTTPS URL。在 Cloudflare Pages 上，生产域名是 `<app.slug>.pages.dev`，或者部署输出里打印的主机名。
 
 6. **effective**（有副作用）添加自定义域名（创作者给了域名才做）。默认：Vercel CLI。备选：Cloudflare 控制台，依次进入 Workers & Pages、该项目、Custom domains、Set up a domain。
    先检查：`vercel domains ls`。域名已经列在本项目下时，跳过添加命令。
    执行：`vercel domains add <domain> <app.slug>`，然后 `vercel domains verify <domain> --project <app.slug>`。
-   预期：verify 打印要设置的记录。根域名（`example.com`）用一条 `A` 记录。子域名（`www.example.com`）用一条 `CNAME`，指向项目专属的目标，值原样复制，包括末尾的句点。域名已被另一个 Vercel 账号使用时，先要在 `_vercel` 上加 `TXT` 记录。这些记录由创作者到 DNS 服务商那里添加。反复运行 verify，直到退出码为 0，再用 `vercel certs ls` 检查证书。记下 `targets.web.domain: <domain>`，并把 `targets.web.url` 改为 `<domain>` 的 HTTPS URL。
-   在 Cloudflare Pages 上，子域名要一条指向 `<app.slug>.pages.dev` 的 `CNAME`，先在控制台设置好域名再添加；根域名必须是同一个 Cloudflare 账号下的 zone。
+   预期：`vercel domains verify` 打印要设置的记录。根域名（`example.com`）用一条 `A` 记录。子域名（`www.example.com`）用一条 `CNAME`，指向项目专属的目标，值原样复制，包括末尾的句点。域名已被另一个 Vercel 账号使用时，先要在 `_vercel` 上加 `TXT` 记录。这些记录由创作者到 DNS 服务商那里添加。反复运行 `vercel domains verify`，直到退出码为 0，再用 `vercel certs ls` 检查证书。记下 `targets.web.domain: <domain>`，并把 `targets.web.url` 改为 `<domain>` 的 HTTPS URL。
+   在 Cloudflare Pages 上，子域名要一条指向 `<app.slug>.pages.dev` 的 `CNAME`，先在控制台设置好域名再添加；根域名必须是同一个 Cloudflare 账号下的区域（zone）。
 
 7. 检查线上站点。默认：`scripts/check-pwa.sh`。备选：对线上 URL 打开 Chrome DevTools 的 Application 面板，Manifest 标签页。
    执行：`bash scripts/check-pwa.sh <targets.web.url>`
@@ -91,7 +91,8 @@
 | Vercel 上的 Vite 单页应用，深层链接返回 404 | 没有重写到 `index.html` | 在 `vercel.json` 里加一条 `rewrites`，从 `/(.*)` 指向 `/index.html`，然后重新运行 `check-pwa.sh` |
 | Cloudflare Pages 自定义域名报 522 错误 | 在 Pages 控制台设置域名之前就加了 `CNAME` | 先在项目的 Custom domains 里设置域名，再保留这条 `CNAME` |
 | 有 512 图标，`check-pwa.sh` 却报 `FAIL icon-512x512: no icons entry ...` | 唯一的 512 图标是 `purpose: maskable` | 加一个 512x512 PNG 条目，不设 `purpose` 或设 `purpose: any` |
-| 本地预览上 `check-pwa.sh` 报 `FAIL https` | 本地预览用的是 http | 只在本地预览时加 `--allow-http`，线上 URL 绝不加 |
+| `check-pwa.sh` 报 `FAIL icon-...` 或 `FAIL service-worker-script`，提示 `served as text/html` | 构建输出里缺这个文件，一条重写到 `index.html` 的规则替它返回了内容 | 把文件放到构建会复制的位置（Vite 是 `public/`），重新构建，再重新部署 |
+| 本地预览上 `check-pwa.sh` 报 `FAIL https` | 本地预览用的是 HTTP | 只在本地预览时加 `--allow-http`，线上 URL 绝不加 |
 
 ## 更新状态
 
@@ -113,6 +114,7 @@
 - [Linking projects with Vercel CLI](https://vercel.com/docs/cli/project-linking)，核对于 2026-10-26。
 - [vercel project](https://vercel.com/docs/cli/project)，核对于 2026-10-26。
 - [vercel list](https://vercel.com/docs/cli/list)，核对于 2026-10-26。
+- [vercel inspect](https://vercel.com/docs/cli/inspect)，核对于 2026-10-26。
 - [vercel domains](https://vercel.com/docs/cli/domains)，核对于 2026-10-26。
 - [vercel login](https://vercel.com/docs/cli/login)，核对于 2026-10-26。
 - [Vercel CLI global options](https://vercel.com/docs/cli/global-options)，核对于 2026-10-26。
@@ -135,8 +137,11 @@
 - [Cloudflare Pages custom domains](https://developers.cloudflare.com/pages/configuration/custom-domains/)，核对于 2026-10-26。
 - [Vite: deploying a static site](https://vite.dev/guide/static-deploy)，核对于 2026-10-26。
 - [Next.js static exports](https://nextjs.org/docs/app/guides/static-exports)，核对于 2026-10-26。
+- [Next.js CLI: next start](https://nextjs.org/docs/app/api-reference/cli/next)，核对于 2026-10-26。
+- [Next.js: deploying as a Node.js server](https://nextjs.org/docs/app/getting-started/deploying)，核对于 2026-10-26。
 - [web.dev: What does it take to be installable?](https://web.dev/articles/install-criteria)，核对于 2026-10-26。
 - [Chrome DevTools: debug Progressive Web Apps](https://developer.chrome.com/docs/devtools/progressive-web-apps/)，核对于 2026-10-26。
 - [MDN: Making PWAs installable](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Making_PWAs_installable)，核对于 2026-10-26。
 - [MDN: manifest icons](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Manifest/Reference/icons)，核对于 2026-10-26。
 - [MDN: ServiceWorkerContainer.register()](https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerContainer/register)，核对于 2026-10-26。
+- [W3C Service Workers: JavaScript MIME type requirement](https://w3c.github.io/ServiceWorker/)，核对于 2026-10-26。

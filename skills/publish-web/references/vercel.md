@@ -1,20 +1,16 @@
 # Vercel CLI for publish-web
 
-Commands the skill uses, in the order it uses them, with what each
-doc says about them. Everything here comes from the Vercel docs listed
-under Sources, checked 2026-10-26.
+Commands the skill uses, in order. From the Vercel docs under Sources,
+checked 2026-10-26.
 
 ## Install and sign in
 
-- Install: `npm i -g vercel` (or `pnpm i -g vercel`). Update by running
-  the install again with `vercel@latest`.
-- Interactive sign-in: `vercel login`.
-- Non-interactive (CI, scripts): the CLI reads the `VERCEL_TOKEN`
-  environment variable. A `--token` flag also exists, but the docs
-  recommend the variable because flags show up in process lists and
-  logs. Never write the token into the repo or `state.md`.
-- `--non-interactive` runs a command without prompts. The CLI turns it
-  on by default when it detects an agent.
+- Install: `npm i -g vercel`; rerun with `vercel@latest` to update.
+  Interactive sign-in: `vercel login`.
+- CI and scripts: the CLI reads `VERCEL_TOKEN` (preferred over `--token`,
+  which shows in process lists). Never write the token to the repo or
+  `state.md`. `--non-interactive` skips prompts; it is on by default
+  when the CLI detects an agent.
 
 ## Projects and linking
 
@@ -24,11 +20,9 @@ under Sources, checked 2026-10-26.
 - `vercel link` links the current directory to a project. `--yes` skips
   the questions; `--yes --project <name>` picks a project that does not
   match the directory name.
-- Linking writes `.vercel/project.json` with `orgId` and `projectId`.
-  Removing `.vercel` unlinks the directory.
-- Project precedence: `--project` flag, then `VERCEL_PROJECT_ID`, then
-  `.vercel/project.json`. CI can set `VERCEL_ORG_ID` and
-  `VERCEL_PROJECT_ID` instead of linking.
+- Linking writes `.vercel/project.json` (`orgId`, `projectId`); removing
+  `.vercel` unlinks. CI can set `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID`
+  instead (precedence: `--project`, the variable, the link file).
 - When the CLI creates a project it detects the framework and offers
   its build command and output directory. With the "Other" preset the
   output directory is `public` if it exists, else the project root.
@@ -42,12 +36,19 @@ under Sources, checked 2026-10-26.
 - stdout is always the deployment URL; errors go to stderr, and a
   non-zero exit code means failure.
 - `--meta KEY=value` attaches metadata. `vercel list -m KEY=value`
-  filters on it; the skill uses `commit=<sha>` so a rerun can find the
-  deployment it already made.
+  filters on it. The skill uses `commit=<src>`, where `<src>` is the
+  last commit that changed files outside `.app-creators/` and
+  `.vercel/`, so committing `state.md` does not change the key.
 - `vercel list --prod` shows only production deployments;
-  `--status READY` keeps only successful ones.
+  `--status READY` keeps only successful ones. The docs do not state
+  the sort order, so the skill does not take "first row" as current.
 - `vercel inspect <url>` shows a deployment; `--logs` prints its build
-  logs and `--wait` blocks until it finishes.
+  logs and `--wait` blocks until it finishes. The skill runs it on the
+  production domain to see which deployment is current; the output
+  format is not documented, so any failure means "deploy".
+- `vercel promote <url>` makes an existing deployment current, but the
+  promotion docs limit it to staged deployments; one that was current
+  before needs a rollback. The skill redeploys instead.
 - Each deployment gets a unique URL. Under Standard Protection that URL
   needs a Vercel login, while production domains stay public, so run
   `check-pwa.sh` against the production domain.
@@ -84,6 +85,8 @@ under Sources, checked 2026-10-26.
 - https://vercel.com/docs/cli/project (checked 2026-10-26)
 - https://vercel.com/docs/cli/list (checked 2026-10-26)
 - https://vercel.com/docs/cli/inspect (checked 2026-10-26)
+- https://vercel.com/docs/cli/promote (checked 2026-10-26)
+- https://vercel.com/docs/deployments/promoting-a-deployment (checked 2026-10-26)
 - https://vercel.com/docs/cli/domains (checked 2026-10-26)
 - https://vercel.com/docs/cli/login (checked 2026-10-26)
 - https://vercel.com/docs/cli/global-options (checked 2026-10-26)

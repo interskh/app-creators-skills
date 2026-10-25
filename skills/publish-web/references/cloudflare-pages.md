@@ -47,9 +47,11 @@ Vercel.
   `--commit-hash <sha>` attaches the commit SHA to the deployment. The
   docs do not show the list output; check that it carries the SHA
   before relying on it to skip a deploy.
-- `--branch <branch>` deploys a preview at
-  `<branch>.<name>.pages.dev`. In a Git workspace Wrangler reads the
-  branch itself.
+- `--branch <branch>` picks the branch. Any branch other than the
+  production branch gives a preview at `<branch>.<name>.pages.dev`, and
+  in a Git workspace Wrangler takes the current branch when the flag is
+  absent. So the skill always passes `--branch=<production branch>`
+  (`main` when step 4 created the project with `--production-branch=main`).
 - Wrangler uploads one folder, not a zip. Limits: 20,000 files and
   25 MiB per file.
 - A Direct Upload project cannot switch to Git integration later; Git

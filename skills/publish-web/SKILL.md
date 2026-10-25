@@ -65,22 +65,22 @@ Readiness gate. `readiness.web.result: fail` stops the skill; tell the creator t
    If the build fails, stop and show the creator the first error.
 
 2. Check PWA installability locally. Default: `scripts/check-pwa.sh`. Alternative: Chrome DevTools, Application panel, Manifest tab, Installability section.
-   Run: `<pm> run preview` (Vite serves `dist` on port 4173), or `python3 -I -m http.server 4173 --directory <output-dir>` for `static` and a Next.js export. Then `bash scripts/check-pwa.sh --allow-http <preview-url>` against the address the server prints.
+   Run: `<pm> run preview` (Vite serves `dist` on port 4173); `<pm> run start` for a server-rendered Next.js app (`next start`, port 3000, after `<pm> run build`); or `python3 -I -m http.server 4173 --directory <output-dir>` for `static` and a Next.js export. Then `bash scripts/check-pwa.sh --allow-http <preview-url>` against the address the server prints.
    Expect: every line `PASS`. On a `FAIL`, fix the manifest, icons, or service worker with `references/pwa-checklist.md` and rebuild. If the creator says install support is not wanted, continue and skip the PWA lines in Verify. Stop the preview server afterwards.
 
 3. Install the CLI and sign in. Default: Vercel CLI. Alternative: Wrangler, `npm i -D wrangler@latest`, then `npx wrangler login`.
    Run: `npm i -g vercel`, then `vercel login` if `vercel project ls` reports that you are not logged in.
    Expect: `vercel project ls` prints the projects in the creator's scope.
 
-4. **effective** Link the Vercel project. Default: Vercel CLI. Alternative: `npx wrangler pages project list`, then `npx wrangler pages project create <app.slug>` only if it is absent.
+4. **effective** Link the Vercel project. Default: Vercel CLI. Alternative: `npx wrangler pages project list`, then `npx wrangler pages project create <app.slug> --production-branch=main` only if it is absent.
    Check first: if `.vercel/project.json` exists, the directory is already linked; reuse it and skip to step 5. Otherwise run `vercel project ls --filter <app.slug>`.
    Run: `--filter` matches substrings, so look for a project named exactly `<app.slug>`. If it exists, `vercel link --yes --project <app.slug>`. If not, `vercel project create <app.slug>`, then the same `vercel link` command.
-   Expect: `.vercel/project.json` with `orgId` and `projectId`. Record `tools.deploy: vercel` and `targets.web.provider: vercel` right away.
+   Expect: `.vercel/project.json` with `orgId` and `projectId`. Record `tools.deploy` and `targets.web.provider` right away: `vercel`, or `cloudflare-pages` on the alternative.
 
-5. **effective** Deploy to production. Default: Vercel CLI. Alternative: `npx wrangler pages deploy <output-dir> --project-name=<app.slug> --commit-hash=<sha>`; check `npx wrangler pages deployment list --project-name=<app.slug>` for this commit first.
-   Check first: `git rev-parse HEAD` gives `<sha>`. If `git status --porcelain -- . ':(exclude).vercel'` prints anything, ask the creator to commit, so one deployment maps to one commit (the exclude skips the link directory step 4 created). Then run `vercel list --prod --status READY -m commit=<sha>`. If it lists a deployment, reuse it and skip the deploy command.
-   Run: `vercel deploy --prod --meta commit=<sha>`
-   Expect: stdout is the unique deployment URL. The first deployment of a new project is production even without `--prod`. The unique URL can require a Vercel login under Standard Protection; production domains stay public. Read the production domain from the project's Overview tab in the dashboard. Record `targets.web.url` as the HTTPS URL of that production domain right away. On Cloudflare Pages the production domain is `<app.slug>.pages.dev`.
+5. **effective** Deploy to production. Default: Vercel CLI. Alternative: `npx wrangler pages deploy <output-dir> --project-name=<app.slug> --branch=main --commit-hash=<src>`; `--branch` must be the project's production branch (ask the creator if the project existed before step 4), or Wrangler makes a preview. Check `npx wrangler pages deployment list --project-name=<app.slug>` for `<src>` first.
+   Check first, in git: if `git status --porcelain -- . ':(exclude).app-creators' ':(exclude).vercel'` prints anything, ask the creator to commit. `<src>` is `git log -1 --format=%H -- . ':(exclude).app-creators' ':(exclude).vercel'`, the last commit that changed the app, so state-only commits keep the key. If `targets.web.url` is set, run `vercel list --prod --status READY -m commit=<src>` and `vercel inspect <targets.web.url>`. If the deployment `inspect` shows is in that list, production already serves this code: reuse it and skip the deploy command. In every other case, including either command failing, deploy. Not in git, or no commits yet: skip this check and deploy without `--meta`.
+   Run: `vercel deploy --prod --meta commit=<src>`
+   Expect: stdout is the unique deployment URL. The first deployment of a new project is production even without `--prod`. The unique URL can require a Vercel login under Standard Protection; production domains stay public, so the live checks use the production domain. If `targets.web.url` is empty, ask the creator for the production domain shown on the project's Overview tab in the Vercel dashboard. Record `targets.web.url` as its HTTPS URL right away. On Cloudflare Pages the production domain is `<app.slug>.pages.dev`, or the host the deploy output prints.
 
 6. **effective** Add the custom domain (only if the creator gave one). Default: Vercel CLI. Alternative: Cloudflare dashboard, Workers & Pages, the project, Custom domains, Set up a domain.
    Check first: `vercel domains ls`. If the domain is listed for this project, skip the add command.
@@ -110,6 +110,7 @@ Provider details and more commands: `references/vercel.md`, `references/cloudfla
 | Deep links in a Vite single-page app return 404 on Vercel | No rewrite to `index.html` | Add a `rewrites` entry from `/(.*)` to `/index.html` in `vercel.json`, then rerun `check-pwa.sh` |
 | Cloudflare Pages custom domain shows error 522 | The `CNAME` was added before the domain was set up in the Pages dashboard | Set up the domain under the project's Custom domains first, then keep the `CNAME` |
 | `check-pwa.sh`: `FAIL icon-512x512: no icons entry ...` while a 512 icon exists | The only 512 icon has `purpose: maskable` | Add a 512x512 PNG entry with no `purpose` or `purpose: any` |
+| `check-pwa.sh`: `FAIL icon-...` or `FAIL service-worker-script` saying `served as text/html` | The file is missing from the build output and a rewrite to `index.html` answers for it | Put the file where the build copies it (Vite: `public/`), rebuild, and redeploy |
 | `check-pwa.sh`: `FAIL https` on a local preview | Local previews use http | Pass `--allow-http` for the local preview only, never for the live URL |
 
 ## Update state
@@ -132,6 +133,7 @@ Read the whole frontmatter, change only these fields, append one `history` row, 
 - [Linking projects with Vercel CLI](https://vercel.com/docs/cli/project-linking), checked 2026-10-26.
 - [vercel project](https://vercel.com/docs/cli/project), checked 2026-10-26.
 - [vercel list](https://vercel.com/docs/cli/list), checked 2026-10-26.
+- [vercel inspect](https://vercel.com/docs/cli/inspect), checked 2026-10-26.
 - [vercel domains](https://vercel.com/docs/cli/domains), checked 2026-10-26.
 - [vercel login](https://vercel.com/docs/cli/login), checked 2026-10-26.
 - [Vercel CLI global options](https://vercel.com/docs/cli/global-options), checked 2026-10-26.
@@ -154,8 +156,11 @@ Read the whole frontmatter, change only these fields, append one `history` row, 
 - [Cloudflare Pages custom domains](https://developers.cloudflare.com/pages/configuration/custom-domains/), checked 2026-10-26.
 - [Vite: deploying a static site](https://vite.dev/guide/static-deploy), checked 2026-10-26.
 - [Next.js static exports](https://nextjs.org/docs/app/guides/static-exports), checked 2026-10-26.
+- [Next.js CLI: next start](https://nextjs.org/docs/app/api-reference/cli/next), checked 2026-10-26.
+- [Next.js: deploying as a Node.js server](https://nextjs.org/docs/app/getting-started/deploying), checked 2026-10-26.
 - [web.dev: What does it take to be installable?](https://web.dev/articles/install-criteria), checked 2026-10-26.
 - [Chrome DevTools: debug Progressive Web Apps](https://developer.chrome.com/docs/devtools/progressive-web-apps/), checked 2026-10-26.
 - [MDN: Making PWAs installable](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Making_PWAs_installable), checked 2026-10-26.
 - [MDN: manifest icons](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Manifest/Reference/icons), checked 2026-10-26.
 - [MDN: ServiceWorkerContainer.register()](https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerContainer/register), checked 2026-10-26.
+- [W3C Service Workers: JavaScript MIME type requirement](https://w3c.github.io/ServiceWorker/), checked 2026-10-26.
