@@ -369,6 +369,66 @@ mutant redirect-empty-remainder
 edit 's/^\(中文版：先读 SKILL.zh.md。\).*/\1  /' "$m/SKILL.md"
 expect_rule redirect-empty-remainder redirect-line "$m"
 
+drop_folded='/^  \[What this skill does/d;/^  Use when the creator says/d;/^  \[中文触发词/d'
+
+mutant description-quoted-multiline
+edit 's/^description: >$/description: "Deploy apps./' "$m/SKILL.md"
+edit "s/^  \[What this skill does.*/  $(long_text 700)/;s/^  Use when the creator says.*/  $(long_text 700)/;s/^  \[中文触发词.*/  done.\"/" "$m/SKILL.md"
+expect_rule description-quoted-multiline description-length "$m"
+
+mutant description-quoted-multiline-short
+edit 's/^description: >$/description: "Deploy apps./' "$m/SKILL.md"
+edit 's/^  \[中文触发词.*/  done."/' "$m/SKILL.md"
+expect_clean "quoted multi-line description under the limit" "$m"
+
+mutant description-escaped-quote
+edit "$drop_folded" "$m/SKILL.md"
+edit "s/^description: >$/description: \"Deploy \\\\\"apps\\\\\" $(long_text 2000)\"/" "$m/SKILL.md"
+expect_rule description-escaped-quote description-length "$m"
+
+mutant description-doubled-single-quote
+edit "$drop_folded" "$m/SKILL.md"
+edit "s/^description: >$/description: 'it''s $(long_text 2000)'/" "$m/SKILL.md"
+expect_rule description-doubled-single-quote description-length "$m"
+
+mutant description-quoted-one-line
+edit "$drop_folded" "$m/SKILL.md"
+edit 's/^description: >$/description: "Deploy \\"apps\\" to Vercel."   # one line/' "$m/SKILL.md"
+expect_clean "quoted one-line description" "$m"
+
+mutant description-plain-comment-line
+edit 's/^description: >$/description: Deploy apps./' "$m/SKILL.md"
+edit "s/^  \[What this skill does.*/  # $(long_text 1100)/" "$m/SKILL.md"
+expect_clean "comment line inside plain continuation is skipped" "$m"
+
+mutant description-next-line
+edit 's/^description: >$/description:/' "$m/SKILL.md"
+expect_clean "description value starting on the next line" "$m"
+
+mutant description-next-line-long
+edit 's/^description: >$/description:/' "$m/SKILL.md"
+edit "s/^  \[What this skill does.*/  $(long_text 2000)/" "$m/SKILL.md"
+expect_rule description-next-line-long description-length "$m"
+total=$((total + 1))
+if printf '%s\n' "$out" | grep -q 'chars; max 1024'; then pass=$((pass + 1)); else fail "next-line description is measured" "want a length finding, got: $out"; fi
+
+mutant verified-date-row-other-date
+edit 's/^  verified: .*/  verified: "2026-10-26"/;s/^  verified_version: .*/  verified_version: "0.1.0"/' "$m/SKILL.md"
+printf '| 2026-01-01 | 4 | 0.1.0 | vite+vercel | real | live | |\n' >> "$m/references/verified-runs.md"
+expect_rule verified-date-row-other-date verified-consistency "$m"
+
+mutant secret-like-stripe-restricted
+printf '\nkey %s%s\n' "rk_live_" "$fake" >> "$m/references/verified-runs.md"
+expect_rule secret-like-stripe-restricted secret-like "$m"
+
+mutant secret-like-url-encoded-bearer
+printf '\nAuthorization: Bearer%%20%s%s\n' "sk-proj-" "$fake" >> "$m/references/verified-runs.md"
+expect_rule secret-like-url-encoded-bearer secret-like "$m"
+
+mutant task-management-word
+printf '\nSee the %s%s guide.\n' "task-management-skill-" "$(long_text 30 | tr ' ' '-')" >> "$m/references/verified-runs.md"
+expect_clean "task-management-skill word is not a secret" "$m"
+
 if [ "$pass" -eq "$total" ]; then
   echo "PASS $pass/$total"
   exit 0

@@ -10,7 +10,7 @@ ZH_HEADINGS=("何时使用" "你需要准备" "开始之前" "步骤" "验证" "
 RUNS_HEADER='| date | level | skill_version | route | account | outcome | notes |'
 NAME_RE='^[a-z0-9]([a-z0-9-]*[a-z0-9])?$'
 SEMVER_RE='^[0-9]+\.[0-9]+\.[0-9]+$'
-SECRET_RE='AKIA[0-9A-Z]{16}|(^|[^A-Za-z0-9_-])sk-[A-Za-z0-9_-]{20,}|sk_(live|test)_[A-Za-z0-9]{10,}|github_pat_[A-Za-z0-9_]{20,}|ghp_[A-Za-z0-9]{30,}|xox[baprs]-|-----BEGIN [A-Z ]*PRIVATE KEY'
+SECRET_RE='AKIA[0-9A-Z]{16}|sk-(proj|ant|svcacct)-[A-Za-z0-9_-]{20,}|(^|[^A-Za-z0-9_-])sk-[A-Za-z0-9_-]{20,}|sk_(live|test)_[A-Za-z0-9]{10,}|rk_(live|test)_[A-Za-z0-9]{10,}|github_pat_[A-Za-z0-9_]{20,}|ghp_[A-Za-z0-9]{30,}|xox[baprs]-|-----BEGIN [A-Z ]*PRIVATE KEY'
 ASSIGN_RE="(token|secret|password|api[_-]?key)[[:space:]]*[:=][[:space:]]*['\"]?[A-Za-z0-9/+_-]{16,}"
 
 usage() {
@@ -27,11 +27,22 @@ report() {
 parse_frontmatter() {
   awk -v q="'" '
     function trim(v) { sub(/^[ \t]+/, "", v); sub(/[ \t]+$/, "", v); return v }
+    function qclose(v, c,  i, ch) {
+      for (i = 1; i <= length(v); i++) {
+        ch = substr(v, i, 1)
+        if (c == "\"" && ch == "\\") { i++; continue }
+        if (ch == c) {
+          if (c == q && substr(v, i + 1, 1) == q) { i++; continue }
+          return i
+        }
+      }
+      return 0
+    }
     function strip(v,  c, i) {
       v = trim(v)
       c = substr(v, 1, 1)
       if (c == "\"" || c == q) {
-        i = index(substr(v, 2), c)
+        i = qclose(substr(v, 2), c)
         if (i > 0) return substr(v, 1, i + 1)
         return v
       }
@@ -42,13 +53,22 @@ parse_frontmatter() {
     function clean(v,  c) {
       v = strip(v)
       c = substr(v, 1, 1)
-      if (length(v) >= 2 && (c == "\"" || c == q) && substr(v, length(v), 1) == c) return substr(v, 2, length(v) - 2)
+      if (length(v) >= 2 && (c == "\"" || c == q) && substr(v, length(v), 1) == c) {
+        v = substr(v, 2, length(v) - 2)
+        if (c == q) gsub(q q, q, v)
+        else gsub(/\\"/, "\"", v)
+      }
       return v
     }
-    function emit(k, v,  s) {
+    function emit(k, v,  s, c) {
       s = strip(v)
-      if (s ~ /^[>|][-+]?$/) { fold = k; foldline = NR; foldval = ""; return }
-      if (cont && s != "" && substr(s, 1, 1) != "\"" && substr(s, 1, 1) != q) { fold = k; foldline = NR; foldval = s; return }
+      c = substr(s, 1, 1)
+      fold = k; foldline = NR; foldval = ""
+      if (s ~ /^[>|][-+]?$/) { mode = "block"; return }
+      if (cont && s == "") { mode = "pending"; return }
+      if (cont && (c == "\"" || c == q) && qclose(substr(s, 2), c) == 0) { mode = "quote"; qc = c; foldval = s; return }
+      if (cont && s != "" && c != "\"" && c != q) { mode = "plain"; foldval = s; return }
+      fold = ""
       print k "\t" NR "\t" clean(v)
     }
     function flush() {
@@ -57,10 +77,25 @@ parse_frontmatter() {
     }
     NR == 1 { next }
     $0 == "---" { flush(); exit }
+    fold != "" && mode == "quote" {
+      t = trim($0)
+      foldval = foldval (t == "" ? "" : " " t)
+      i = qclose(substr(foldval, 2), qc)
+      if (i > 0) { print fold "\t" foldline "\t" clean(substr(foldval, 1, i + 1)); fold = "" }
+      next
+    }
     fold != "" && ($0 ~ /^[ \t]/ || $0 == "") {
       t = trim($0)
-      if (t != "") foldval = (foldval == "" ? t : foldval " " t)
-      next
+      if (mode == "pending") {
+        if (t == "" || substr(t, 1, 1) == "#") next
+        if (t ~ /^[A-Za-z_][A-Za-z0-9_-]*:/) flush()
+        else mode = "plain"
+      }
+      if (fold != "") {
+        if (mode == "plain" && substr(t, 1, 1) == "#") next
+        if (t != "") foldval = (foldval == "" ? t : foldval " " t)
+        next
+      }
     }
     { flush() }
     /^[A-Za-z_][A-Za-z0-9_-]*:/ {
@@ -199,12 +234,12 @@ check_metadata() {
   elif [[ "$verified" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
     if [ -z "$version" ]; then
       report "$md" "$fm_line" verified-consistency "verified is a date but verified_version is empty; set the semver that level-4 run exercised"
-    elif [[ "$version" =~ $SEMVER_RE ]] && [ -f "$runs" ] && ! awk -F'|' -v v="$version" '
+    elif [[ "$version" =~ $SEMVER_RE ]] && [ -f "$runs" ] && ! awk -F'|' -v v="$version" -v d="$verified" '
         function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
-        trim($3) == "4" && trim($4) == v { found = 1; exit }
+        trim($2) == d && trim($3) == "4" && trim($4) == v { found = 1; exit }
         END { exit !found }
       ' "$runs"; then
-      report "$md" "$fm_line" verified-consistency "verified is a date but references/verified-runs.md has no level 4 row for skill_version $version"
+      report "$md" "$fm_line" verified-consistency "verified is $verified but references/verified-runs.md has no level 4 row dated $verified for skill_version $version"
     fi
   fi
 }
