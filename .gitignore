@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+
+# Local tooling state
+.claude/
+.serena/
+.superpowers/
+.playwright-mcp/
+*.log
+logs/
