@@ -150,3 +150,32 @@ Orchestrator note (gate): skills.sh discovery verified. `npx skills add <local p
 - A trailing ` # comment` on a plain continuation line is still joined into the value. It was not in scope, and it can only over-count.
 
 implement-loop: slice A shipped 55f17ad; remaining: [B, C]
+
+## Slice B — Task 1 — todo-vite fixture
+
+Fixtures commit: `95c2f95` in `../app-creators-fixtures` (todo-vite at that sha is the pin for the eval cases).
+
+Resolved versions: vite 8.3.4, vite-plugin-pwa 1.3.0, typescript 6.0.3.
+PWA artifacts emitted in `dist/` (generateSW mode): `manifest.webmanifest`, `registerSW.js`, `sw.js`, `workbox-<hash>.js` (this build: `workbox-9c191d2f.js`). The index links `<link rel="manifest" href="/manifest.webmanifest">`.
+
+**Decisions**
+- Two TS modules: `src/main.ts` (DOM and events) and `src/store.ts` (one `localStorage` key, `todo-vite:items`). A bad stored value loads as an empty list.
+- Added `src/vite-env.d.ts` (`/// <reference types="vite/client" />`). Without it, `tsc` fails with TS2882 on `import './style.css'`. It is a declaration file, not a module. This matches the house project.
+- Manifest stays inline in `vite.config.ts`. vite-plugin-pwa defaults are used (no `workbox` options). The default precache picks up the manifest icons (8 entries).
+- Icons are solid blue with a white square. A `zlib` + `struct` script generated them. The maskable icon has a smaller square, so it stays inside the safe zone. The generator is not committed.
+- The list renders with `createElement` and `textContent`. User text never goes through `innerHTML`.
+
+**Rejected**
+- `overrides` to move `glob` off 11.x: that changes the fixture's dependency graph away from a plain vite-plugin-pwa install.
+- (doer) A root `.gitleaksignore`: it adds a shared file outside the task paths, and its line-keyed fingerprint moves on every lockfile change. Overruled by the orchestrator, see Deferred.
+- `/// <reference types="vite-plugin-pwa/client" />`: the app does not import `virtual:pwa-register`, because `registerSW.js` is injected.
+
+**Assumptions**
+- `npm audit` reports 2 transitive advisories under workbox-build (fast-uri, serialize-javascript). `npm audit fix` changed nothing within the ranges. These are build-time only. Check with `npm audit` in `todo-vite/`.
+
+**Deferred**
+- Commit blocker, resolved by the orchestrator: privacy-scan BLOCK `email-address` at `todo-vite/package-lock.json:3519`. The match is the npm registry `deprecated` text of `glob@11.1.0` (via `vite-plugin-pwa -> workbox-build@7.4.1`, range `^11.0.1`). Every glob 11.x carries this text, so `npm update` cannot remove it. Judged a false positive (public registry metadata, not project data) and recorded in the fixtures repo's `.gitleaksignore` by gitleaks fingerprint, which is the scanner's own false-positive route; `--no-verify` was not used. The fingerprint is line-keyed: re-add it when the lockfile is regenerated.
+- No browser smoke test (not required by the brief).
+
+**Touches**
+- `../app-creators-fixtures`: new `todo-vite/` tree, one line in root `README.md`, root `.gitleaksignore`. No shared surface in the skills repo.
