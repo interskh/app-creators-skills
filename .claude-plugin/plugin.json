@@ -1,0 +1,20 @@
+{
+  "name": "app-creators",
+  "displayName": "App Creators",
+  "version": "0.1.0",
+  "description": "Skills that help a creator publish an AI-built app, get users, and make money from it.",
+  "author": {
+    "name": "App Creators contributors"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/<owner>/app-creators-skills",
+  "keywords": [
+    "publish",
+    "app-store",
+    "google-play",
+    "pwa",
+    "monetization",
+    "user-acquisition",
+    "skills"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "app-creators",
+  "owner": {
+    "name": "App Creators contributors"
+  },
+  "description": "App Creators skills for publishing, user acquisition, and monetization of AI-built apps.",
+  "plugins": [
+    {
+      "name": "app-creators",
+      "source": "./",
+      "description": "Skills that help a creator publish an AI-built app, get users, and make money from it."
+    }
+  ]
+}

@@ -13,7 +13,7 @@ them.
 
 ## Install
 
-Placeholders until the repository is published.
+Replace `<owner>` with the GitHub owner once the repository is published.
 
 ```bash
 # Claude Code
