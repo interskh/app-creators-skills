@@ -59,3 +59,39 @@
 - `templates/skill/SKILL.md`, `templates/skill/SKILL.zh.md`, `templates/skill/references/verified-runs.md`, `scripts/new-skill.sh`, `docs/SKILL-CONVENTIONS.md`.
 - Shared surface: the en and zh heading sets, the first-line redirect string, and the template frontmatter keys; task-3 lint hardcodes against these.
 - Collision for task 3: spec A.3 says "lint passes on the template", but `__NAME__`/`__STAGE__`/`__PLATFORM__` fail name-equals-directory and the enums. Task 3 must lint a generated copy (`new-skill.sh` into a temp dir) or exempt the tokens under `templates/`.
+
+## Task 3 — Lint script and CI
+
+**Decisions**
+- Template mode is set when the dir's physical path is under `$root/templates/` (not a substring "/templates/" check): it skips `name-matches-dir` and accepts `__NAME__`/`__STAGE__`/`__PLATFORM__`. A test proves a real skill with `stage: __STAGE__` still fails `metadata-stage`.
+- `export LC_ALL=C` at the top: macOS awk in a UTF-8 locale compared `验证` and `来源` as equal (strcoll), which hid zh URL findings. Byte comparison is exact for headings and the redirect line.
+- Description length counts UTF-8 characters (`tr -d '\200-\277' | wc -c`), not bytes; a test with an ~800-char CJK description (>2400 bytes) must pass.
+- `secret-like` exempts assignment values shaped like env var names (`^[A-Z][A-Z0-9_]*$`, e.g. `api_key: CLOUDFLARE_API_TOKEN`). The finding never echoes the matched text.
+- Scanned for secrets: `*.md`, `*.sh`, `*.py`, and anything under the skill's `scripts/`.
+- `##` heading extraction skips fenced code blocks; URL check also tracks sections outside fences.
+- A frontmatter-present failure skips the field rules (they would be noise); body rules still run.
+- An empty body reports `redirect-line` at line 0 (test `empty-body`), so every finding keeps the `path:line:` shape.
+- Missing dir / no SKILL.md / `-flag` arg → exit 2. No-arg mode `cd`s to the repo root and prints `skills/<name>` paths.
+- Tests: the fixture repo lives in mktemp (copies of `new-skill.sh`, `lint-skills.sh`, template); each mutant is at `mutants/<case>/good-skill/` so the name still matches the dir. Assertions match `:<line>: <rule>: ` (so `metadata-verified` cannot match `metadata-verified-version`) and check every output line's format.
+- Credential-shaped fixtures are built at runtime by concatenation; the test file holds no literal key.
+- CI: the four steps as given, `permissions: contents: read`, only `actions/checkout@v4`.
+
+**Rejected**
+- An ERR trap mapping every failure to exit 2: it would also fire on grep no-match in subshells; exit 2 is explicit at usage/missing-dir points only.
+- Bash associative arrays / mapfile: macOS ships bash 3.2 (the local run used it).
+- Linting a generated copy instead of the template: template mode keeps `lint templates/skill` a direct CI step.
+- Scanning every file for secrets: the task names .md and script files only.
+
+**Assumptions**
+- GNU grep/sed/mawk behavior on ubuntu-latest was not exercised locally (no gawk/gsed/ggrep/mawk here); the first CI run is the check. The constructs used: ERE without `\s`, no awk intervals, `grep -o`, `sed -E`.
+- The credential regex literals in `scripts/lint-skills.sh` are patterns, not values; `privacy-scan` has no per-file mode, so its verdict on them shows only at `--staged`/`--range`.
+- "Under 300 lines" means NR < 300 (awk NR, so a missing final newline still counts).
+
+**Deferred**
+- `npx skills add <path> --list`: `skills` CLI not installed, and `npx` would fetch it from the network; the skills.sh discovery check moves to Registry submission (roadmap Slice 1).
+- `skills-ref validate` in CI: not installed; spec §7.
+- shellcheck: not installed locally; not run.
+
+**Touches**
+- `scripts/lint-skills.sh`, `tests/lint-skills.test.sh`, `.github/workflows/lint.yml`.
+- Shared surface: lint hardcodes the en/zh heading sets, the redirect string, and the verified-runs header from task 2's template; any change there must update `scripts/lint-skills.sh` too.

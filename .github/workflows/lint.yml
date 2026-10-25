@@ -1,0 +1,22 @@
+name: lint
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint rule tests
+        run: bash tests/lint-skills.test.sh
+      - name: Lint skills
+        run: bash scripts/lint-skills.sh
+      - name: Lint template
+        run: bash scripts/lint-skills.sh templates/skill
+      - name: Plugin manifests parse
+        run: python3 -I -c 'import json;[json.load(open(p)) for p in (".claude-plugin/plugin.json",".claude-plugin/marketplace.json")]'
