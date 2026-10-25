@@ -244,6 +244,131 @@ mutant secret-like-pem
 printf '\n%s%s\n' "-----BEGIN RSA " "PRIVATE KEY-----" >> "$m/references/verified-runs.md"
 expect_rule secret-like-pem secret-like "$m"
 
+mutant secret-like-sk-proj
+printf '\nkey %s%s\n' "sk-proj-" "$fake" >> "$m/references/verified-runs.md"
+expect_rule secret-like-sk-proj secret-like "$m"
+
+mutant secret-like-sk-ant
+printf '\nkey %s%s\n' "sk-ant-api03-" "$fake" >> "$m/references/verified-runs.md"
+expect_rule secret-like-sk-ant secret-like "$m"
+
+mutant secret-like-stripe
+printf '\nkey %s%s\n' "sk_live_" "$fake" >> "$m/references/verified-runs.md"
+expect_rule secret-like-stripe secret-like "$m"
+
+mutant secret-like-github-pat
+printf '\nkey %s%s\n' "github_pat_" "$fake" >> "$m/references/verified-runs.md"
+expect_rule secret-like-github-pat secret-like "$m"
+
+mutant sk-inside-word
+printf '\nRun the %s%s checklist.\n' "task-" "$(long_text 30 | tr ' ' '-')" >> "$m/references/verified-runs.md"
+expect_clean "sk- inside a hyphenated word is not a secret" "$m"
+
+mutant secret-like-caps-value
+printf '\napi_key: %s%s\n' "K7Q2M9X4" "W8R3T6Y1ZZ" >> "$m/references/verified-runs.md"
+expect_rule secret-like-caps-value secret-like "$m"
+
+total=$((total + 1))
+if printf '%s\n' "$out" | grep -q "K7Q2M9X4""W8R3T6Y1ZZ"; then fail "secret not printed" "finding echoed the matched text: $out"; else pass=$((pass + 1)); fi
+
+mkdir -p "$tmp/fakebin"
+printf '#!/bin/sh\nexit 2\n' > "$tmp/fakebin/grep"
+chmod +x "$tmp/fakebin/grep"
+total=$((total + 1))
+set +e
+out="$(PATH="$tmp/fakebin:$PATH" bash "$lint" "$good" 2>&1)"
+code=$?
+set -e
+if [ "$code" -eq 2 ] && printf '%s\n' "$out" | grep -q ':0: tool-error: '; then pass=$((pass + 1)); else fail "grep error is a tool-error" "want exit 2 with tool-error, got $code: $out"; fi
+
+mutant conventions-frontmatter
+conv="$tmp/mutants/conventions-frontmatter/publish-web"
+mv "$m" "$conv"
+{
+  awk '/^```yaml$/ { on = 1; next } on && /^```$/ { exit } on' "$root/docs/SKILL-CONVENTIONS.md"
+  tail -n +16 "$conv/SKILL.md"
+} > "$conv/SKILL.md.tmp"
+mv "$conv/SKILL.md.tmp" "$conv/SKILL.md"
+expect_clean "SKILL-CONVENTIONS.md frontmatter with inline comments" "$conv"
+
+mutant description-folded-comment
+edit 's/^description: >$/description: >   # max 1024 chars/' "$m/SKILL.md"
+edit "s/^  \[What this skill does.*/  $(long_text 2000)/" "$m/SKILL.md"
+expect_rule description-folded-comment description-length "$m"
+
+mutant description-plain-multiline
+edit "s/^description: >$/description: Deploy apps./" "$m/SKILL.md"
+edit "s/^  \[What this skill does.*/  $(long_text 700)/" "$m/SKILL.md"
+edit "s/^  Use when the creator says.*/  $(long_text 700)/" "$m/SKILL.md"
+edit "s/^  \[中文触发词.*/  $(long_text 700)/" "$m/SKILL.md"
+expect_rule description-plain-multiline description-length "$m"
+
+mutant description-plain-multiline-short
+edit "s/^description: >$/description: Deploy apps./" "$m/SKILL.md"
+expect_clean "plain multi-line description under the limit" "$m"
+
+mutant metadata-four-space
+edit 's/^metadata:$/metadata:   # Claude Code fields/' "$m/SKILL.md"
+edit 's/^  \([a-z_]*:\)/    \1/' "$m/SKILL.md"
+expect_clean "metadata children with four-space indent" "$m"
+
+mutant metadata-mapping
+edit 's/^metadata:$/metadata: []/' "$m/SKILL.md"
+expect_rule metadata-mapping metadata-mapping "$m"
+
+mutant metadata-mapping-braces
+edit 's/^metadata:$/metadata: {}/' "$m/SKILL.md"
+expect_rule metadata-mapping-braces metadata-mapping "$m"
+
+total=$((total + 1))
+cp -R "$tmp/repo" "$tmp/repo-broken"
+mkdir -p "$tmp/repo-broken/skills/broken"
+printf '# broken\n' > "$tmp/repo-broken/skills/broken/README.md"
+set +e
+out="$(cd "$tmp/repo-broken" && bash scripts/lint-skills.sh 2>&1)"
+code=$?
+set -e
+if [ "$code" -eq 1 ] && [ "$out" = "skills/broken/SKILL.md:0: skill-md-present: every directory under skills/ is a skill and needs SKILL.md" ]; then pass=$((pass + 1)); else fail "no-arg scan reports dir without SKILL.md" "got $code: $out"; fi
+
+mutant zh-line-budget
+i=0
+while [ "$i" -lt 320 ]; do echo "填充"; i=$((i + 1)); done >> "$m/SKILL.zh.md"
+expect_rule zh-line-budget line-budget "$m"
+
+mutant verified-date-no-version
+edit 's/^  verified: .*/  verified: "2026-10-26"/' "$m/SKILL.md"
+expect_rule verified-date-no-version verified-consistency "$m"
+
+mutant verified-date-no-row
+edit 's/^  verified: .*/  verified: "2026-10-26"/;s/^  verified_version: .*/  verified_version: "0.1.0"/' "$m/SKILL.md"
+printf '| 2026-10-26 | 3 | 0.1.0 | vite+vercel | fixture | live | |\n| 2026-10-26 | 4 | 0.0.9 | vite+vercel | real | live | |\n' >> "$m/references/verified-runs.md"
+expect_rule verified-date-no-row verified-consistency "$m"
+
+mutant verified-date-matching-row
+edit 's/^  verified: .*/  verified: "2026-10-26"/;s/^  verified_version: .*/  verified_version: "0.1.0"/' "$m/SKILL.md"
+printf '| 2026-10-26 | 4 | 0.1.0 | vite+vercel | real | live | |\n' >> "$m/references/verified-runs.md"
+expect_clean "verified date with matching level 4 row" "$m"
+
+mutant unverified-with-version
+edit 's/^  verified_version: .*/  verified_version: "0.1.0"/' "$m/SKILL.md"
+expect_rule unverified-with-version verified-consistency "$m"
+
+mutant redirect-extra-space
+edit 's/^中文版：先读 SKILL.zh.md。If the creator/中文版：先读 SKILL.zh.md。 If the  creator/' "$m/SKILL.md"
+expect_clean "redirect line with an extra space" "$m"
+
+mutant redirect-dropped-word
+edit 's/^\(中文版：先读 SKILL.zh.md。.*\) and follow it instead\./\1 and follow it./' "$m/SKILL.md"
+expect_clean "redirect line with a dropped word" "$m"
+
+mutant redirect-no-prefix
+edit 's/^中文版：先读 SKILL.zh.md。/先读 SKILL.zh.md。/' "$m/SKILL.md"
+expect_rule redirect-no-prefix redirect-line "$m"
+
+mutant redirect-empty-remainder
+edit 's/^\(中文版：先读 SKILL.zh.md。\).*/\1  /' "$m/SKILL.md"
+expect_rule redirect-empty-remainder redirect-line "$m"
+
 if [ "$pass" -eq "$total" ]; then
   echo "PASS $pass/$total"
   exit 0

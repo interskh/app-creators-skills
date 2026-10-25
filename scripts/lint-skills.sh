@@ -4,13 +4,13 @@ export LC_ALL=C
 
 root="$(cd "$(dirname "$0")/.." && pwd -P)"
 
-REDIRECT='中文版：先读 SKILL.zh.md。If the creator writes in Chinese, read SKILL.zh.md and follow it instead.'
+REDIRECT_PREFIX='中文版：先读 SKILL.zh.md。'
 EN_HEADINGS=("When to use" "What you must provide" "Before you start" "Steps" "Verify" "Troubleshooting" "Update state" "Sources")
 ZH_HEADINGS=("何时使用" "你需要准备" "开始之前" "步骤" "验证" "排查" "更新状态" "来源")
 RUNS_HEADER='| date | level | skill_version | route | account | outcome | notes |'
 NAME_RE='^[a-z0-9]([a-z0-9-]*[a-z0-9])?$'
 SEMVER_RE='^[0-9]+\.[0-9]+\.[0-9]+$'
-SECRET_RE='AKIA[0-9A-Z]{16}|sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{30,}|xox[baprs]-|-----BEGIN [A-Z ]*PRIVATE KEY'
+SECRET_RE='AKIA[0-9A-Z]{16}|(^|[^A-Za-z0-9_-])sk-[A-Za-z0-9_-]{20,}|sk_(live|test)_[A-Za-z0-9]{10,}|github_pat_[A-Za-z0-9_]{20,}|ghp_[A-Za-z0-9]{30,}|xox[baprs]-|-----BEGIN [A-Z ]*PRIVATE KEY'
 ASSIGN_RE="(token|secret|password|api[_-]?key)[[:space:]]*[:=][[:space:]]*['\"]?[A-Za-z0-9/+_-]{16,}"
 
 usage() {
@@ -25,16 +25,30 @@ report() {
 }
 
 parse_frontmatter() {
-  awk '
+  awk -v q="'" '
     function trim(v) { sub(/^[ \t]+/, "", v); sub(/[ \t]+$/, "", v); return v }
-    function clean(v) {
+    function strip(v,  c, i) {
       v = trim(v)
-      if (v ~ /^".*"$/ || v ~ /^\047.*\047$/) return substr(v, 2, length(v) - 2)
+      c = substr(v, 1, 1)
+      if (c == "\"" || c == q) {
+        i = index(substr(v, 2), c)
+        if (i > 0) return substr(v, 1, i + 1)
+        return v
+      }
+      if (substr(v, 1, 1) == "#") return ""
       sub(/[ \t]+#.*$/, "", v)
       return v
     }
-    function emit(k, v) {
-      if (trim(v) ~ /^[>|][-+]?$/) { fold = k; foldline = NR; foldval = ""; return }
+    function clean(v,  c) {
+      v = strip(v)
+      c = substr(v, 1, 1)
+      if (length(v) >= 2 && (c == "\"" || c == q) && substr(v, length(v), 1) == c) return substr(v, 2, length(v) - 2)
+      return v
+    }
+    function emit(k, v,  s) {
+      s = strip(v)
+      if (s ~ /^[>|][-+]?$/) { fold = k; foldline = NR; foldval = ""; return }
+      if (cont && s != "" && substr(s, 1, 1) != "\"" && substr(s, 1, 1) != q) { fold = k; foldline = NR; foldval = s; return }
       print k "\t" NR "\t" clean(v)
     }
     function flush() {
@@ -51,10 +65,12 @@ parse_frontmatter() {
     { flush() }
     /^[A-Za-z_][A-Za-z0-9_-]*:/ {
       k = $0; sub(/:.*/, "", k); v = $0; sub(/^[^:]*:/, "", v)
-      top = k; emit(k, v); next
+      top = k; indent = 0; cont = 1; emit(k, v); cont = 0; next
     }
-    top == "metadata" && /^  [A-Za-z_][A-Za-z0-9_-]*:/ {
-      k = $0; sub(/^ +/, "", k); sub(/:.*/, "", k); v = $0; sub(/^[^:]*:/, "", v)
+    top == "metadata" && /^ +[A-Za-z_][A-Za-z0-9_-]*:/ {
+      k = $0; match(k, /^ +/); if (indent == 0) indent = RLENGTH
+      if (RLENGTH != indent) next
+      sub(/^ +/, "", k); sub(/:.*/, "", k); v = $0; sub(/^[^:]*:/, "", v)
       emit("metadata." k, v); next
     }
   ' "$1"
@@ -126,26 +142,71 @@ check_urls() {
 }
 
 secret_lines() {
-  local f="$1" m v
+  local f="$1" shapes assigns rc m v
+  rc=0
+  shapes="$(grep -nE -e "$SECRET_RE" "$f")" || rc=$?
+  [ "$rc" -le 1 ] || return 2
+  rc=0
+  assigns="$(grep -noiE -e "$ASSIGN_RE" "$f")" || rc=$?
+  [ "$rc" -le 1 ] || return 2
   {
-    grep -nE -e "$SECRET_RE" "$f" | cut -d: -f1 || true
-    grep -noiE -e "$ASSIGN_RE" "$f" | while IFS= read -r m; do
-      v="${m#*:}"
-      v="$(printf '%s' "$v" | sed -E "s/^[^:=]*[:=][[:space:]]*['\"]?//")"
-      if ! [[ "$v" =~ ^[A-Z][A-Z0-9_]*$ ]]; then
-        printf '%s\n' "${m%%:*}"
-      fi
-    done || true
+    if [ -n "$shapes" ]; then
+      printf '%s\n' "$shapes" | cut -d: -f1
+    fi
+    if [ -n "$assigns" ]; then
+      while IFS= read -r m; do
+        v="${m#*:}"
+        v="$(printf '%s' "$v" | sed -E "s/^[^:=]*[:=][[:space:]]*['\"]?//")"
+        if ! [[ "$v" =~ ^[A-Z][A-Z0-9]*_[A-Z0-9_]*$ ]]; then
+          printf '%s\n' "${m%%:*}"
+        fi
+      done <<< "$assigns"
+    fi
   } | sort -un
 }
 
 check_secrets() {
-  local dir="$1" f n
+  local dir="$1" f n lines
   while IFS= read -r f; do
+    if ! lines="$(secret_lines "$f")"; then
+      printf '%s:0: tool-error: grep failed while scanning for secrets\n' "$f" >&2
+      exit 2
+    fi
+    [ -n "$lines" ] || continue
     while IFS= read -r n; do
       report "$f" "$n" secret-like "credential-shaped string; keep secrets out of the repo and name the env var instead"
-    done < <(secret_lines "$f")
+    done <<< "$lines"
   done < <(find "$dir" -type f \( -name '*.md' -o -name '*.sh' -o -name '*.py' -o -path "$dir/scripts/*" \) | sort)
+}
+
+check_metadata() {
+  local md="$1" runs="$2" verified version
+  check_field "$md" metadata-stage metadata.stage "$3" "one of publish | acquire | monetize | core"
+  check_field "$md" metadata-platform metadata.platform "$4" "one of web | ios | android | all"
+  check_field "$md" metadata-version metadata.version "$SEMVER_RE" "semver X.Y.Z"
+  check_field "$md" metadata-verified metadata.verified '^(unverified|[0-9]{4}-[0-9]{2}-[0-9]{2})$' "\"unverified\" or YYYY-MM-DD"
+  check_field "$md" metadata-verified-version metadata.verified_version '^([0-9]+\.[0-9]+\.[0-9]+)?$' "\"\" or semver X.Y.Z"
+  check_field "$md" metadata-zh metadata.zh '^SKILL\.zh\.md$' "SKILL.zh.md"
+
+  fm_get metadata.verified_version || true
+  version="$fm_val"
+  fm_get metadata.verified || return 0
+  verified="$fm_val"
+  if [ "$verified" = "unverified" ]; then
+    if [ -n "$version" ]; then
+      report "$md" "$fm_line" verified-consistency "verified is \"unverified\" but verified_version is '$version'; set it to \"\""
+    fi
+  elif [[ "$verified" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+    if [ -z "$version" ]; then
+      report "$md" "$fm_line" verified-consistency "verified is a date but verified_version is empty; set the semver that level-4 run exercised"
+    elif [[ "$version" =~ $SEMVER_RE ]] && [ -f "$runs" ] && ! awk -F'|' -v v="$version" '
+        function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
+        trim($3) == "4" && trim($4) == v { found = 1; exit }
+        END { exit !found }
+      ' "$runs"; then
+      report "$md" "$fm_line" verified-consistency "verified is a date but references/verified-runs.md has no level 4 row for skill_version $version"
+    fi
+  fi
 }
 
 lint_skill() {
@@ -192,19 +253,24 @@ lint_skill() {
       platform_re='^(web|ios|android|all|__PLATFORM__)$'
     fi
     check_field "$md" license-mit license '^MIT$' "MIT"
-    check_field "$md" metadata-stage metadata.stage "$stage_re" "one of publish | acquire | monetize | core"
-    check_field "$md" metadata-platform metadata.platform "$platform_re" "one of web | ios | android | all"
-    check_field "$md" metadata-version metadata.version "$SEMVER_RE" "semver X.Y.Z"
-    check_field "$md" metadata-verified metadata.verified '^(unverified|[0-9]{4}-[0-9]{2}-[0-9]{2})$' "\"unverified\" or YYYY-MM-DD"
-    check_field "$md" metadata-verified-version metadata.verified_version '^([0-9]+\.[0-9]+\.[0-9]+)?$' "\"\" or semver X.Y.Z"
-    check_field "$md" metadata-zh metadata.zh '^SKILL\.zh\.md$' "SKILL.zh.md"
+    if fm_get metadata && [ -n "$fm_val" ]; then
+      report "$md" "$fm_line" metadata-mapping "metadata: must be followed only by an indented block of fields"
+    else
+      check_metadata "$md" "$runs" "$stage_re" "$platform_re"
+    fi
   fi
 
   first="$(awk -v s="$((close + 1))" 'NR >= s && $0 !~ /^[[:space:]]*$/ { print NR "\t" $0; exit }' "$md")"
   [ -n "$first" ] || first="0"$'\t'
-  if [ "${first#*$'\t'}" != "$REDIRECT" ]; then
-    report "$md" "${first%%$'\t'*}" redirect-line "first body line must be exactly: $REDIRECT"
-  fi
+  local rest="${first#*$'\t'}"
+  case "$rest" in
+    "$REDIRECT_PREFIX"*) rest="${rest#"$REDIRECT_PREFIX"}" ;;
+    *) rest="" ;;
+  esac
+  case "$rest" in
+    *SKILL.zh.md*) ;;
+    *) report "$md" "${first%%$'\t'*}" redirect-line "first body line must start with '$REDIRECT_PREFIX' and add one sentence naming SKILL.zh.md" ;;
+  esac
 
   check_headings "$md" heading-order "${EN_HEADINGS[@]}"
 
@@ -222,6 +288,10 @@ lint_skill() {
       report "$zh" 1 zh-heading-parity "SKILL.zh.md must not have frontmatter"
     fi
     check_headings "$zh" zh-heading-parity "${ZH_HEADINGS[@]}"
+    n="$(awk 'END { print NR }' "$zh")"
+    if [ "$n" -ge 300 ]; then
+      report "$zh" 0 line-budget "SKILL.zh.md has $n lines; must be under 300"
+    fi
     check_urls "$zh" "来源"
   fi
 
@@ -247,7 +317,7 @@ if [ "$#" -gt 0 ]; then
 else
   cd "$root"
   for d in skills/*/; do
-    if [ -f "${d}SKILL.md" ]; then
+    if [ -d "$d" ]; then
       dirs+=("${d%/}")
     fi
   done
@@ -255,8 +325,12 @@ fi
 
 count=0
 for d in ${dirs[@]+"${dirs[@]}"}; do
-  lint_skill "$d"
   count=$((count + 1))
+  if [ ! -f "$d/SKILL.md" ]; then
+    report "$d/SKILL.md" 0 skill-md-present "every directory under skills/ is a skill and needs SKILL.md"
+    continue
+  fi
+  lint_skill "$d"
 done
 
 if [ "$findings" -gt 0 ]; then
