@@ -148,3 +148,5 @@ Orchestrator note (gate): skills.sh discovery verified. `npx skills add <local p
 
 **Deferred**
 - A trailing ` # comment` on a plain continuation line is still joined into the value. It was not in scope, and it can only over-count.
+
+implement-loop: slice A shipped 55f17ad; remaining: [B, C]
