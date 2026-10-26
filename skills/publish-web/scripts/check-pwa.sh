@@ -169,15 +169,74 @@ resolve_url() {
 
 strip_comments() {
   LC_ALL=C awk '
+    function opener(t, name) { return match(t, "<" name "[[:space:]/>]") ? RSTART : 0 }
+    { s = s $0 "\n" }
+    END {
+      low = tolower(s)
+      out = ""
+      while (1) {
+        c = index(low, "<!--")
+        name = "script"
+        r = opener(low, "script")
+        t = opener(low, "style")
+        if (t && (!r || t < r)) { name = "style"; r = t }
+        if (!c && !r) break
+        if (r && (!c || r < c)) {
+          e = index(substr(low, r), ">")
+          k = e ? index(substr(low, r + e), "</" name) : 0
+          if (!k) break
+          k = r + e + k - 1
+          out = out substr(s, 1, k - 1)
+          s = substr(s, k)
+          low = substr(low, k)
+          continue
+        }
+        out = out substr(s, 1, c - 1)
+        s = substr(s, c + 4)
+        low = substr(low, c + 4)
+        j = index(low, "-->")
+        if (!j) { s = ""; break }
+        s = substr(s, j + 3)
+        low = substr(low, j + 3)
+      }
+      printf "%s%s", out, s
+    }
+  ' "$1"
+}
+
+strip_js_comments() {
+  LC_ALL=C awk '
+    function opens(i,   p) {
+      p = i > 1 ? substr(s, i - 1, 1) : substr(out, length(out), 1)
+      return p == "" || p ~ /[[:space:];{}(,]/
+    }
     { s = s $0 "\n" }
     END {
       out = ""
-      while ((i = index(s, "<!--")) > 0) {
-        out = out substr(s, 1, i - 1)
-        s = substr(s, i + 4)
-        j = index(s, "-->")
-        if (j == 0) { s = ""; break }
-        s = substr(s, j + 3)
+      while (1) {
+        b = index(s, "/*")
+        l = index(s, "//")
+        if (!b && !l) break
+        if (b && (!l || b < l)) {
+          e = opens(b) ? index(substr(s, b + 2), "*/") : 0
+          if (e) {
+            out = out substr(s, 1, b - 1)
+            s = substr(s, b + e + 3)
+          } else {
+            out = out substr(s, 1, b + 1)
+            s = substr(s, b + 2)
+          }
+          continue
+        }
+        if (opens(l)) {
+          out = out substr(s, 1, l - 1)
+          s = substr(s, l + 2)
+          e = index(s, "\n")
+          s = e ? substr(s, e) : ""
+        } else {
+          out = out substr(s, 1, l + 1)
+          s = substr(s, l + 2)
+        }
       }
       printf "%s%s", out, s
     }
@@ -382,11 +441,7 @@ else
 fi
 
 # 4. Service worker
-cp "$tmp/page.raw.html" "$tmp/haystack"
-found=0
-if grep -qE 'serviceWorker\.register\(|registerSW\.js' "$tmp/page.raw.html"; then
-  found=1
-fi
+cp "$tmp/page.html" "$tmp/haystack.raw"
 n=0
 while IFS= read -r src; do
   [ -n "$src" ] || continue
@@ -394,12 +449,15 @@ while IFS= read -r src; do
   [ "$n" -le 10 ] || break
   fetch "$(resolve_url "$page_url" "$src")" "$tmp/script"
   if fetched; then
-    cat "$tmp/script" >>"$tmp/haystack"
-    if grep -q 'serviceWorker\.register(' "$tmp/script"; then
-      found=1
-    fi
+    printf '\n' >>"$tmp/haystack.raw"
+    cat "$tmp/script" >>"$tmp/haystack.raw"
   fi
 done < <(html_tags scripts "$tmp/page.html")
+strip_js_comments "$tmp/haystack.raw" >"$tmp/haystack"
+found=0
+if grep -qE 'serviceWorker\.register\(|registerSW\.js' "$tmp/haystack"; then
+  found=1
+fi
 
 sw_script_check() {
   if ! fetched; then

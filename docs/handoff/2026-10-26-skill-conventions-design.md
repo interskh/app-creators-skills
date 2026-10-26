@@ -311,4 +311,33 @@ Fresh whole-run reviewer: no blockers; three defects and a tail, fixed in round 
 - Codex: "both cases deny Bash while requiring `check-pwa.sh`" — the run rule forbids Bash until a fixture-only account exists; the README documents the ceiling and the nightly form.
 - `vercel promote` in step 5: docs limit it to staged deployments.
 
+## Follow-up — check-pwa.sh comment handling
+
+**Decisions**
+- F1: `strip_comments` finds the earliest of `<!--`, `<script`, `<style` (case-insensitive, name followed by whitespace, `/` or `>`); a script/style body is copied verbatim up to its `</script`/`</style` and never scanned for `<!--`. `<!-- <script> -->` stays a comment because the earliest opener wins.
+- Bodies are kept, not blanked, so `page.html` serves both tag extraction (unchanged) and the page part of the registration haystack.
+- F2: haystack = `page.html` + loaded scripts (newline between each), then `strip_js_comments`; `found`, the `sw_ref` grep, and the inference grep all read that cleaned file. The separate raw-page and per-script `found` greps are gone.
+- `//` starts a comment only at text start or after whitespace, `;`, `{`, `}`, `(`, `,`; so `https://` survives.
+- `/*` gets the same preceding-character guard, and an unguarded or unclosed `/*` is kept (copy two chars, keep scanning): `"image/*" … "*/*"` in a one-line minified bundle would otherwise wipe the register call between them (test case `globs`).
+- No `metadata.version` bump: same 12 checks, same output lines; only which register call is picked and which tags are seen changed. `pwa-checklist.md` updated for both rules.
+- Test: one `python3 -m http.server` per case on port 0 (port read from its `-u` stdout), files built with printf; 12 assertions over 11 sites. `urlsw` uses `http://127.0.0.1:<port>/app/sw.js` (local server; the `/app/` path makes a lost call visible, since the `sw.js` fallback would pass).
+
+**Rejected**
+- String-aware JS tokenizer: regex literals with quotes (`/'/`) flip its state on a minified one-line bundle, so it trades one false result for another at much more code.
+- Applying JS stripping only inside page script bodies: needs a second HTML-aware pass; HTML text rarely holds `register(` and `//` after `"`/`=` is kept.
+- One server for all cases in subdirectories: the cases use absolute `/sw.js` paths as on a real deploy.
+- node static server: python3 is on ubuntu-latest and macOS; node is optional for check-pwa itself (jq fallback).
+
+**Assumptions**
+- ubuntu-latest's awk (gawk or mawk) handles `match` with a dynamic `[[:space:]/>]` regex; check: the CI step `check-pwa tests`. Only BWK awk (macOS) was run locally; no bash 5 or docker on this host.
+- Python's `http.server` serves `.png` as `image/png` and `.js` as a JavaScript MIME type (3.12+: `text/javascript`).
+
+**Deferred**
+- A string holding ` // ` or ` /* … */` (space before) in a one-line bundle still strips text; the todo-vite fixture still passes 12/12. A real-app counterexample would justify a tokenizer.
+- `>` inside a quoted attribute of the `<script>` open tag ends the tag early (pre-existing in `html_tags` too).
+- Unregister-only page still reads as registered by inference (needs JS execution).
+
+**Touches**
+- `skills/publish-web/scripts/check-pwa.sh`, `skills/publish-web/references/pwa-checklist.md`, new `tests/check-pwa.test.sh`, `.github/workflows/lint.yml` (new step after the lint rule tests). SKILL.md/SKILL.zh.md untouched.
+
 implement-loop: slice B deferred: level-3 run and live-URL proof await a fixture-only Vercel account (B.1, B.2, fixture, eval case shipped e5b39dd); remaining: [C]

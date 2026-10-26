@@ -39,6 +39,7 @@ lists `window-controls-overlay` for `display`; MDN has it only under
 - Icon `src` resolves against the manifest URL, not the page URL. The
   manifest `href` resolves against the page URL after redirects, and
   HTML comments are removed before the page is scanned for tags.
+  `<!--` inside a `<script>` or `<style>` body does not open a comment.
 - A transfer that fails after the status line (timeout, truncation)
   fails the check, whatever the status code.
 - Every run prints the same 12 check lines; a check that cannot run
@@ -69,8 +70,11 @@ The script checks for one, for offline support and for that prompt:
   (`text/javascript`, `application/javascript`, `text/javascript1.0`
   to `1.5`, `text/jscript`, and the `x-`/`ecmascript`/`livescript`
   variants), case-insensitive, parameters ignored. `text/plain`,
-  `application/octet-stream`, or a `text/html` fallback page fail. The
-  raw page is searched for registration (`<!--` can sit in inline JS).
+  `application/octet-stream`, or a `text/html` fallback page fail.
+  Registration is searched after HTML comments and JS comments
+  (`/* … */` and `//` at line start or after whitespace, `;`, `{`,
+  `}`, `(`, `,`; so `https://` and `"image/*"` stay) are removed, so a
+  commented-out `register('/old-sw.js')` is not picked.
 
 `register()` rejects a script URL that is not on a trustworthy origin
 (HTTPS or localhost) or not same-origin with the page.
