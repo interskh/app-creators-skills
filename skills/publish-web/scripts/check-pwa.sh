@@ -255,6 +255,48 @@ html_awk='
     name_end = k
     return tolower(s)
   }
+  function attrs(k, j,   c, nm, v) {
+    split("", A)
+    an = 0
+    while (k < j) {
+      if (index(" \t\n\r\f/", hc[k])) { k++; continue }
+      nm = hc[k++]
+      while (k < j && !index(" \t\n\r\f/=", hc[k])) nm = nm hc[k++]
+      while (k < j && index(" \t\n\r\f", hc[k])) k++
+      v = ""
+      if (k < j && hc[k] == "=") {
+        for (k++; k < j && index(" \t\n\r\f", hc[k]); k++) ;
+        c = hc[k]
+        if (k < j && (c == "\"" || c == q)) {
+          for (k++; k < j && hc[k] != c; k++) v = v hc[k]
+          k++
+        } else {
+          while (k < j && !index(" \t\n\r\f", hc[k])) v = v hc[k++]
+        }
+      }
+      nm = tolower(nm)
+      if (!(nm in A)) { A[nm] = v; AN[++an] = nm }
+    }
+  }
+  function unent(v,   out, p, r, e) {
+    out = ""
+    while ((p = index(v, "&")) > 0) {
+      out = out substr(v, 1, p - 1)
+      v = substr(v, p)
+      r = "&"
+      e = 1
+      if (substr(v, 1, 6) == "&quot;" || substr(v, 1, 6) == "&#x22;") { r = "\""; e = 6 }
+      else if (substr(v, 1, 5) == "&#34;") { r = "\""; e = 5 }
+      else if (substr(v, 1, 5) == "&#39;") { r = q; e = 5 }
+      else if (substr(v, 1, 6) == "&#x27;" || substr(v, 1, 6) == "&apos;") { r = q; e = 6 }
+      else if (substr(v, 1, 4) == "&lt;") { r = "<"; e = 4 }
+      else if (substr(v, 1, 4) == "&gt;") { r = ">"; e = 4 }
+      else if (substr(v, 1, 5) == "&amp;") { r = "&"; e = 5 }
+      out = out r
+      v = substr(v, e + 1)
+    }
+    return out v
+  }
 '
 
 strip_comments() {
@@ -314,6 +356,17 @@ strip_comments() {
         j = tag_end(i)
         if (j > n) break
         name = tag_name(i, j)
+        for (x = name_end; x < j && !(index("oO", hc[x]) && index("nN", hc[x + 1])); x++) ;
+        if (x < j && hc[i + 1] != "/") {
+          attrs(name_end, j)
+          for (x = 1; x <= an; x++) {
+            if (substr(AN[x], 1, 2) != "on") continue
+            m = split(unent(A[AN[x]]), oc, "")
+            js_reset()
+            js(oc, 1, m)
+            printf "\n"
+          }
+        }
         if (name != "script" && name != "style") { i = j + 1; continue }
         put(from, j)
         b = j + 1
@@ -340,28 +393,6 @@ strip_js_comments() {
 
 html_tags() {
   LC_ALL=C awk -v mode="$1" -v q="'" "$html_awk"'
-    function attrs(k, j,   c, nm, v) {
-      split("", A)
-      while (k < j) {
-        if (index(" \t\n\r\f/", hc[k])) { k++; continue }
-        nm = hc[k++]
-        while (k < j && !index(" \t\n\r\f/=", hc[k])) nm = nm hc[k++]
-        while (k < j && index(" \t\n\r\f", hc[k])) k++
-        v = ""
-        if (k < j && hc[k] == "=") {
-          for (k++; k < j && index(" \t\n\r\f", hc[k]); k++) ;
-          c = hc[k]
-          if (k < j && (c == "\"" || c == q)) {
-            for (k++; k < j && hc[k] != c; k++) v = v hc[k]
-            k++
-          } else {
-            while (k < j && !index(" \t\n\r\f", hc[k])) v = v hc[k++]
-          }
-        }
-        nm = tolower(nm)
-        if (!(nm in A)) A[nm] = v
-      }
-    }
     function url(v) {
       gsub(/[\t\n\r]/, "", v)
       sub(/^[ \f]+/, "", v)

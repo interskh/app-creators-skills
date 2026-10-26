@@ -88,8 +88,10 @@ The script checks for one, for offline support and for that prompt:
   `application/octet-stream`, or a `text/html` fallback page fail.
   Only live calls count: `register("<url>")` with a quoted URL, found
   after HTML comments are removed from the page and JS comments from
-  each inline `<script>` body and each loaded script (one script at a
-  time; HTML and CSS text is never treated as JS). The script fetches
+  each inline `<script>` body, each inline event-handler attribute
+  (`onload="…"` and every other `on*` attribute, after decoding
+  `&quot;`, `&#39;`, `&amp;`, `&lt;`, `&gt;`), and each loaded script,
+  one at a time; other HTML and CSS text is never treated as JS. The script fetches
   up to five of them in page order and reports the first served with a
   JavaScript MIME type; if none is, it reports the first and
   `service-worker-script` says why it failed (the line notes when

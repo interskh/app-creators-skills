@@ -478,4 +478,24 @@ Fresh whole-run reviewer: no blockers; three defects and a tail, fixed in round 
 **Touches**
 - `check-pwa.sh` (`html_awk` new; `strip_comments` stdout semantics; `html_tags` rewritten; SW section), `pwa-checklist.md`, `tests/check-pwa.test.sh` (`raw_line`, `inferred_line`, `expect` html/skipped rule; 11 new cases).
 
+## Follow-up 2 — gate fix round 2
+
+**Decisions**
+- Inline event-handler attributes are live JS: in `strip_comments`, every opening tag whose text contains `on` gets `attrs()`; each attribute named `on*` (first occurrence, document order via `AN[]`) is entity-decoded (`&quot; &#34; &#x22; &#39; &#x27; &apos; &lt; &gt; &amp;`, left to right, so `&amp;quot;` stays `&quot;`), run through `js()`, and appended to stdout. The fail-closed rule is unchanged; raw-only URLs are still never accepted.
+- `attrs()` moved into the shared `html_awk`; `unent()` decodes by `index`/`substr` instead of `gsub`, because `&` in a `gsub` replacement differs across awks.
+- Cases: `onload-attr` (12 PASS), `onload-attr-entities`, `onload-commented`.
+
+**Rejected**
+- Decoding all HTML entities: the five plus `&apos;`/`&#x27;` cover minifier output; numeric and named entities beyond them are rare in handler code.
+
+**Evidence**
+- 48/48 and 77/77 under all three interpreter pairs; `lint-skills.sh` clean under gawk and mawk; fixture preview 12/12, exit 0. Bundles 1.56/1.69 s (unchanged); 12k-tag page 1.47 s (was 1.26; the `on` prefilter keeps `attrs()` off most tags).
+- Mutants 11/11: the nine from round 1 plus on* values skipped (4 cases) and entities not decoded (1).
+
+**Deferred**
+- Other entity forms (`&QUOT;`, `&#0034;`) inside handlers are not decoded: such a call is not seen as a quoted URL, so the page falls to `sw.js` inference (it still mentions `serviceWorker`) or FAILs.
+
+**Touches**
+- `check-pwa.sh` (`html_awk`: `attrs`, `unent`; `strip_comments` tag branch), `pwa-checklist.md`, `tests/check-pwa.test.sh`.
+
 implement-loop: slice B deferred: level-3 run and live-URL proof await a fixture-only Vercel account (B.1, B.2, fixture, eval case shipped e5b39dd); remaining: [C]

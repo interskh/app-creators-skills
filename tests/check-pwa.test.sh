@@ -263,6 +263,26 @@ page "$dir" '<link rel="manifest" href="/manifest.webmanifest"><script>navigator
 run_check
 expect "the first live call served as JavaScript is reported" 0 "$(reg_line /sw.js)"
 
+site onload-attr
+page "$dir" '<link rel="manifest" href="/manifest.webmanifest">'
+sed -i.bak "s|<body>|<body onload=\"navigator.serviceWorker.register('/sw.js')\">|" "$dir/index.html"
+run_check
+expect "a register call in an onload attribute is live JS" 0 "$(reg_line /sw.js)"
+total=$((total + 1))
+if [ "$(printf '%s\n' "$out" | grep -c '^PASS ')" -eq 12 ]; then pass=$((pass + 1)); else fail "onload-attr prints 12 PASS lines" "$out"; fi
+
+site onload-attr-entities
+page "$dir" '<link rel="manifest" href="/manifest.webmanifest">'
+sed -i.bak 's|<body>|<body onload="navigator.serviceWorker.register(\&quot;/sw.js\&quot;)">|' "$dir/index.html"
+run_check
+expect "&quot; in an onload attribute is decoded before the scan" 0 "$(reg_line /sw.js)"
+
+site onload-commented
+page "$dir" '<link rel="manifest" href="/manifest.webmanifest">'
+sed -i.bak "s|<body>|<body onload=\"/* navigator.serviceWorker.register('/old.js') */ navigator.serviceWorker.register('/sw.js')\">|" "$dir/index.html"
+run_check
+expect "a commented call in an onload attribute is skipped" 0 "$(reg_line /sw.js)"
+
 site varurl-oldcomment
 page "$dir" '<link rel="manifest" href="/manifest.webmanifest"><script>// navigator.serviceWorker.register("/old.js")
 var u="/sw.js";navigator.serviceWorker.register(u)</script>'
