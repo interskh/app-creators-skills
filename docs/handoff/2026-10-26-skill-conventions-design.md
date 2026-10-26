@@ -521,3 +521,30 @@ implement-loop: slice B deferred: level-3 run and live-URL proof await a fixture
 
 **Touches**
 - `docs/STATE.md` (new), `README.md` (one Contributing line). No skill, lint, or test file.
+
+## Slice C — Task 2 — app-creators SKILL.md and SKILL.zh.md
+
+**Decisions**
+- Detection: root listing only, first match wins: expo → flutter → xcode → kotlin → nextjs → vite → static → unknown (ask; `evidence: "creator"`). Enum is `xcode` per STATE.md.
+- Expo row follows the Expo app config reference, not the brief: properties sit under the `expo` key in `app.json`/`app.config.json` but at the top level of `app.config.js`/`.ts`, so the row is "`expo` key in app.json/app.config.json, or `expo` in `package.json` `dependencies`". A bare `app.config.ts` is not evidence (other frameworks use that name).
+- Intent mapping per STATE.md field notes: named → `wanted`, declined → `not-wanted`, unmentioned → `undecided`. outcome → `goal` (publish/acquire/monetize).
+- First run: recorded outcomes `unknown` (`targets.*.status`, `readiness.*.result`); `url`/`provider`/`domain`/`bundle_id`/`asc_app_id`/`package`, `accounts.*`, `tools.*`, `monetization.model` → `""`. `provided` is written as the STATE.md map with both `publish-readiness` leaves `""`, not a bare `""`.
+- Slug: drop an npm `@scope/` prefix before kebab-casing.
+- zh glossary: outcome 目标, destination 目标平台, detect 识别, not shipped yet 暂未提供, detected/provided facts 识别类事实/提供类事实, schema major 主版本号.
+- Token parity: check_tokens.py exit 0; 119/119 distinct inline spans, 238/238 occurrences; only count-only note is number `0.1.0` (en frontmatter `version`, zh has no frontmatter). Example YAML block byte-identical (diff), parses with PyYAML.
+
+**Rejected**
+- `app.config.js/ts` alone as an Expo signal: SolidStart and others ship `app.config.ts`.
+- Edit-tool partial writes on rerun: write discipline is one whole-file write.
+
+**Assumptions**
+- `Package.swift` with an `executableTarget` → `xcode` also catches CLI-only packages (brief mandates the row). Check when `publish-ios` ships.
+- `monetization.model: ""` is outside the STATE.md enum, but the brief and the "unknown is `""`" rule allow it. Check: STATE.md field table row for `monetization.model`.
+- Sources: Apple and swift.org human URLs are JS shells; content was confirmed through their `tutorials/data` / `data` JSON twins. Re-check with the same JSON paths.
+
+**Deferred**
+- Eval case and level-3 run (C.3). Expected output on fixture `todo-vite` @ 95c2f95: `framework.kind: vite`, `evidence: vite.config.ts` (no app.json/pubspec/xcodeproj/gradle/next.config; `index.html` loses to row 6), `package_manager: npm` (package-lock.json), `slug: todo-vite`, `languages: [en]`, web `"yes"`, ios/android `"no"`, next skill `publish-web`.
+- Migration branch (c) has no mapping until a schema major 2 exists.
+
+**Touches**
+- `skills/app-creators/` (new: SKILL.md, SKILL.zh.md, references/verified-runs.md from the template), `README.md` (Skills row, "Two skills so far").

@@ -8,13 +8,14 @@ coding tools. Install once; your agent learns how to ship to the App
 Store, Google Play, and the web, then how to get users and earn from
 them.
 
-**Status:** pre-release. One skill so far, not yet verified on a real
+**Status:** pre-release. Two skills so far, not yet verified on a real
 account. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ### Skills
 
 | skill | stage | platform | verified |
 |---|---|---|---|
+| `app-creators` | core | all | unverified |
 | `publish-web` | publish | web | unverified |
 
 ## Install
