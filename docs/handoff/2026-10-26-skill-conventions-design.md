@@ -340,4 +340,10 @@ Fresh whole-run reviewer: no blockers; three defects and a tail, fixed in round 
 **Touches**
 - `skills/publish-web/scripts/check-pwa.sh`, `skills/publish-web/references/pwa-checklist.md`, new `tests/check-pwa.test.sh`, `.github/workflows/lint.yml` (new step after the lint rule tests). SKILL.md/SKILL.zh.md untouched.
 
+## Follow-up — `names-vercel` grader no longer trivial
+
+**Decision:** both eval prompts drop the "I already have a Vercel account" sentence, so `names-vercel` (regex on the last message) checks that the skill names its default provider rather than echoing the prompt. The README grader line says so.
+**Evidence:** rerun 2026-10-26 (claude 2.1.310, `--runs 1 --ablation none --scaffold --no-publish`, no Bash): vite-en 0.8 (9 turns), vite-zh 0.8 (10 turns), total $0.53; `names-vercel` and `asks-only-human-prerequisites` pass in both; `ran-verify-script` fails as the declared ceiling.
+**Deferred:** `read-state` still passes on any Read naming `state.md`; a content assertion needs a grader type that can read the tool result.
+
 implement-loop: slice B deferred: level-3 run and live-URL proof await a fixture-only Vercel account (B.1, B.2, fixture, eval case shipped e5b39dd); remaining: [C]
