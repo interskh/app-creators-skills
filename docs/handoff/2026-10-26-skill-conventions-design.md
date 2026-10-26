@@ -432,4 +432,22 @@ Fresh whole-run reviewer: no blockers; three defects and a tail, fixed in round 
 **Touches**
 - `skills/publish-web/scripts/check-pwa.sh` (`js()` signature now `(array, from, to)`, `strip_comments` takes a second path), `skills/publish-web/references/pwa-checklist.md`, `tests/check-pwa.test.sh` (`reg_line` now expects ` (static scan)`).
 
+## Follow-up 2 — eval graders that cannot pass for the wrong reason
+
+**Decisions**
+- `read-state` is an `llm` judge on the trace: PASS only if `.app-creators/state.md` was read and its Vite + web facts were used instead of asked for. The old `tool_used: Read` grader passed on any Read naming `state.md`, even against an empty workspace.
+- `names-vercel` is an `llm` judge on the final message: PASS only if Vercel is recommended as the deployment path; a mention or a rejection fails. The old substring regex could not tell them apart.
+- Both fixture `state.md` files now record `accounts.vercel: missing` (allowed values per spec §4.1: `has | missing`). With `has`, the earlier run's final message cited "state.md says you have a Vercel account", so the recommendation was partly an echo of the state file. With `missing`, it can only come from the skill's default, and asking for the account is a human prerequisite the `asks-only-human-prerequisites` judge allows.
+- Grader field spelling (`focus: trace` / `focus: last_message`, three-vote majority) checked against the plugin-evals doc on 2026-10-26.
+
+**Evidence**
+- Run with `has` and the new judges: vite-en 0.8 (10 turns, `read-state` 2/3 votes), vite-zh 0.8 (9 turns, 3/3), $0.43.
+- Run with `missing`: vite-en 0.8 (6 turns), vite-zh 0.8 (8 turns), every judge 3/3, $0.39. `ran-verify-script` fails in both as the declared no-Bash ceiling.
+
+**Deferred**
+- Nightly run with Bash, the level-3 fixture run, and the live-URL proof still wait for a fixture-only Vercel account.
+
+**Touches**
+- `evals/publish-web/vite-en/{case.yaml,state.md}`, `evals/publish-web/vite-zh/{case.yaml,state.md}`, `evals/publish-web/README.md`.
+
 implement-loop: slice B deferred: level-3 run and live-URL proof await a fixture-only Vercel account (B.1, B.2, fixture, eval case shipped e5b39dd); remaining: [C]
