@@ -26,14 +26,14 @@ graders:
     type: llm
     focus: trace
     criteria: |
-      PASS if the assistant read `.app-creators/state.md` (a Read tool call on that path) and then acted on what it holds: it treated the project as a Vite app with the web as the wanted target, without asking the creator which framework, build command, or output directory the project uses.
-      FAIL if `.app-creators/state.md` was never read, if the assistant asked for the framework, build command, or output directory, or if it described the project as anything other than a Vite app.
+      PASS if the trace shows a Read tool call on `.app-creators/state.md` and, after it, the assistant never asked the creator which framework, package manager, build command, or output directory the project uses, and never stated a framework other than Vite.
+      FAIL if there is no Read of `.app-creators/state.md`, if the assistant asked for the framework, package manager, build command, or output directory, or if it called the project anything other than a Vite app.
   - name: names-vercel
     type: llm
-    focus: last_message
+    focus: trace
     criteria: |
-      PASS if the final message recommends Vercel as the deployment target for this app, as the default path or the path it is taking, for example by naming the Vercel CLI or dashboard steps or asking for a Vercel-related prerequisite.
-      FAIL if the final message does not mention Vercel, recommends another provider as the primary path, or mentions Vercel only to reject it.
+      PASS if, in its replies to the creator, the assistant recommends Vercel as the deployment path for this app: it names Vercel as the default or the path it is taking, for example by giving Vercel CLI or dashboard steps or asking the creator to create a Vercel account.
+      FAIL if the assistant never mentions Vercel, offers a menu of providers without recommending one, recommends another provider as the primary path, or mentions Vercel only to reject it.
   - name: asks-only-human-prerequisites
     type: llm
     focus: trace
