@@ -627,3 +627,12 @@ Reviewer D1–D5 and Codex MAJOR/MINOR labels were not passed to this round; fix
 
 **Touches**
 - `skills/app-creators/SKILL.md`, `SKILL.zh.md` (one sentence each).
+
+## Slice C — Whole-run gate verdict
+
+Fresh whole-run reviewer at 11e9f42: no blockers; five concrete defects fixed in round 1 (c30d9e6); blocker-only rechecks PASS at c30d9e6 and 423337b. Codex (codex-companion, three passes): 4 MAJOR + 2 MINOR in pass 1 (five fixed in round 1, the Expo `platforms` one in round 2, 423337b); pass 3 marks the JS/TS case still partial (below). Full suite PASS at 11e9f42, c30d9e6, and 423337b (lint 2 skills clean, template clean, lint tests 77/77, check-pwa tests 48/48, `claude plugin validate .` with the known warnings, manifests parse, check_tokens exit 0, both STATE.md YAML blocks byte-identical to spec §4.1). Eval: app-creators-vite-en 1.00 and app-creators-vite-zh 1.00 on both runs ($0.39 before the gate, $0.40 after round 1). Fix-cycle cap (2) reached.
+
+**Deferred at the cap (recorded, not fixed)**
+- Expo destination detection, SKILL.md step 2: a literal `platforms` list nested under an `expo` key inside `app.config.js`/`app.config.ts` (`module.exports = { expo: { platforms: ['web'] } }`) is not read; the skill falls back to the Expo default and writes `ios`/`android` `detected: "yes"`. Affects `detected` only; the creator's answer still sets `intent`, and `status` stays `unknown`. Fix: read a literal `platforms` list "at the top level or under `expo`" in a JS/TS config (one phrase in both files).
+
+implement-loop: slice C shipped 423337b; remaining: []
