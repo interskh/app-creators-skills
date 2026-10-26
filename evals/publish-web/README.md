@@ -4,7 +4,7 @@ Level-2 eval cases (spec §3.4) in the [`claude plugin eval`](https://code.claud
 
 Each case's `scaffold.sh` extracts `../app-creators-fixtures/todo-vite` as of commit `95c2f95` (`git archive`, so the fixtures checkout may be on any later commit) into the workspace and adds the case's `state.md` as `.app-creators/state.md`. Clone app-creators-fixtures next to this repo; the script stops if the fixture is missing or the commit is not fetched. Inside a git worktree it finds the fixtures repo next to the main checkout.
 
-Graders, equal weight: `skill-fired` (the Skill tool loaded `publish-web`), `read-state` (a Read of `state.md`), `names-vercel` (the final message names Vercel; neither prompt mentions a provider, so this checks the skill's default, not an echo of the prompt), `asks-only-human-prerequisites` (llm judge: questions cover only accounts, domains, DNS access, app names, or a go-ahead), `ran-verify-script` (a Bash call to `check-pwa.sh`).
+Graders, equal weight: `skill-fired` (the Skill tool loaded `publish-web`), `read-state` (a Read of `state.md`), `names-vercel` (the final message mentions Vercel; neither prompt names a provider, so the mention has to come from the skill, though a substring match cannot tell a recommendation from a rejection), `asks-only-human-prerequisites` (llm judge: questions cover only accounts, domains, DNS access, app names, or a go-ahead), `ran-verify-script` (a Bash call to `check-pwa.sh`).
 
 Level-2 run, no shell, nothing can deploy:
 
