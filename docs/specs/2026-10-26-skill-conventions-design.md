@@ -22,7 +22,7 @@ Goals, with evidence:
   reviewer finds no structural diffs against the exemplar.
 - The repo installs as one command in Claude Code and one in Codex.
   Evidence: `claude plugin install app-creators@app-creators` and
-  `npx skills add <owner>/app-creators-skills` both load `publish-web` in a
+  `npx skills add interskh/app-creators-skills` both load `publish-web` in a
   clean session.
 - The entry skill writes `state.md` and `publish-web` reads it without
   re-asking. Evidence: fixture run transcript.
@@ -201,7 +201,7 @@ example. This spec needs only the web version: a Vite to-do app with
 a manifest and service worker. Expo, Flutter, Xcode, and Kotlin
 versions arrive with the skills that need them (Roadmap Slice 1).
 
-Fixtures live in a separate public repo `<owner>/app-creators-fixtures`,
+Fixtures live in a separate public repo `interskh/app-creators-fixtures`,
 one directory per framework (`todo-vite/`, `todo-swift/`,
 `todo-kotlin/`, `todo-flutter/`, `todo-expo/`), so the
 plugin clone stays small. Eval cases reference a fixture by path and
@@ -479,9 +479,9 @@ spec-review: completed 2026-10-26
 
 None block Slice A. Confirm or change before Slice B.
 
-1. **GitHub owner.** Deferred by Kyle (2026-10-26). Use the literal
-   placeholder `<owner>/app-creators-skills` in install commands,
-   `marketplace.json`, and README until set. Repo split decided
+1. **GitHub owner.** Decided: `interskh` (Kyle, 2026-10-26); the
+   install commands, `plugin.json`, and README name
+   `interskh/app-creators-skills`. Repo split decided
    (Kyle, 2026-10-26): this public repo holds the skills; the private
    workroom repo `app-creators` holds thesis, website, and services.
 2. **Accounts for level 4 runs.** Decided: Apple Developer, Google
@@ -489,7 +489,7 @@ None block Slice A. Confirm or change before Slice B.
    use.
 3. **Create the fixtures repo before Slice B.3.** Decided: a to-do
    list app per framework (Kyle, 2026-10-26). Assumed separate public
-   repo `<owner>/app-creators-fixtures`; creating and pushing it is
+   repo `interskh/app-creators-fixtures`; creating and pushing it is
    yours. Say so if you prefer `fixtures/` inside this repo despite
    the heavier clone.
 4. **License.** Decided: MIT (2026-10-26).

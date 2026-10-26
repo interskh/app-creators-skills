@@ -19,15 +19,13 @@ account. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Install
 
-Replace `<owner>` with the GitHub owner once the repository is published.
-
 ```bash
 # Claude Code
-claude plugin marketplace add <owner>/app-creators-skills
+claude plugin marketplace add interskh/app-creators-skills
 claude plugin install app-creators@app-creators
 
 # Codex and other agents (skills.sh)
-npx skills add <owner>/app-creators-skills
+npx skills add interskh/app-creators-skills
 ```
 
 ## Contributing
