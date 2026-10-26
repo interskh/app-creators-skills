@@ -40,8 +40,11 @@ lists `window-controls-overlay` for `display`; MDN has it only under
   manifest `href` resolves against the page URL after redirects, and
   HTML comments are removed before the page is scanned for tags.
   The scan reads each tag to its closing `>`, honouring quoted
-  attribute values, so `<div data-x="<script>">` or `title="1 > 0"`
-  does not start a script body. `<!--` inside a `<script>` or `<style>`
+  attribute values, so `<div data-x="<script>">` does not start a
+  script body, a `<link>` inside an attribute value is not a link, and
+  `<link title="1 > 0" rel="manifest" …>` is read whole. Attributes are
+  read as name, optional `=`, quoted or unquoted value, so
+  `rel="manifest"href="…"` works. `<!--` inside a `<script>` or `<style>`
   body does not open a comment; the body ends at `</script` or `</style`
   followed by `>`, `/`, or whitespace. Text inside script and style
   bodies is never read as tags.
@@ -67,11 +70,12 @@ required a `fetch()` handler at that time.
 
 The script checks for one, for offline support and for that prompt:
 
-- `service-worker-registration`: the page, or one of its first ten
-  scripts, calls `navigator.serviceWorker.register(` or loads
-  `registerSW.js` (what `vite-plugin-pwa` injects).
+- `service-worker-registration`: an inline script, or one of the
+  page's first ten scripts, calls `navigator.serviceWorker.register(`,
+  or the page has a `<script src>` ending in `registerSW.js` (what
+  `vite-plugin-pwa` injects).
   With `virtual:pwa-register` the call sits in a lazy chunk, so if a
-  loaded script only mentions `serviceWorker`, registration is inferred
+  script only mentions `serviceWorker`, registration is inferred
   from a JavaScript `sw.js` next to the page ("(inferred from sw.js,
   static scan)"). The check reads source text; it does not run the
   page, so its PASS line always ends in "static scan".
@@ -82,26 +86,30 @@ The script checks for one, for offline support and for that prompt:
   to `1.5`, `text/jscript`, and the `x-`/`ecmascript`/`livescript`
   variants), case-insensitive, parameters ignored. `text/plain`,
   `application/octet-stream`, or a `text/html` fallback page fail.
-  Every `register("<url>")` call with a quoted URL is a candidate:
-  first those found after HTML comments are removed from the page and
-  JS comments from each inline `<script>` body and each loaded script
-  (one script at a time; HTML and CSS text is never treated as JS),
-  then those in the raw page and raw scripts. The script fetches up to
-  five candidates in that order and reports the first one served with
-  a JavaScript MIME type. The comment pass only orders the candidates,
-  so a commented-out `register('/old-sw.js')` comes after the live
-  call, and a regex it misreads (`if (x) /'/.test(y)`) can no longer
-  hide a registration. If no candidate is JavaScript, the first one is
-  reported and `service-worker-script` says why it failed.
+  Only live calls count: `register("<url>")` with a quoted URL, found
+  after HTML comments are removed from the page and JS comments from
+  each inline `<script>` body and each loaded script (one script at a
+  time; HTML and CSS text is never treated as JS). The script fetches
+  up to five of them in page order and reports the first served with a
+  JavaScript MIME type; if none is, it reports the first and
+  `service-worker-script` says why it failed (the line notes when
+  there were more than five).
+  The check fails closed: a commented-out registration never passes,
+  even when its script is still deployed, because "I disabled the
+  service worker but `sw.js` still ships" is a common state. A call
+  that appears only in the raw text fails with "a register( call
+  appears only inside a comment, or inside code the static scanner
+  could not parse: <url>". The known cost: the JS pass reads a `/`
+  after `)` or `]` as division, so a regex literal there
+  (`if (x) /'/.test(y)`) can hide a real call later on that line; the
+  message then names it.
   Known limits: a page that only calls `unregister()`, or registers
   behind a runtime branch, still reads as registered, since nothing
   runs; a `<script>` with a non-JS `type` (`importmap`,
   `text/template`) and the ignored body of a `<script src>` are
-  scanned as JS; a commented-out call to an old script that is still
-  deployed is accepted when every live candidate before it fails to
-  load as JavaScript; and `<!--` or `<script>` inside a script body
-  (the HTML spec's escaped script states) is not modelled, so such a
-  body ends at the first `</script`.
+  scanned as JS; and `<!--` or `<script>` inside a script body (the
+  HTML spec's escaped script states) is not modelled, so such a body
+  ends at the first `</script`.
 
 `register()` rejects a script URL that is not on a trustworthy origin
 (HTTPS or localhost) or not same-origin with the page.

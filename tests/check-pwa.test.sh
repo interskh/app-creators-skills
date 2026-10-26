@@ -69,7 +69,7 @@ run_check() {
 
 # expect <label> <exit> [line-regex...]: exit code, 12 check lines, and each regex matches a line.
 expect() {
-  local label="$1" want="$2" re lines
+  local label="$1" want="$2" re lines seen
   shift 2
   total=$((total + 1))
   if [ "$code" -ne "$want" ]; then
@@ -81,8 +81,12 @@ expect() {
     fail "$label" "want 12 check lines, got $lines: $out"
     return
   fi
-  for re in "$@"; do
-    if ! printf '%s\n' "$out" | grep -qE -- "$re"; then
+  for re in '^PASS html: ' "$@"; do
+    case "$re" in
+      *skipped*) seen="$out" ;;
+      *) seen="$(printf '%s\n' "$out" | grep -v ': skipped: ' || true)" ;;
+    esac
+    if ! printf '%s\n' "$seen" | grep -qE -- "$re"; then
       fail "$label" "want a line matching '$re' in: $out"
       return
     fi
@@ -92,6 +96,10 @@ expect() {
 
 reg_line() {
   printf '^PASS service-worker-registration: http://127\\.0\\.0\\.1:%s%s \\(static scan\\)$' "$port" "$1"
+}
+
+raw_line() {
+  printf '^FAIL service-worker-registration: a register\\( call appears only inside a comment, or inside code the static scanner could not parse: http://127\\.0\\.0\\.1:%s%s$' "$port" "$1"
 }
 
 site valid
@@ -204,23 +212,88 @@ site parenregex
 appsw
 page "$dir" "<link rel=\"manifest\" href=\"/manifest.webmanifest\"><script>if(x)/'/.test(y);var u='https://x.example/';navigator.serviceWorker.register(\"/app/sw.js\")</script>"
 run_check
-expect "a register call hidden by a missed regex after ) is found in the raw page" 0 "$(reg_line /app/sw.js)"
-total=$((total + 1))
-if [ "$(printf '%s\n' "$out" | grep -c '^PASS ')" -eq 12 ]; then pass=$((pass + 1)); else fail "parenregex prints 12 PASS lines" "$out"; fi
+expect "a call hidden by a regex after ) fails closed and the message names it" 1 "$(raw_line /app/sw.js)" '^FAIL service-worker-script: skipped: '
 
 site parenregex-oldsw
 appsw
 page "$dir" "<link rel=\"manifest\" href=\"/manifest.webmanifest\"><!-- <script>navigator.serviceWorker.register('/old-sw.js')</script> --><script>if(x)/'/.test(y);var u='https://x.example/';navigator.serviceWorker.register(\"/app/sw.js\")</script>"
 run_check
-expect "raw candidates are fetch-verified, so a commented-out call to a missing script is passed over" 0 "$(reg_line /app/sw.js)"
+expect "the fail-closed message names the first raw-only URL" 1 "$(raw_line /old-sw.js)"
+
+inferred_line() {
+  printf '^PASS service-worker-registration: http://127\\.0\\.0\\.1:%s/sw\\.js \\(inferred from sw\\.js, static scan\\)$' "$port"
+}
 
 site inferred
 printf "if('serviceWorker' in navigator) import('./pwa.js')\n" >"$dir/registerSW.js"
 page "$dir" '<link rel="manifest" href="/manifest.webmanifest"><script src="/lazy.js"></script>'
 mv "$dir/registerSW.js" "$dir/lazy.js"
 run_check
-expect "a script that only mentions serviceWorker infers sw.js" 0 \
-  "$(printf '^PASS service-worker-registration: http://127\\.0\\.0\\.1:%s/sw\\.js \\(inferred from sw\\.js, static scan\\)$' "$port")"
+expect "a script that only mentions serviceWorker infers sw.js" 0 "$(inferred_line)"
+
+site oldsw-deployed
+printf 'self.x=1;\n' >"$dir/old-sw.js"
+page "$dir" "<link rel=\"manifest\" href=\"/manifest.webmanifest\"><script>
+// navigator.serviceWorker.register('/old-sw.js')
+navigator.serviceWorker.register('/sw.js')
+</script>"
+run_check
+expect "a commented call to a deployed old script is not picked over the live call" 0 "$(reg_line /sw.js)"
+
+site comment-only-deployed
+page "$dir" '<link rel="manifest" href="/manifest.webmanifest"><script>// navigator.serviceWorker.register("/sw.js")
+console.log(1)</script>'
+run_check
+expect "a line-commented call fails even when its script is deployed" 1 "$(raw_line /sw.js)"
+
+site html-comment-only-deployed
+page "$dir" '<link rel="manifest" href="/manifest.webmanifest"><!-- <script>navigator.serviceWorker.register("/sw.js")</script> -->'
+run_check
+expect "an HTML-commented call fails even when its script is deployed" 1 "$(raw_line /sw.js)"
+
+site live404-old-deployed
+page "$dir" '<link rel="manifest" href="/manifest.webmanifest"><script>// navigator.serviceWorker.register("/sw.js")
+navigator.serviceWorker.register("/new-sw.js")</script>'
+run_check
+expect "a live call to a missing script is reported, not the commented deployed one" 1 "$(reg_line /new-sw.js)" \
+  '^FAIL service-worker-script: HTTP 404 from http://127\.0\.0\.1:[0-9]+/new-sw\.js$'
+
+site live-first404
+page "$dir" '<link rel="manifest" href="/manifest.webmanifest"><script>navigator.serviceWorker.register("/gone.js")</script><script src="/registerSW.js"></script>'
+run_check
+expect "the first live call served as JavaScript is reported" 0 "$(reg_line /sw.js)"
+
+site varurl-oldcomment
+page "$dir" '<link rel="manifest" href="/manifest.webmanifest"><script>// navigator.serviceWorker.register("/old.js")
+var u="/sw.js";navigator.serviceWorker.register(u)</script>'
+run_check
+expect "register(u) with a commented old call infers sw.js" 0 "$(inferred_line)"
+
+site prose-registersw
+page "$dir" '<link rel="manifest" href="/manifest.webmanifest"><p>registerSW.js</p>'
+run_check
+expect "registerSW.js in page text is not a registration" 1 \
+  '^FAIL service-worker-registration: no navigator' '^FAIL service-worker-script: skipped: '
+
+site attrgt-link
+page "$dir" '<link title="1 > 0" rel="manifest" href="/manifest.webmanifest"><script src="/registerSW.js"></script>'
+run_check
+expect "> in a quoted attribute before rel does not hide the manifest link" 0 '^PASS manifest-link: http://127\.0\.0\.1:[0-9]+/manifest\.webmanifest$'
+
+site attrlink-fake
+page "$dir" "<div data-x='<link rel=\"manifest\" href=\"/manifest.webmanifest\">'></div><script src=\"/registerSW.js\"></script>"
+run_check
+expect "a manifest link inside an attribute value is not a link" 1 '^FAIL manifest-link: ' "$(reg_line /sw.js)"
+
+site attrscript-src
+page "$dir" '<link rel="manifest" href="/manifest.webmanifest"><div data-x="<script src=/registerSW.js></script>"></div>'
+run_check
+expect "a script tag inside an attribute value is not loaded" 1 '^FAIL service-worker-registration: no navigator'
+
+site nospace-attr
+page "$dir" '<link rel="manifest"href="/manifest.webmanifest"><script src="/registerSW.js"></script>'
+run_check
+expect "an attribute right after a quoted value is read" 0 '^PASS manifest-link: http://127\.0\.0\.1:[0-9]+/manifest\.webmanifest$'
 
 site attrscript
 page "$dir" '<div data-x="<script>"></div><!--<link rel="manifest" href="/manifest.webmanifest">--><script src="/registerSW.js"></script>'

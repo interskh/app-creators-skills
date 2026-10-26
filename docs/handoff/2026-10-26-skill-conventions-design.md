@@ -450,4 +450,32 @@ Fresh whole-run reviewer: no blockers; three defects and a tail, fixed in round 
 **Touches**
 - `evals/publish-web/vite-en/{case.yaml,state.md}`, `evals/publish-web/vite-zh/{case.yaml,state.md}`, `evals/publish-web/README.md`.
 
+## Follow-up 2 — gate fix round 1
+
+**Correction:** the Follow-up 2 claim that fetch verification stops a misread regex from hiding a registration is withdrawn. Accepting raw-text candidates passed a commented-out `register("/sw.js")` whenever `sw.js` still shipped, which is the common "SW disabled, file still deployed" state.
+
+**Decisions**
+- Fail closed. L = quoted `register(` URLs in comment-stripped JS only (inline bodies + loaded scripts); R = URLs only in raw text. L non-empty: first JS-MIME response of up to 5 wins, else the first L URL is reported and `service-worker-script` fails (line notes "first 5 of N" past 5); R and inference are never consulted. L empty: a `<script src>` ending in `registerSW.js`, then `sw.js` inference, then FAIL; with R non-empty the FAIL names the first R URL.
+- `strip_comments` stdout is now the JS bodies only (HTML prose like `<p>registerSW.js</p>` no longer feeds the search); tag text still goes to `page.tags.html`.
+- `html_tags` is a char-level tag reader sharing `html_awk` (`tag_end`, `tag_name`, char reading) with `strip_comments`; attributes parsed as name, optional `=`, quoted/unquoted value, first occurrence wins; URL values lose tabs/newlines and outer spaces.
+- Candidate URLs resolved before dedupe (`./sw.js` = `/sw.js`); all lists go through temp files, no `head` in a pipeline under pipefail.
+- Block size scales with input (`max(8192, size/64)`), so the remainder copy is bounded at ~64 per line.
+- Harness: every case also asserts `PASS html:`; a `: skipped:` line satisfies only a regex that names `skipped`.
+
+**Rejected**
+- Keeping raw candidates behind fetch verification: the false PASS above outweighs the regex-after-`)` gain; the failure message now names the hidden URL instead.
+- `awk 'NR == FNR'` for the raw-minus-live set: wrong when the live file is empty (all raw lines read as the first file); uses `getline` in BEGIN.
+
+**Evidence**
+- `check-pwa.test.sh` 44/44, `lint-skills.test.sh` 77/77 under BWK awk + `/bin/bash`, gawk 5.4.1 + bash 5.3.20, mawk 1.3.4 + bash 5.3.20; `lint-skills.sh` clean under the latter two.
+- Fixture `todo-vite` preview 12/12, exit 0. Bundles 1.23/1.37 MB: 1.54/1.66 s; tag-heavy 1.35 MB page 1.26 s; single-line pages 0.89/1.79/3.59 MB: 1.09/2.19/4.58 s (linear).
+- Mutants 9/9 caught: no fetch verification (2 cases), R never computed (4), no quoted-attribute handling (2), manifest from raw page (5), `registerSW.js` matched in text (3), JS comment detection off (6), R accepted (5), inference when L fails (1), attribute name needs preceding whitespace (1).
+
+**Deferred**
+- The cap of 5 can report a 404 when only a 6th live URL is deployed (the line says so).
+- A regex literal after `)`/`]` can still hide a live call; it fails closed with the URL named.
+
+**Touches**
+- `check-pwa.sh` (`html_awk` new; `strip_comments` stdout semantics; `html_tags` rewritten; SW section), `pwa-checklist.md`, `tests/check-pwa.test.sh` (`raw_line`, `inferred_line`, `expect` html/skipped rule; 11 new cases).
+
 implement-loop: slice B deferred: level-3 run and live-URL proof await a fixture-only Vercel account (B.1, B.2, fixture, eval case shipped e5b39dd); remaining: [C]
