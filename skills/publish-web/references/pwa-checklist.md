@@ -39,7 +39,12 @@ lists `window-controls-overlay` for `display`; MDN has it only under
 - Icon `src` resolves against the manifest URL, not the page URL. The
   manifest `href` resolves against the page URL after redirects, and
   HTML comments are removed before the page is scanned for tags.
-  `<!--` inside a `<script>` or `<style>` body does not open a comment.
+  `<!--` inside a `<script>` or `<style>` body does not open a comment;
+  the body ends at `</script` or `</style` followed by `>`, `/`, or
+  whitespace. Known limits: `<script` inside a quoted attribute value
+  (`<div data-x="<script>">`) starts a script body, and a `<script>`
+  with no closing tag leaves the rest of the page unscanned for
+  comments.
 - A transfer that fails after the status line (timeout, truncation)
   fails the check, whatever the status code.
 - Every run prints the same 12 check lines; a check that cannot run
@@ -71,10 +76,13 @@ The script checks for one, for offline support and for that prompt:
   to `1.5`, `text/jscript`, and the `x-`/`ecmascript`/`livescript`
   variants), case-insensitive, parameters ignored. `text/plain`,
   `application/octet-stream`, or a `text/html` fallback page fail.
-  Registration is searched after HTML comments and JS comments
-  (`/* … */` and `//` at line start or after whitespace, `;`, `{`,
-  `}`, `(`, `,`; so `https://` and `"image/*"` stay) are removed, so a
-  commented-out `register('/old-sw.js')` is not picked.
+  Registration is searched after HTML comments are removed from the
+  page and JS comments from each inline `<script>` body and each loaded
+  script, one script at a time; HTML and CSS text is never treated as
+  JS. The JS pass skips string, template, and regex literals, so
+  `"https://…"`, `"image/*"`, and `/[ /*]/` stay, and a commented-out
+  `register('/old-sw.js')` is not picked. It does not track nested
+  templates inside `${…}`.
 
 `register()` rejects a script URL that is not on a trustworthy origin
 (HTTPS or localhost) or not same-origin with the page.

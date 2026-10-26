@@ -152,6 +152,55 @@ set -e
 expect "// after a colon is a URL, not a comment" 0 "$(reg_line /app/sw.js)"
 stop
 
+appsw() {
+  mkdir -p "$dir/app"
+  mv "$dir/sw.js" "$dir/app/sw.js"
+}
+
+site oneline-url
+appsw
+page "$dir" '<link rel="manifest" href="/manifest.webmanifest"><style>@import url(//fonts.example/css?family=Roboto);</style><div style="background:url(//cdn.example/bg.png)"></div><script>navigator.serviceWorker.register("/app/sw.js")</script>'
+run_check
+expect "// in CSS and attributes is not a JS comment" 0 "$(reg_line /app/sw.js)"
+
+site oneline-text
+appsw
+page "$dir" "<link rel=\"manifest\" href=\"/manifest.webmanifest\"><p>Help // FAQ</p><script>navigator.serviceWorker.register('/app/sw.js')</script>"
+run_check
+expect "// in HTML text is not a JS comment" 0 "$(reg_line /app/sw.js)"
+
+site strsep
+appsw
+printf 'var sep=" // ";navigator.serviceWorker.register("/app/sw.js")\n' >"$dir/registerSW.js"
+run_check
+expect "// inside a string literal is kept" 0 "$(reg_line /app/sw.js)"
+
+site regexlit
+appsw
+printf "const r=/[ /*]/;navigator.serviceWorker.register('/app/sw.js');const s=\"*/\";\n" >"$dir/registerSW.js"
+run_check
+expect "/* inside a regex literal is kept" 0 "$(reg_line /app/sw.js)"
+
+site parencomment
+appsw
+page "$dir" "<link rel=\"manifest\" href=\"/manifest.webmanifest\"><script>x()//navigator.serviceWorker.register('/old.js')
+navigator.serviceWorker.register('/app/sw.js')</script>"
+run_check
+expect "// after ) is a comment" 0 "$(reg_line /app/sw.js)"
+
+site fakeclose
+page "$dir" '<script>const s="</scripture><!--";</script><link rel="manifest" href="/manifest.webmanifest"><script src="/registerSW.js"></script>'
+run_check
+expect "</scripture> does not close a script" 0 '^PASS manifest-link: ' "$(reg_line /sw.js)"
+
+site crossscript
+appsw
+printf 'var s="/*";var b=1;/*\n' >"$dir/a.js"
+printf "navigator.serviceWorker.register('/app/sw.js')\n" >"$dir/b.js"
+page "$dir" '<link rel="manifest" href="/manifest.webmanifest"><script src="/a.js"></script><script src="/b.js"></script>'
+run_check
+expect "an unclosed /* in one script does not hide the next script" 0 "$(reg_line /app/sw.js)"
+
 site noicon
 printf '{"name":"Todo","start_url":"/","display":"standalone","icons":[{"src":"/pwa-192x192.png","sizes":"192x192","type":"image/png"}]}\n' >"$dir/manifest.webmanifest"
 run_check

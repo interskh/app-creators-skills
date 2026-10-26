@@ -346,4 +346,34 @@ Fresh whole-run reviewer: no blockers; three defects and a tail, fixed in round 
 **Evidence:** rerun 2026-10-26 (claude 2.1.310, `--runs 1 --ablation none --scaffold --no-publish`, no Bash): vite-en 0.8 (9 turns), vite-zh 0.8 (10 turns), total $0.53; `names-vercel` and `asks-only-human-prerequisites` pass in both; `ran-verify-script` fails as the declared ceiling.
 **Deferred:** `read-state` still passes on any Read naming `state.md`; a content assertion needs a grader type that can read the tool result.
 
+## Follow-up — gate fix round 1
+
+**Decisions**
+- JS comment removal runs only on JavaScript: each inline `<script>` body inside `strip_comments` (one `js_reset()` per body) and each loaded script in its own awk run, appended to the search text. HTML and CSS text are never JS-stripped; nothing is concatenated before stripping.
+- Scanner: one pass over `split(t, ch, "")`, shared as `js_awk` by both functions. States: code, `'`/`"`/backtick string with backslash escapes (backtick spans lines, the others resync at a newline), line comment, block comment (unclosed runs to the end of that script), regex literal with `[...]` classes. `/` starts a regex after `( , = : [ ! & | ? { } ;` or at input start. Comments print one space; newlines inside are kept.
+- `split` instead of `substr(s, i, 1)`: BWK awk's `substr` measures the whole string each call (12 s for an 0.87 MB char loop vs 0.3 s with `split`); mawk and gawk accept the empty separator too.
+- Closing tags need `>`, `/`, or whitespace after `</script` / `</style`; `/` is included because the HTML tokenizer ends the end-tag name on it.
+- `page.html` (tag extraction) now carries the JS-stripped inline bodies too: one output, no mode flag. Tag text inside an inline JS comment is now ignored, which is correct.
+- `crossscript` uses `var s="/*";var b=1;/*` (string with `/*`, then an unclosed block comment) rather than a script ending inside a string: the scanner resyncs an unterminated `"` at the newline, so only the unclosed `/*` tells per-script stripping from concatenation. It passes on 506d2b6 too; the "scripts stripped as one text" mutant guards it.
+- Correction to the previous entry: its preceding-character guard (and the Rejected note that `//` after `"` or `=` is kept) no longer applies; `//` outside a literal is always a comment, after `)` too.
+
+**Rejected**
+- Keeping the guard heuristic: cases (a)–(d) from the gate fail under it.
+- perl or node for scanning: perl is not a listed prerequisite, node is optional (jq fallback).
+- Building output by string concatenation: quadratic in BWK; `printf` per char costs 0.6 s per MB.
+
+**Evidence (timings, BWK awk 20200816)**
+- Synthetic 1.16 MB one-line script, 20k `https://` tokens: 1.20 s. Same text inline in a page through `strip_comments`: 1.21 s.
+- Real Vite bundle (a local app's `dist/assets/index-*.js`, 1.23 MB): 1.24 s, size unchanged, no text lost. Fixture `dist` scripts: under 0.02 s each.
+
+**Assumptions**
+- mawk and gawk on ubuntu-latest split on `""` into characters; check: CI step `check-pwa tests`.
+
+**Deferred**
+- A regex literal after a keyword (`return /x/`), after `)` (`if (x) /re/.test(y)`), or after an operator outside the start set reads as division; nested templates inside `${…}` are not tracked; non-JS script types (`importmap`, `text/template`) are JS-stripped too. Each only matters if a `//` or `/*` sits in that text.
+- Limits documented in `pwa-checklist.md`: `<script` inside a quoted attribute value; a `<script>` with no closing tag.
+
+**Touches**
+- `skills/publish-web/scripts/check-pwa.sh`, `skills/publish-web/references/pwa-checklist.md`, `tests/check-pwa.test.sh`. No version bump: same checks and output.
+
 implement-loop: slice B deferred: level-3 run and live-URL proof await a fixture-only Vercel account (B.1, B.2, fixture, eval case shipped e5b39dd); remaining: [C]
