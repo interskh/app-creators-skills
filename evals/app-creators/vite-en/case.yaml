@@ -30,37 +30,37 @@ graders:
   - name: schema-1-0
     type: regex
     target: { source: file, path: .app-creators/state.md }
-    pattern: '^schema:[ \t]*["'']1\.0["''][ \t]*$'
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?schema:[ \t]*["'']1\.0["''][ \t]*(?:#[^\n]*)?\r?$'
     flags: m
   - name: kind-vite
     type: regex
     target: { source: file, path: .app-creators/state.md }
-    pattern: '^[ \t]*kind:[ \t]*["'']?vite["'']?[ \t]*$'
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?[ \t]*kind:[ \t]*["'']?vite["'']?[ \t]*(?:#[^\n]*)?\r?$'
     flags: m
   - name: package-manager-npm
     type: regex
     target: { source: file, path: .app-creators/state.md }
-    pattern: '^[ \t]*package_manager:[ \t]*["'']?npm["'']?[ \t]*$'
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?[ \t]*package_manager:[ \t]*["'']?npm["'']?[ \t]*(?:#[^\n]*)?\r?$'
     flags: m
   - name: slug-todo-vite
     type: regex
     target: { source: file, path: .app-creators/state.md }
-    pattern: '^[ \t]*slug:[ \t]*["'']?todo-vite["'']?[ \t]*$'
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?[ \t]*slug:[ \t]*["'']?todo-vite["'']?[ \t]*(?:#[^\n]*)?\r?$'
     flags: m
   - name: web-intent-wanted
     type: regex
     target: { source: file, path: .app-creators/state.md }
-    pattern: '^([ \t]*)web:[ \t]*\r?\n(?:\1[ \t]+[^\n]*\n)*?\1[ \t]+intent:[ \t]*["'']?wanted\b'
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?([ \t]*)web:[ \t]*(?:#[^\n]*)?\r?\n(?:\1[ \t]+[^\n]*\n|[ \t]*\r?\n)*?\1[ \t]+intent:[ \t]*["'']?wanted\b'
     flags: m
   - name: web-status-unknown
     type: regex
     target: { source: file, path: .app-creators/state.md }
-    pattern: '^([ \t]*)web:[ \t]*\r?\n(?:\1[ \t]+[^\n]*\n)*?\1[ \t]+status:[ \t]*["'']?unknown\b'
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?([ \t]*)web:[ \t]*(?:#[^\n]*)?\r?\n(?:\1[ \t]+[^\n]*\n|[ \t]*\r?\n)*?\1[ \t]+status:[ \t]*["'']?unknown\b'
     flags: m
   - name: goal-publish
     type: regex
     target: { source: file, path: .app-creators/state.md }
-    pattern: '^goal:[ \t]*["'']?publish["'']?[ \t]*$'
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?goal:[ \t]*["'']?publish["'']?[ \t]*(?:#[^\n]*)?\r?$'
     flags: m
   - name: asks-only-the-two-questions
     type: llm
@@ -70,7 +70,7 @@ graders:
       FAIL if the assistant asked which framework, package manager, build tool, or output directory the project uses, asked the creator for an account, token, or secret, or asked about anything else.
   - name: names-publish-web-no-outcome-claims
     type: llm
-    focus: last_message
+    focus: trace
     criteria: |
-      PASS if the final reply names `publish-web` as the next skill or step to run, and does not claim the app is published, deployed, live, listed, or online.
-      FAIL if the final reply names a different next skill or none, invents a skill name that the App Creators plugin does not ship (other skills labelled "not shipped yet" are fine), or claims any external outcome, such as saying the app is published, deployed, or live, or giving a live URL.
+      PASS if the assistant's final reply names `publish-web` as the next skill or step to run, and no assistant message anywhere in the trace claims the app is published, deployed, live, listed, or online, or gives a live URL.
+      FAIL if the final reply names a different next skill or none, invents a skill name that the App Creators plugin does not ship (other skills labelled "not shipped yet" are fine), or any assistant message in the trace claims an external outcome, such as saying the app is published, deployed, or live, or giving a live URL.

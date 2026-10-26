@@ -574,3 +574,40 @@ Result (claude 2.1.310, 2026-10-26; `--case 'app-creators-vite-*' --runs 1 --abl
 - `evals/app-creators/` (new: README.md, vite-en/{case.yaml,scaffold.sh}, vite-zh/{case.yaml,scaffold.sh}; scaffolds are publish-web's minus the state.md copy, mode 755). No skill, lint, or test file.
 
 **Proof** ("never asks for the framework twice"): this run shows app-creators writing the four publish-web inputs it owns (grader-asserted) without asking for the framework; publish-web's own eval shows it reading state.md instead of asking. `accounts.vercel` and `readiness.web` are set by other actors and only appear in the written file per the example block.
+
+## Slice C — Gate fix round 1
+
+Reviewer D1–D5 and Codex MAJOR/MINOR labels were not passed to this round; fixes keep the brief's 1–11 numbering.
+
+**Fixes**
+1. Rerun asks only `goal` (when `""`) and `targets.*.intent` (when `undecided`); name/description only if offered; never `accounts.*`/`tools.*`/`monetization.model`/`provided.*`. Branch (b) and the Troubleshooting row now say the same.
+2. Rerun with table `unknown` and stored `evidence: creator` keeps `framework.kind`/`package_manager` and does not re-ask (branch (b), step 1 Alternative and its `unknown` sentence); a real match overwrites.
+3. `schema: "1.0"` on create only; rerun keeps the existing major-1 value (no minor downgrade). Verify bullet adjusted so a preserved `"1.1"` does not fail it.
+4. Kotlin row: id or version-catalog alias (`gradle/libs.versions.toml`); `settings.gradle(.kts)` clause removed; step 1 lists `gradle/` as a readable subdirectory. Source added: Android "migrate your build to version catalogs".
+5. Flutter row: requires `flutter` (`sdk: flutter`) in `dependencies`; else plain Dart package, continue. Grounded in the cited pubspec page.
+6. Expo destinations from `expo.platforms`. Deviation from the brief: the Expo reference says the default is `["ios", "android"]`, plus web only if `react-dom` is installed; the skill states that, not "ios, android, web". `web`-key test dropped. JS/TS configs fall back to the default.
+7. Step 4: the example is complete and sufficient when `docs/STATE.md` is not installed with the skill.
+8. 223/201 lines; `metadata.version` stays `0.1.0` (skill unreleased; no consumer pins it).
+- STATE.md (unnumbered in the brief): `""` allowed for `accounts.*` and `monetization.model`, with the first-run note.
+9. Eval regexes scoped to the frontmatter, start-anchored with `(?<![\s\S])` (without it, `^---` re-anchors on the closing line and scans the notes); trailing comments and blank lines in `web:` allowed.
+10. Outcome judge now `focus: trace`: final reply names `publish-web`, no assistant message claims an external outcome.
+11. README fixed for `allowed_tools`/`--allow-tools Write`, the judge's new focus, and the frontmatter-only regex scope.
+
+**Rejected**
+- None.
+
+**Resolved**
+- Task 1 Deferred "No app-creators skill exists yet" and its `app.slug`/`app.languages` assumption: the skill sets both. Task 2 `monetization.model: ""` assumption: the STATE.md row now allows `""`.
+
+**Deferred**
+- Swift CLI `Package.swift` with `executableTarget` is detected as `xcode`.
+- SvelteKit/Remix match the `vite` row and publish-web assumes a Vite SPA: a limit of the spec enum.
+- Flow-style `web: {…}` fails the block regexes; the skill writes block style.
+
+**Evidence**
+- Regex test (`node regex-test.js`, scratch): both cases (a) example 7/7 pass, (b) comment + blank line in `web:` 7/7 pass, (c) wrong frontmatter + correct notes 7/7 fail, (d) CRLF 7/7 pass. Mutants (anchor removed; `---` stop removed) pass (c), so the test catches both.
+- `lint: 2 skills clean`; `PASS 77/77`; `claude plugin validate .` passed (pre-existing CLAUDE.md and icon warnings); check_tokens exit 0 (only count-only note `0.1.0`).
+- Eval (one run): vite-en 1.00 (11/11, 7 turns, $0.16), vite-zh 1.00 (11/11, 8 turns, $0.24), both judges 3/3 PASS; total $0.40, 74 s, `partial: false`.
+
+**Touches**
+- `skills/app-creators/SKILL.md`, `SKILL.zh.md`, `docs/STATE.md` (4 table rows), `evals/app-creators/{README.md,vite-en/case.yaml,vite-zh/case.yaml}`.

@@ -8,9 +8,9 @@ Graders, equal weight:
 
 - `skill-fired`: the Skill tool loaded `app-creators`.
 - `state-created`: Claude created `.app-creators/state.md`.
-- `schema-1-0`, `kind-vite`, `package-manager-npm`, `slug-todo-vite`, `web-intent-wanted`, `web-status-unknown`, `goal-publish`: regexes on the written file. `intent` and `status` are matched only inside the `targets.web` block.
+- `schema-1-0`, `kind-vite`, `package-manager-npm`, `slug-todo-vite`, `web-intent-wanted`, `web-status-unknown`, `goal-publish`: regexes on the written file, scoped to the frontmatter (from the first line `---` to the next `---` line), so a correct value in the notes below cannot pass for a wrong frontmatter. `intent` and `status` are matched only inside the `targets.web` block. Scalar lines may carry a trailing YAML comment; blank lines inside `web:` are allowed.
 - `asks-only-the-two-questions` (llm judge on the trace): any question covers only the outcome, the destinations, or a go-ahead; never the framework, package manager, build tool, output directory, or an account or secret.
-- `names-publish-web-no-outcome-claims` (llm judge on the final reply): names `publish-web` as the next skill and claims no external outcome.
+- `names-publish-web-no-outcome-claims` (llm judge on the trace): the final reply names `publish-web` as the next skill, and no assistant message in the run claims an external outcome (published, deployed, live, listed, online, or a live URL).
 
 Each llm judge takes the majority of three votes. The ceiling is 1.0 per case.
 
@@ -18,7 +18,7 @@ Level-2 run, no shell, nothing can deploy:
 
     claude plugin eval . --case 'app-creators-vite-*' --runs 1 --ablation none --scaffold --no-publish --trust-plugin --max-cost-usd 3 --allow-tools Write
 
-`allowed_tools` grants only read-only tools; `Write` stays out of the session unless the command grants it, and without it the skill cannot create `state.md`. Keep `--allow-tools Write` last: it takes a list. Bash and AskUserQuestion are not granted: detection needs no shell, and a question would stop a run that no one can answer.
+`Write` is listed in each case's `allowed_tools` and also granted with `--allow-tools Write`, because the eval grants only the read-only tools from that list; without the flag the skill cannot create `state.md`. Keep `--allow-tools Write` last: it takes a list. Bash and AskUserQuestion are not granted: detection needs no shell, and a question would stop a run that no one can answer.
 
 The case names carry an `app-creators-` prefix because `--case` matches names and the report keys on them, and the `publish-web` cases already own `vite-en` and `vite-zh`.
 

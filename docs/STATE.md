@@ -182,11 +182,11 @@ mentioned is `undecided`.
 | `readiness.*.result` | recorded | `pass`, `fail`, `unknown` | `publish-readiness` | Stays `unknown` until `publish-readiness` ships; skills proceed under the gate's `unknown` rule. |
 | `readiness.*.revision` | recorded | revision or `""` | `publish-readiness` | The revision a `pass` is bound to. |
 | `readiness.*.date` | recorded | date or `""` | `publish-readiness` | |
-| `accounts.apple_developer` | provided | `has`, `missing`, `pending` | the skill that asks | Presence only; string, never a boolean. |
-| `accounts.google_play` | provided | `has`, `missing`, `pending` | the skill that asks | Presence only; string, never a boolean. |
-| `accounts.vercel` | provided | `has`, `missing` | the skill that asks (`publish-web` today) | Presence only; string, never a boolean. |
+| `accounts.apple_developer` | provided | `has`, `missing`, `pending`, `""` | the skill that asks | Presence only; string, never a boolean. `""` until the skill that asks has asked (first-run value written by `app-creators`). |
+| `accounts.google_play` | provided | `has`, `missing`, `pending`, `""` | the skill that asks | Presence only; string, never a boolean. `""` until the skill that asks has asked (first-run value written by `app-creators`). |
+| `accounts.vercel` | provided | `has`, `missing`, `""` | the skill that asks (`publish-web` today) | Presence only; string, never a boolean. `""` until the skill that asks has asked (first-run value written by `app-creators`). |
 | `tools.*` | provided | tool name or `""` | the skill that chose it | `tools.deploy` is set by `publish-web` today. |
-| `monetization.model` | provided | `none`, `paid`, `freemium`, `subscription`, `ads`, `hybrid` | the skill that asks | |
+| `monetization.model` | provided | `none`, `paid`, `freemium`, `subscription`, `ads`, `hybrid`, `""` | the skill that asks | `""` until the skill that asks has asked (first-run value written by `app-creators`). |
 | `goal` | provided | `publish`, `acquire`, `monetize`, `""` | `app-creators` (asked once) | |
 | `provided.<skill>.*` | provided | string | the skill that asks | Never a secret; reference env var names only. |
 | `history` | meta | list of `{ skill, version, date, result }` | every skill that writes | Append-only, newest last; never edited or truncated. |

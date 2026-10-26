@@ -22,35 +22,36 @@
 先看 `.app-creators/state.md`，按情况走对应分支：
 
 - (a) 文件不存在：创建它（第 1 到第 5 步）。
-- (b) `schema` 主版本号是 `1`：读取整个 frontmatter。只重新识别识别类事实（`framework.*`、`app.slug`、`app.languages`、`targets.*.detected`），有证据就覆盖。创作者提供的事实、记录的结果、不认识的键和 `history` 里的每一行都原样保留。只问仍是 `""` 或 `undecided` 的提供类事实。没问过创作者，绝不覆盖提供类事实。
+- (b) `schema` 主版本号是 `1`：读取整个 frontmatter。只重新识别识别类事实（`framework.*`、`app.slug`、`app.languages`、`targets.*.detected`），有证据就覆盖。表格结果是 `unknown`、且已存的 `framework.evidence` 是 `creator` 时，保留已存的 `framework.kind` 和 `framework.package_manager`，不要再问；表格有真正的匹配时，覆盖已存的回答，因为项目里的证据优先。创作者提供的事实、记录的结果、不认识的键、`schema` 的值和 `history` 里的每一行都原样保留。只在 `goal` 是 `""` 时问它，只在 `targets.*.intent` 是 `undecided` 时问它。`app.name` 和 `app.description` 只在创作者主动给出时才记。绝不问 `accounts.*`、`tools.*`、`monetization.model` 或 `provided.*`：需要它们的 skill 会自己问，本 skill 也不能写它们。没问过创作者，绝不覆盖提供类事实。
 - (c) 主版本号更旧：迁移。把每个提供类事实、记录的结果和 `history` 行按新名字带过去，重新识别识别类事实，然后写入。目前只有主版本号 `1`，所以这个分支还没有映射，列在这里只为完整。
 - (d) 主版本号比 `1` 新：停下。告诉创作者更新插件。绝不把文件降级。
 
 ## 步骤
 
-1. 识别框架。默认：列出项目根目录，读表里列的文件。备选：只在表格结果是 `unknown` 时问创作者。
-   执行：只列项目根目录，不递归。只会看两类子目录：`app/`（第 4 行），以及第 2 步里 `ios/`、`android/`、`web/` 是否存在。从上往下对照表格，第一条匹配的为准。`framework.evidence` 写决定结果的那个文件。
+1. 识别框架。默认：列出项目根目录，读表里列的文件。备选：只在表格结果是 `unknown`、且没有已存的 `creator` 回答时问创作者（分支 (b)）。
+   执行：只列项目根目录，不递归。只会看两类子目录：`app/` 和 `gradle/`（第 4 行），以及第 2 步里 `ios/`、`android/`、`web/` 是否存在。从上往下对照表格，第一条匹配的为准。`framework.evidence` 写决定结果的那个文件。
 
    | # | 项目根目录里的证据 | `framework.kind` |
    |---|---|---|
    | 1 | `app.json` 或 `app.config.json` 顶层有 `expo` 键；或者 `package.json` 的 `dependencies` 里有 `expo`（用 `app.config.js` 或 `app.config.ts` 的 Expo 项目，这里也有） | `expo` |
-   | 2 | `pubspec.yaml` | `flutter` |
+   | 2 | `dependencies` 里有 `flutter`（`sdk: flutter`）的 `pubspec.yaml`；没有它的 `pubspec.yaml` 是普通 Dart 包：继续往下对照表格 | `flutter` |
    | 3 | `*.xcodeproj` 或 `*.xcworkspace` 目录，或者声明了 `executableTarget` 的 `Package.swift` | `xcode` |
-   | 4 | 根目录或 `app/` 里的 `build.gradle` 或 `build.gradle.kts` 应用了 `com.android.application`；或者有 `settings.gradle(.kts)`，加上一个应用了它的 `app/` 模块 | `kotlin` |
+   | 4 | 根目录或 `app/` 里的 `build.gradle` 或 `build.gradle.kts` 应用了 `com.android.application`：直接用 id，或者用版本目录别名，例如 `alias(libs.plugins.android.application)`，且它在 `gradle/libs.versions.toml` 里的条目是这个 id | `kotlin` |
    | 5 | `next.config.js`、`next.config.mjs` 或 `next.config.ts`；或者 `package.json` 的 `dependencies` 里有 `next` | `nextjs` |
    | 6 | `vite.config.js`、`vite.config.ts`、`vite.config.mjs` 或 `vite.config.mts`；或者 `package.json` 的 `dependencies` 或 `devDependencies` 里有 `vite` | `vite` |
    | 7 | `index.html`，且上面都不匹配 | `static` |
    | 8 | 上面都不匹配 | `unknown` |
 
-   顺序有讲究：Expo 应用可能带着网页打包工具，所以第 1 行排在第 5、6 行前面；Flutter、Xcode、Kotlin 排在 JavaScript 那几行前面。Xcode 项目的枚举值是 `xcode`。结果是 `unknown` 时，问创作者应用用的是什么框架，记下回答，并设 `framework.evidence: "creator"`。
+   顺序有讲究：Expo 应用可能带着网页打包工具，所以第 1 行排在第 5、6 行前面；Flutter、Xcode、Kotlin 排在 JavaScript 那几行前面。Xcode 项目的枚举值是 `xcode`。结果是 `unknown` 时，问创作者应用用的是什么框架，记下回答，并设 `framework.evidence: "creator"`；重跑时，分支 (b) 会保留之前的回答，不再问。
    包管理器，第一条匹配的为准：`pnpm-lock.yaml` → `pnpm`；`yarn.lock` → `yarn`；`bun.lock` 或 `bun.lockb` → `bun`；`package-lock.json`，或者只有 `package.json` → `npm`；没有 `package.json` → `none`。
    预期：得到一个 `framework.kind`、一个 `framework.evidence`、一个 `framework.package_manager`。
 
 2. 识别目标平台。默认：第 1 步的结果加根目录列表。备选：不需要。
    执行：下面某行匹配时，把 `targets.<destination>.detected` 设为 `"yes"`，否则设为 `"no"`。
-   - `web`：`vite`、`nextjs` 或 `static`；app config 里有 `web` 键的 `expo`；有 `web/` 目录的 `flutter`。
-   - `ios`：`xcode`；`expo`；有 `ios/` 目录的 `flutter`。
-   - `android`：`kotlin`；`expo`；有 `android/` 目录的 `flutter`。
+   - `web`：`vite`、`nextjs` 或 `static`；平台列表里有 `web` 的 `expo`；有 `web/` 目录的 `flutter`。
+   - `ios`：`xcode`；平台列表里有 `ios` 的 `expo`；有 `ios/` 目录的 `flutter`。
+   - `android`：`kotlin`；平台列表里有 `android` 的 `expo`；有 `android/` 目录的 `flutter`。
+   Expo 的平台列表：`app.json` 或 `app.config.json` 里 `expo` 下的 `platforms`。没有这一项，或者配置文件是 `app.config.js` 或 `app.config.ts` 时，用 Expo 的默认值：`ios` 和 `android`；`package.json` 的 `dependencies` 里有 `react-dom` 时再加上 `web`。
    预期：每个 `detected` 都是 `"yes"` 或 `"no"`。识别从不设置 `intent` 或 `status`。
 
 3. 问创作者。默认：一条消息，只问请求里还没回答的问题。备选：没有；绝不把问题拆成几条消息。
@@ -58,7 +59,7 @@
    预期：目标对应 `goal`：发布 → `publish`，获取用户 → `acquire`，赚钱 → `monetize`。创作者点名的目标平台 → `intent: wanted`；明确不要的 → `not-wanted`；没提到的 → `undecided`。`app.name` 和 `app.description` 只在创作者给了时才记。
 
 4. 写入 `.app-creators/state.md`。默认：Write 工具，一次写完整个文件。备选：没有；重跑时也绝不分几次写。
-   执行：按插件里 `docs/STATE.md` 的 schema 写 frontmatter，下面再写一段备注：日期、识别出了什么、问了什么。每个字段都写上；未知写 `""` 或 `unknown`，绝不省略。首次运行时的取值：
+   执行：按插件里 `docs/STATE.md` 的 schema 写 frontmatter；这个文件没有和 skill 一起安装时，下面的示例已经完整，照它写就够了。然后在下面写一段备注：日期、识别出了什么、问了什么。每个字段都写上；未知写 `""` 或 `unknown`，绝不省略。首次运行时的取值：
    - 每个 `targets.*.status`：`unknown`；每个 `readiness.*`：`{ result: unknown, revision: "", date: "" }`。
    - `accounts.*`、`tools.*`、`monetization.model` 和 `provided` 下的每个叶子：`""`。不要自己写成 `missing` 或 `none`。
    - `app.slug`：取 `package.json` 的 `name`（去掉 `@scope/` 前缀）转成 kebab-case；没有就取 `pubspec.yaml` 的 `name`，再没有就取 Expo 的 `slug`，最后取目录名。
@@ -148,7 +149,7 @@
 ## 验证
 
 - `.app-creators/state.md` 存在。用 Read 工具重新读一遍，和你打算写的内容对照。
-- frontmatter 能按 YAML 解析，并以 `schema: "1.0"` 开头。
+- frontmatter 能按 YAML 解析，并以 `schema` 开头：创建时是 `"1.0"`，重跑时是原来那个主版本号为 `1` 的值。
 - `framework.kind` 是 `expo`、`flutter`、`xcode`、`kotlin`、`nextjs`、`vite`、`static`、`unknown` 之一，`framework.evidence` 指向一个存在的文件，或者是 `creator`。
 - 首次运行时每个 `targets.*.status` 都是 `unknown`，每个 `targets.*.detected` 都是字符串 `"yes"` 或 `"no"`。
 - `goal` 已设置。
@@ -162,7 +163,7 @@
 | `app.json` 里没有 `expo` 键 | 这是 React Native CLI 应用或别的应用，不是 Expo | 不要记成 `expo`；继续往下对照表格，结果是 `unknown` 时问创作者 |
 | `schema` 主版本号比 `1` 新 | 插件比 state 文件旧 | 停下；告诉创作者更新插件 |
 | 创作者想要的目标平台在项目里没有配置 | 这个平台还没搭起来 | 记下 `intent: wanted` 和 `detected: "no"`；由对应平台的 skill 负责搭建 |
-| 文件里已经有提供类事实 | 之前某次运行或别的 skill 记下的 | 保留它们；只问仍是 `""` 或 `undecided` 的那些 |
+| 文件里已经有提供类事实 | 之前某次运行或别的 skill 记下的 | 保留它们；只在 `goal` 是 `""` 时问它，只在 `targets.*.intent` 是 `undecided` 时问它；绝不问 `accounts.*`、`tools.*`、`monetization.model` 或 `provided.*` |
 
 ## 更新状态
 
@@ -170,7 +171,7 @@
 
 - 识别类事实，按本次的证据写：`framework.kind`、`framework.package_manager`、`framework.evidence`、`app.slug`、`app.languages`、`targets.*.detected`。
 - 提供类事实，只按创作者本次给的回答写：`goal`、`targets.*.intent`、`app.name`、`app.description`。
-- `schema`：`"1.0"`。`updated`：今天。
+- `schema`：只在创建时写 `"1.0"`。重跑时主版本号是 `1`，就原样保留已有的值：更新的次版本号（例如 `"1.1"`）不变，它加的键也保留。绝不把文件降级。`updated`：今天。
 - `history`：追加 `{ skill: app-creators, version: "0.1.0", date: <YYYY-MM-DD>, result: ok }`。
 
 创建文件时，其他字段都按第 4 步的首次运行取值写，其中 `targets.*.status` 一律是 `unknown`。绝不写 `readiness.*`、`accounts.*`、`tools.*`、`monetization` 或 `provided`：创建时保持首次运行的取值，重跑时原样保留。
@@ -188,6 +189,7 @@
 - [Xcode: creating a standalone Swift package](https://developer.apple.com/documentation/xcode/creating-a-standalone-swift-package-with-xcode)，核对于 2026-10-26。
 - [Swift Package Manager: creating a Swift package](https://docs.swift.org/latest/documentation/packagemanagerdocs/creatingswiftpackage)，核对于 2026-10-26。
 - [Android: configure your build](https://developer.android.com/build)，核对于 2026-10-26。
+- [Android: migrate your build to version catalogs](https://developer.android.com/build/migrate-to-catalogs)，核对于 2026-10-26。
 - [Next.js: next.config.js](https://nextjs.org/docs/app/api-reference/config/next-config-js)，核对于 2026-10-26。
 - [Next.js: installation](https://nextjs.org/docs/app/getting-started/installation)，核对于 2026-10-26。
 - [Vite: configuring Vite](https://vite.dev/config/)，核对于 2026-10-26。
