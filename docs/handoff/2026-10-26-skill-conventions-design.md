@@ -296,3 +296,19 @@ Result (claude 2.1.310, `--runs 1 --ablation none --scaffold --no-publish`, no B
 
 **Deferred**
 - A page that only unregisters service workers (mentions `serviceWorker`, ships a stale `sw.js`) still reads as registered by inference: telling it apart needs JS execution.
+
+## Slice B — Whole-run gate verdict
+
+Fresh whole-run reviewer: no blockers; three defects and a tail, fixed in round 1 (f7551aa); blocker-only rechecks PASS at f7551aa and e5b39dd; zh-fidelity 0 missing / 0 changed / 0 added on the full file and again on the changed lines. Codex (codex-companion, two passes): 8 MAJOR in pass 1 (seven fixed in round 1; the eval's Bash denial rejected as a run rule), 3 in pass 2 (two fixed in round 2; unregister-only page deferred). Full suite PASS after each fix commit (lint tests 77/77, lint clean, template lint clean, manifests parse, `claude plugin validate .` with the three known warnings). Fix-cycle cap (2) reached.
+
+**Deferred at the cap (recorded, not fixed)**
+- `check-pwa.sh` `strip_comments`: an unclosed `<!--` inside an inline `<script>` placed before the manifest `<link>` hides every later tag, so a valid page gets `FAIL manifest-link` and seven skipped FAILs. Fix idea: treat `<!--` as a comment only outside `<script>` elements, or strip only when a matching `-->` exists. Found by the reviewer at the second recheck; it came in with f7551aa.
+- A commented-out `register('/old-sw.js')` before the real call is picked as the script URL (raw-page search; same as before f7551aa).
+- `names-vercel` grader passes trivially because both prompts say the creator has a Vercel account; a stronger case needs a prompt without the account hint and a rerun.
+- Nightly level-2 eval with `--allow-tools Bash`, the level-3 fixture run, and the live-URL proof: all wait for a fixture-only Vercel account (§3.4 credential boundary).
+
+**Rejected**
+- Codex: "both cases deny Bash while requiring `check-pwa.sh`" — the run rule forbids Bash until a fixture-only account exists; the README documents the ceiling and the nightly form.
+- `vercel promote` in step 5: docs limit it to staged deployments.
+
+implement-loop: slice B deferred: level-3 run and live-URL proof await a fixture-only Vercel account (B.1, B.2, fixture, eval case shipped e5b39dd); remaining: [C]
