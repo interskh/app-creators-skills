@@ -282,3 +282,17 @@ Result (claude 2.1.310, `--runs 1 --ablation none --scaffold --no-publish`, no B
 - `skills/publish-web/{SKILL.md,scripts/check-pwa.sh,references/vercel.md,references/cloudflare-pages.md,references/pwa-checklist.md}`, `evals/publish-web/{README.md,vite-en/scaffold.sh,vite-zh/scaffold.sh}`. `SKILL.zh.md` was not touched; the zh doer mirrors steps 2, 4, 5, the new Troubleshooting row, and the Sources additions.
 
 **zh mirror** (`skills/publish-web/SKILL.zh.md`, 147 lines): steps 2, 4, and 5 (all four lines), the new `served as text/html` row before `FAIL https`, and the four Sources entries now match SKILL.md, with the same order and 核对于 2026-10-26. Parity: 137/137 distinct backtick spans, none missing or extra. Count differences are intentional: `public` 1→2, and `vercel domains verify` 1→3, because the bare "verify" became that code span. URLs match 37/37 in the same order. Steps 7/7, troubleshooting rows 8/8. Bare-word fixes: exclude → dropped (SKILL.md removed that aside), stdout → 标准输出, verify → `vercel domains verify` (twice), scope → 作用域, zone → 区域（zone）, http → HTTP, git → Git, state → 状态文件. The prose keeps keep-list words, product and UI names, plus skill and frontmatter as project terms.
+
+## Slice B — Gate fix round 2
+
+**Fixes**
+1. The comment-stripped page is used only for tag extraction (manifest `<link>`, `<script src>`). Registration strings are searched in the raw page plus the loaded scripts, so `<script>const a="<!--";navigator.serviceWorker.register("/sw.js");const b="-->";</script>` passes.
+2. `is_js_mime` accepts exactly the WHATWG mimesniff JavaScript MIME type essences (mimesniff.spec.whatwg.org/#javascript-mime-type, checked 2026-10-26), case-insensitive with parameters dropped; cited in `pwa-checklist.md`. SKILL.md does not name the list, so it is unchanged.
+
+**Evidence**
+- Battery under `/bin/bash`, node and jq-only PATH, identical results, 12 lines every case. New cases: `inlinejs` (that exact page) PASS; `xecma` (`application/x-ecmascript`) PASS; `mimecase` (`TEXT/JavaScript1.5; charset=utf-8`) PASS; `commented` (old manifest link in a comment) still PASS on the real link. Earlier cases unchanged.
+- Mutations 8/8 caught, including M7 (search the stripped page → `inlinejs` exit 1) and M8 (drop `x-ecmascript` and `javascript1.x` → `xecma`, `mimecase` exit 1); restore verified by checksum.
+- Fixture preview 12/12 PASS, exit 0 (node and jq). `lint-skills.sh` clean; `lint-skills.test.sh` 77/77.
+
+**Deferred**
+- A page that only unregisters service workers (mentions `serviceWorker`, ships a stale `sw.js`) still reads as registered by inference: telling it apart needs JS execution.

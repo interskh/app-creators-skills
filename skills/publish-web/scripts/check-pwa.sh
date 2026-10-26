@@ -109,7 +109,9 @@ why() {
 
 is_js_mime() {
   case "$1" in
-    text/javascript | application/javascript | application/x-javascript | application/ecmascript | text/ecmascript) return 0 ;;
+    application/ecmascript | application/javascript | application/x-ecmascript | application/x-javascript | \
+      text/ecmascript | text/javascript | text/javascript1.[0-5] | text/jscript | text/livescript | \
+      text/x-ecmascript | text/x-javascript) return 0 ;;
   esac
   return 1
 }
@@ -380,9 +382,9 @@ else
 fi
 
 # 4. Service worker
-cp "$tmp/page.html" "$tmp/haystack"
+cp "$tmp/page.raw.html" "$tmp/haystack"
 found=0
-if grep -qE 'serviceWorker\.register\(|registerSW\.js' "$tmp/page.html"; then
+if grep -qE 'serviceWorker\.register\(|registerSW\.js' "$tmp/page.raw.html"; then
   found=1
 fi
 n=0

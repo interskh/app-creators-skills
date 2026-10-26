@@ -21,9 +21,8 @@ The browser also waits for user engagement before it shows its own
 install prompt: at least one click or tap on the page and 30 seconds
 viewing it, at any time. The app must not be installed already.
 
-Other browsers have similar criteria with small differences.
-
-web.dev also lists `window-controls-overlay`; MDN has it only under
+Other browsers have similar criteria with small differences. web.dev also
+lists `window-controls-overlay` for `display`; MDN has it only under
 `display_override`, which the script ignores.
 
 ## Rules the script adds
@@ -65,12 +64,13 @@ The script checks for one, for offline support and for that prompt:
   loaded script only mentions `serviceWorker`, registration is inferred
   from a JavaScript `sw.js` next to the page ("(inferred from sw.js)").
 - `service-worker-script`: the registered script (or `sw.js` next to
-  the page) returns 200 with a JavaScript MIME type: `text/javascript`,
-  `application/javascript`, `application/x-javascript`,
-  `application/ecmascript`, or `text/ecmascript`. The W3C spec requires
-  service worker scripts to be served with a JavaScript MIME type, so
-  `text/plain`, `application/octet-stream`, or a `text/html` fallback
-  page fail.
+  the page) returns 200 with a JavaScript MIME type. The W3C spec
+  requires one; the script accepts exactly the WHATWG mimesniff list
+  (`text/javascript`, `application/javascript`, `text/javascript1.0`
+  to `1.5`, `text/jscript`, and the `x-`/`ecmascript`/`livescript`
+  variants), case-insensitive, parameters ignored. `text/plain`,
+  `application/octet-stream`, or a `text/html` fallback page fail. The
+  raw page is searched for registration (`<!--` can sit in inline JS).
 
 `register()` rejects a script URL that is not on a trustworthy origin
 (HTTPS or localhost) or not same-origin with the page.
@@ -91,6 +91,7 @@ with errors such as an icon that cannot be loaded.
 - https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Manifest/Reference/display (checked 2026-10-26)
 - https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerContainer/register (checked 2026-10-26)
 - https://w3c.github.io/ServiceWorker/ (checked 2026-10-26)
+- https://mimesniff.spec.whatwg.org/#javascript-mime-type (checked 2026-10-26)
 - https://vite-pwa-org.netlify.app/guide/register-service-worker.html (checked 2026-10-26)
 - https://vercel.com/docs/frameworks/frontend/vite (checked 2026-10-26)
 - https://developer.chrome.com/blog/update-install-criteria (checked 2026-10-26)
