@@ -36,7 +36,7 @@ readiness:
 accounts:
   apple_developer: missing
   google_play: missing
-  vercel: has
+  vercel: missing
 tools:
   deploy: ""
   analytics: ""
