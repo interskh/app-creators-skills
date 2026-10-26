@@ -376,4 +376,25 @@ Fresh whole-run reviewer: no blockers; three defects and a tail, fixed in round 
 **Touches**
 - `skills/publish-web/scripts/check-pwa.sh`, `skills/publish-web/references/pwa-checklist.md`, `tests/check-pwa.test.sh`. No version bump: same checks and output.
 
+## Follow-up — gate fix round 2
+
+**Decisions**
+- Regex start also after a keyword: the scanner keeps the last identifier (`word`, contiguous `[A-Za-z0-9_$]`); a `/` whose previous non-space char ends that identifier starts a regex when it is one of `return typeof instanceof in of new delete void throw case do else yield await`.
+- `${…}` tracking: `${` in a backtick string pushes a level (`sp`, `dep[sp] = 0`) and returns to code mode; `{`/`}` adjust `dep[sp]`; a `}` at depth 0 pops back into the template string. Nested backticks, strings, comments, and regexes inside work as in code.
+- Identifier test uses `index()` on a 64-char set rather than a regex per char; the 1.23 MB bundle stays at 1.46 s.
+- Correction to the round-1 entry: "Each only matters if a `//` or `/*` sits in that text" is wrong. A missed regex or template boundary flips string/code state for the rest of that script line, so a later URL string can be read as a comment and hide a `register(` call. `pwa-checklist.md` now says so.
+
+**Rejected**
+- Treating `/` after `)` as a regex: `(a)/2` is division and common in minified code; telling `if(x)/re/` apart needs a parser.
+
+**Evidence**
+- Real Vite bundle (1.23 MB): 1.46 s; output equals the input plus one trailing newline. A local `react-dom-client.production.js` (536 KB, 16k lines): 0.53 s, only the React license block and the Modernizr license line removed (12 lines), `node --check` parses the output.
+
+**Deferred**
+- `if(x)/'/.test(y);var u='https://x.example/';…register(…)` (a regex after `)`) still fails `service-worker-registration`; kept out of the suite.
+- Regex after `]` or a non-keyword identifier, and `a.return/x/` (a keyword used as a property, read as regex), stay heuristic.
+
+**Touches**
+- `skills/publish-web/scripts/check-pwa.sh` (`js_awk` only), `skills/publish-web/references/pwa-checklist.md`, `tests/check-pwa.test.sh` (cases `regexkeyword`, `nestedtpl`).
+
 implement-loop: slice B deferred: level-3 run and live-URL proof await a fixture-only Vercel account (B.1, B.2, fixture, eval case shipped e5b39dd); remaining: [C]

@@ -168,7 +168,11 @@ resolve_url() {
 }
 
 js_awk='
-  function js_reset() { st = ""; esc = 0; cls = 0; prev = "" }
+  function js_reset() {
+    st = ""; esc = 0; cls = 0; prev = ""; word = ""; inw = 0; sp = 0
+    idc = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_$"
+    kw = " return typeof instanceof in of new delete void throw case do else yield await "
+  }
   function js(t,   n, i, c, d) {
     n = split(t, ch, "")
     for (i = 1; i <= n; i++) {
@@ -178,12 +182,16 @@ js_awk='
         if (c == "/" && (d == "/" || d == "*")) {
           st = d == "/" ? "line" : "block"
           i++
+          inw = 0
           printf " "
           continue
         }
         printf "%s", c
         if (c == "\"" || c == q || c == "`") st = c
-        else if (c == "/" && (prev == "" || index("(,=:[!&|?{};", prev))) { st = "re"; cls = 0 }
+        else if (c == "/" && (prev == "" || index("(,=:[!&|?{};", prev) || (index(idc, prev) && index(kw, " " word " ")))) { st = "re"; cls = 0 }
+        else if (c == "{" && sp) dep[sp]++
+        else if (c == "}" && sp) { if (dep[sp]) dep[sp]--; else { sp--; st = "`" } }
+        if (index(idc, c)) { word = inw ? word c : c; inw = 1 } else inw = 0
         if (c !~ /[[:space:]]/) prev = c
         continue
       }
@@ -204,6 +212,14 @@ js_awk='
         else if (cls) { if (c == "]") cls = 0 }
         else if (c == "[") cls = 1
         else if (c == "/") { st = ""; prev = c }
+        continue
+      }
+      if (st == "`" && c == "$" && d == "{") {
+        printf "{"
+        i++
+        dep[++sp] = 0
+        st = ""
+        prev = "{"
         continue
       }
       if (c == st) { st = ""; prev = c }

@@ -79,10 +79,15 @@ The script checks for one, for offline support and for that prompt:
   Registration is searched after HTML comments are removed from the
   page and JS comments from each inline `<script>` body and each loaded
   script, one script at a time; HTML and CSS text is never treated as
-  JS. The JS pass skips string, template, and regex literals, so
-  `"https://…"`, `"image/*"`, and `/[ /*]/` stay, and a commented-out
-  `register('/old-sw.js')` is not picked. It does not track nested
-  templates inside `${…}`.
+  JS. The JS pass skips string, template (with nested `${…}`), and
+  regex literals, so `"https://…"`, `"image/*"`, and `/[ /*]/` stay,
+  and a commented-out `register('/old-sw.js')` is not picked. A `/`
+  starts a regex after punctuation such as `(`, `=`, `;` or after a
+  keyword such as `return`; after `)`, `]`, or any other identifier
+  it is read as division. Known limit: a regex the pass misses, such
+  as `if (x) /'/.test(y)`, flips string and code state for the rest
+  of that script line, so a later URL string such as `'https://…'`
+  can be read as a comment and a `register(` call after it is missed.
 
 `register()` rejects a script URL that is not on a trustworthy origin
 (HTTPS or localhost) or not same-origin with the page.

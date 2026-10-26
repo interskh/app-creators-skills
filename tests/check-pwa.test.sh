@@ -181,6 +181,18 @@ printf "const r=/[ /*]/;navigator.serviceWorker.register('/app/sw.js');const s=\
 run_check
 expect "/* inside a regex literal is kept" 0 "$(reg_line /app/sw.js)"
 
+site regexkeyword
+appsw
+page "$dir" "<link rel=\"manifest\" href=\"/manifest.webmanifest\"><script>function f(a){return/'/.test(a)}var u='https://x.example/';navigator.serviceWorker.register(\"/app/sw.js\")</script>"
+run_check
+expect "a regex literal after return is not division" 0 "$(reg_line /app/sw.js)"
+
+site nestedtpl
+appsw
+page "$dir" '<link rel="manifest" href="/manifest.webmanifest"><script>var a=`${b?`https://x.example/`:""}`;navigator.serviceWorker.register("/app/sw.js")</script>'
+run_check
+expect "a template nested in \${} keeps string state" 0 "$(reg_line /app/sw.js)"
+
 site parencomment
 appsw
 page "$dir" "<link rel=\"manifest\" href=\"/manifest.webmanifest\"><script>x()//navigator.serviceWorker.register('/old.js')
