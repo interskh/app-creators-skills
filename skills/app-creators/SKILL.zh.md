@@ -51,7 +51,7 @@
    - `web`：`vite`、`nextjs` 或 `static`；平台列表里有 `web` 的 `expo`；有 `web/` 目录的 `flutter`。
    - `ios`：`xcode`；平台列表里有 `ios` 的 `expo`；有 `ios/` 目录的 `flutter`。
    - `android`：`kotlin`；平台列表里有 `android` 的 `expo`；有 `android/` 目录的 `flutter`。
-   Expo 的平台列表：`app.json` 或 `app.config.json` 里 `expo` 下的 `platforms`。没有这一项，或者配置文件是 `app.config.js` 或 `app.config.ts` 时，用 Expo 的默认值：`ios` 和 `android`；`package.json` 的 `dependencies` 里有 `react-dom` 时再加上 `web`。
+   Expo 的平台列表：应用配置里的 `platforms`。在 `app.json` 或 `app.config.json` 里位于 `expo` 下；在 `app.config.js` 或 `app.config.ts` 里写成字面量列表时位于顶层。没有这一项，或者 JS/TS 配置里没有写成字面量时，用 Expo 的默认值：`ios` 和 `android`；`package.json` 的 `dependencies` 里有 `react-dom` 时再加上 `web`。
    预期：每个 `detected` 都是 `"yes"` 或 `"no"`。识别从不设置 `intent` 或 `status`。
 
 3. 问创作者。默认：一条消息，只问请求里还没回答的问题。备选：没有；绝不把问题拆成几条消息。

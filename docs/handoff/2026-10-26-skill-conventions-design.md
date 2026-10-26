@@ -611,3 +611,19 @@ Reviewer D1–D5 and Codex MAJOR/MINOR labels were not passed to this round; fix
 
 **Touches**
 - `skills/app-creators/SKILL.md`, `SKILL.zh.md`, `docs/STATE.md` (4 table rows), `evals/app-creators/{README.md,vite-en/case.yaml,vite-zh/case.yaml}`.
+
+## Slice C — Gate fix round 2
+
+**Fix**
+- Expo destinations (step 2): a literal `platforms` list at the top level of `app.config.js`/`app.config.ts` is read too; the default applies only when the list is absent or not a literal. Codex recheck of round 1 marked this NOT FIXED (`app.config.ts` with `platforms: ["ios"]` still gave `android.detected: "yes"`). Same sentence in `SKILL.zh.md`.
+
+**Rejected**
+- Reviewer NOTE that Expo's web default keys on `react-native-web`: the Expo app config reference (`platforms`, fetched 2026-10-26) says "If `react-dom` is installed, `web` is also included by default". Skill text kept.
+- Reviewer NOTE that a UTF-8 BOM fails the frontmatter regexes: the Write tool emits no BOM; not a realistic run.
+
+**Verdicts**
+- Round-1 recheck: reviewer PASS on DEFECTs 1–5, no new blocker or defect; Codex: 5 of 6 FIXED, the one above NOT FIXED, no new findings. Full suite at c30d9e6 PASS (lint 2 skills clean, template clean, 77/77, 48/48, validate with known warnings, manifests parse, check_tokens exit 0, both STATE.md blocks byte-identical to the spec).
+- No eval rerun for round 2: the changed sentence concerns Expo projects only; the Vite cases do not reach it.
+
+**Touches**
+- `skills/app-creators/SKILL.md`, `SKILL.zh.md` (one sentence each).

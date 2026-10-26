@@ -73,7 +73,7 @@ Check for `.app-creators/state.md` and take the matching branch:
    - `web`: `vite`, `nextjs`, or `static`; `expo` with `web` in its platforms; `flutter` with a `web/` directory.
    - `ios`: `xcode`; `expo` with `ios` in its platforms; `flutter` with an `ios/` directory.
    - `android`: `kotlin`; `expo` with `android` in its platforms; `flutter` with an `android/` directory.
-   Expo platforms: the `platforms` list under `expo` in `app.json` or `app.config.json`. When it is absent, or the config is `app.config.js` or `app.config.ts`, use the Expo default: `ios` and `android`, plus `web` when `react-dom` is in `package.json` `dependencies`.
+   Expo platforms: the `platforms` list in the app config: under `expo` in `app.json` or `app.config.json`, or at the top level of `app.config.js` or `app.config.ts` when it is written there as a literal list. When it is absent, or the JS/TS config does not state it as a literal, use the Expo default: `ios` and `android`, plus `web` when `react-dom` is in `package.json` `dependencies`.
    Expect: each `detected` is `"yes"` or `"no"`. Detection never sets `intent` or `status`.
 
 3. Ask the creator. Default: one message with only the questions the request did not already answer. Alternative: none; never split the questions across messages.
