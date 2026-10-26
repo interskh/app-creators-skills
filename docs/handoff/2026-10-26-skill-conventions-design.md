@@ -499,3 +499,25 @@ Fresh whole-run reviewer: no blockers; three defects and a tail, fixed in round 
 - `check-pwa.sh` (`html_awk`: `attrs`, `unent`; `strip_comments` tag branch), `pwa-checklist.md`, `tests/check-pwa.test.sh`.
 
 implement-loop: slice B deferred: level-3 run and live-URL proof await a fixture-only Vercel account (B.1, B.2, fixture, eval case shipped e5b39dd); remaining: [C]
+
+## Slice C — Task 1 — docs/STATE.md
+
+**Decisions**
+- Both YAML blocks copied verbatim from spec §4.1 (lines 233-286, 333-338) and checked by `diff`; the enum keeps `xcode` (not `swift`) for Xcode projects because the schema is copied, not redesigned.
+- Rules split into one short section each (unknown, evolution, readiness validity, ownership, routing intent, write discipline, migration), paraphrased closely so the spec stays the single source.
+- Field table: one row per concrete field, wildcard rows only where values are uniform (`targets.*.intent`, `targets.*.detected`, `readiness.*.*`, `tools.*`); per-platform `status` rows because their enums differ.
+- `updated` set by "the skill that writes the file"; `history` by "every skill that writes" (spec is silent on `updated`; write discipline implies it).
+- Header mirrors `SKILL-CONVENTIONS.md` ("If the two disagree, the spec wins").
+
+**Rejected**
+- One wildcard row for `targets.*.status`: would hide that iOS has `testflight` and Android `testing`.
+- Restating `publish-web`'s exact `## Update state` values: duplicates the skill; table only names it as today's writer.
+
+**Assumptions**
+- `app.slug` and `app.languages` are set by `app-creators` (detected class; any skill may re-detect). Check against §3.6 when `app-creators` ships.
+
+**Deferred**
+- No `app-creators` skill exists yet; "Who creates it" describes the contract it must follow.
+
+**Touches**
+- `docs/STATE.md` (new), `README.md` (one Contributing line). No skill, lint, or test file.

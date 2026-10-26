@@ -31,6 +31,7 @@ npx skills add interskh/app-creators-skills
 ## Contributing
 
 - Conventions every skill follows: `docs/specs/2026-10-26-skill-conventions-design.md`
+- State file schema every skill reads and writes: `docs/STATE.md`
 - Requirements: `docs/prds/prd-phase1-skills.md`
 - Work items: `docs/ROADMAP.md`
 
