@@ -91,7 +91,7 @@ expect() {
 }
 
 reg_line() {
-  printf '^PASS service-worker-registration: http://127\\.0\\.0\\.1:%s%s$' "$port" "$1"
+  printf '^PASS service-worker-registration: http://127\\.0\\.0\\.1:%s%s \\(static scan\\)$' "$port" "$1"
 }
 
 site valid
@@ -199,6 +199,85 @@ page "$dir" "<link rel=\"manifest\" href=\"/manifest.webmanifest\"><script>x()//
 navigator.serviceWorker.register('/app/sw.js')</script>"
 run_check
 expect "// after ) is a comment" 0 "$(reg_line /app/sw.js)"
+
+site parenregex
+appsw
+page "$dir" "<link rel=\"manifest\" href=\"/manifest.webmanifest\"><script>if(x)/'/.test(y);var u='https://x.example/';navigator.serviceWorker.register(\"/app/sw.js\")</script>"
+run_check
+expect "a register call hidden by a missed regex after ) is found in the raw page" 0 "$(reg_line /app/sw.js)"
+total=$((total + 1))
+if [ "$(printf '%s\n' "$out" | grep -c '^PASS ')" -eq 12 ]; then pass=$((pass + 1)); else fail "parenregex prints 12 PASS lines" "$out"; fi
+
+site parenregex-oldsw
+appsw
+page "$dir" "<link rel=\"manifest\" href=\"/manifest.webmanifest\"><!-- <script>navigator.serviceWorker.register('/old-sw.js')</script> --><script>if(x)/'/.test(y);var u='https://x.example/';navigator.serviceWorker.register(\"/app/sw.js\")</script>"
+run_check
+expect "raw candidates are fetch-verified, so a commented-out call to a missing script is passed over" 0 "$(reg_line /app/sw.js)"
+
+site inferred
+printf "if('serviceWorker' in navigator) import('./pwa.js')\n" >"$dir/registerSW.js"
+page "$dir" '<link rel="manifest" href="/manifest.webmanifest"><script src="/lazy.js"></script>'
+mv "$dir/registerSW.js" "$dir/lazy.js"
+run_check
+expect "a script that only mentions serviceWorker infers sw.js" 0 \
+  "$(printf '^PASS service-worker-registration: http://127\\.0\\.0\\.1:%s/sw\\.js \\(inferred from sw\\.js, static scan\\)$' "$port")"
+
+site attrscript
+page "$dir" '<div data-x="<script>"></div><!--<link rel="manifest" href="/manifest.webmanifest">--><script src="/registerSW.js"></script>'
+run_check
+expect "<script> inside a quoted attribute value is not a script tag" 1 '^FAIL manifest-link: ' "$(reg_line /sw.js)"
+
+site attrgt
+page "$dir" '<div title="1 > 0" data-x="<script>"></div><link rel="manifest" href="/manifest.webmanifest"><script src="/registerSW.js"></script>'
+run_check
+expect "> inside a quoted attribute value does not end the tag" 0 '^PASS manifest-link: ' "$(reg_line /sw.js)"
+
+site unclosedscript
+page "$dir" '<script src="/registerSW.js"></script><script>var a=1;<link rel="manifest" href="/manifest.webmanifest">'
+run_check
+expect "a manifest link after an unclosed <script> is script text, as in a browser" 1 '^FAIL manifest-link: ' "$(reg_line /sw.js)"
+
+site selfclosescript
+appsw
+printf 'var y=1;\n' >"$dir/x.js"
+page "$dir" '<script src="/x.js"/><link rel="manifest" href="/manifest.webmanifest"><!-- <script>navigator.serviceWorker.register("/old.js")</script> --><script>navigator.serviceWorker.register("/app/sw.js")</script>'
+run_check
+expect "<script/> does not self-close; the link after it is script text" 1 '^FAIL manifest-link: ' "$(reg_line /app/sw.js)"
+
+site selfclose-registersw
+printf 'var y=1;\n' >"$dir/x.js"
+page "$dir" '<script src="/x.js"/><link rel="manifest" href="/manifest.webmanifest"><script src="/registerSW.js"></script>'
+run_check
+expect "registerSW.js named in script text is not a loaded script" 1 '^FAIL manifest-link: ' '^FAIL service-worker-registration: ' '^FAIL service-worker-script: skipped: '
+
+site multilineblock
+appsw
+page "$dir" '<link rel="manifest" href="/manifest.webmanifest"><script>
+/* old:
+navigator.serviceWorker.register("/old.js")
+*/
+navigator.serviceWorker.register("/app/sw.js")
+</script>'
+run_check
+expect "a multi-line block comment hides the old register call" 0 "$(reg_line /app/sw.js)"
+
+site commentstar
+appsw
+page "$dir" '<link rel="manifest" href="/manifest.webmanifest"><script>/* a "*/" b */navigator.serviceWorker.register("/app/sw.js")</script>'
+run_check
+expect "a quote inside a block comment does not open a string" 0 "$(reg_line /app/sw.js)"
+
+site upperscript
+appsw
+page "$dir" '<SCRIPT TYPE=module>var s="<!--";</SCRIPT><link rel="manifest" href="/manifest.webmanifest"><script>navigator.serviceWorker.register("/app/sw.js")</script>'
+run_check
+expect "an upper-case <SCRIPT> with an unquoted attribute is a script tag" 0 '^PASS manifest-link: ' "$(reg_line /app/sw.js)"
+
+site strsep-inline
+appsw
+page "$dir" '<link rel="manifest" href="/manifest.webmanifest"><script>var sep=" // ";navigator.serviceWorker.register("/app/sw.js")</script>'
+run_check
+expect "// inside a string literal in an inline script is kept" 0 "$(reg_line /app/sw.js)"
 
 site fakeclose
 page "$dir" '<script>const s="</scripture><!--";</script><link rel="manifest" href="/manifest.webmanifest"><script src="/registerSW.js"></script>'

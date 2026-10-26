@@ -397,4 +397,39 @@ Fresh whole-run reviewer: no blockers; three defects and a tail, fixed in round 
 **Touches**
 - `skills/publish-web/scripts/check-pwa.sh` (`js_awk` only), `skills/publish-web/references/pwa-checklist.md`, `tests/check-pwa.test.sh` (cases `regexkeyword`, `nestedtpl`).
 
+## Follow-up 2 — check-pwa.sh fetch-verified registration and tag-aware scan
+
+**Decisions**
+- G1: candidates = quoted `serviceWorker.register(...)` URLs from the stripped haystack, then from a raw haystack (raw page + raw loaded scripts), deduped in order, cap 5; the first served with `is_js_mime` wins. The comment pass is now an ordering heuristic, not a correctness gate.
+- No JS candidate: a stripped `register(` (or a `registerSW.js` tag) reports the first candidate (else `sw.js`) and `service-worker-script` fails as before; then the `sw.js` inference branch; only after that a raw-only candidate is reported. Inference goes before raw-only so a commented-out call to a missing script cannot displace a working inferred `sw.js`.
+- `registerSW.js` detection reads the tag text (`page.tags.html`), not the haystack, so the name inside script text (after `<script src="/x.js"/>`) is not a loaded script.
+- G2: `strip_comments` splits the page into chars once, walks HTML text, reads each tag to `>` (a quote opens only right after `=`), and recognises `script`/`style` by the full tag name. A second output (`$2`, `page.tags.html`) carries HTML text without script/style bodies; `html_tags` reads it. Behaviour change, not an assertion of old behaviour: before, a manifest link inside an unclosed `<script>` or after `<script src/>` PASSed because bodies were scanned for tags.
+- Output emitted from 8 KB blocks and `js()` now walks an array range, so cost is linear: no whole-string `substr` per comment (BWK measures the whole string each call) and no `s = s $0` read loop (0.74 s on a 12k-line page).
+- G3: PASS lines read `<url> (static scan)` and `<url> (inferred from sw.js, static scan)`; check names unchanged. SKILL.md and SKILL.zh.md list check names only, no quoted registration line: untouched. SKILL-CONVENTIONS.md has no bump rule beyond `version`; following earlier entries, output wording only = no bump.
+- G4 cases added: `parenregex` (12 PASS), `parenregex-oldsw`, `inferred`, `attrscript`, `attrgt`, `unclosedscript`, `selfclosescript` (reviewer's `script_selfclose_unclosed`), `selfclose-registersw`, `multilineblock`, `commentstar`, `upperscript`, `strsep-inline`. Dropped as duplicates: `css_protorel_oneline` and `attr_style_protorel` (both in `oneline-url`), `nested_template` (`nestedtpl`), `return_regex_quote` (`regexkeyword`), `js_axios_accept` (`globs`), `paren_regex_quote` (`parenregex`).
+- `attrgt` exists because `attrscript` passes without quote handling (the tag scan alone consumes `<script>`); only a `>` inside a quoted value tells them apart.
+
+**Rejected**
+- Headless-browser mode: heavy dependency (Chromium) and out of scope for a POSIX-tools check.
+- Script-data escape states (`<!--` / double-escaped `<script>` inside a script body): a spec tokenizer for a rare pattern; listed as a limit.
+- Accepting a raw-only candidate before inference: regresses lazy-chunk apps that also keep a commented-out old call.
+- Blanking script bodies in the single output: the haystack needs inline bodies; two outputs from one pass cost nothing extra.
+
+**Assumptions**
+- Python `http.server` serves `.js` as a JavaScript MIME type (test fixtures rely on it, as before).
+- A real page rarely keeps a commented-out call to an old script that is still deployed while the live one fails; if it does, the old URL is accepted. Check: the `pwa-checklist.md` limit line.
+
+**Evidence**
+- `tests/check-pwa.test.sh` 34/34 and `tests/lint-skills.test.sh` 77/77 under (a) `LC_ALL=C /bin/bash` + BWK awk 20200816, (b) bash 5.3.20 + GNU Awk 5.4.1, (c) bash 5.3.20 + mawk 1.3.4 (temp dir first on PATH with `awk` and `bash` symlinks, so check-pwa ran under them); `scripts/lint-skills.sh` clean under (b) and (c).
+- Timings (BWK): Vite bundles 1.23 MB 1.54 s, 1.37 MB 1.71 s; 1.16 MB inline page 1.35 s; 1.35 MB page with 12k tags and 12k comments 1.2 s. `page.html` byte-identical to the previous version on those pages and the fixture `dist/index.html`.
+- Fixture `todo-vite` build + `npm run preview -- --port 4179 --strictPort`: 12/12 PASS, exit 0.
+- Mutants: no fetch verification → `parenregex-oldsw`, `selfclosescript` fail (`parenregex` alone has one candidate, so it cannot catch this); no raw fallback → `parenregex`, `parenregex-oldsw` fail; no quoted-attribute handling → `attrgt` fails; tags read from text with bodies → `unclosedscript`, `selfclosescript`, `selfclose-registersw` fail; `registerSW.js` searched in script text → `selfclose-registersw` fails. 5/5.
+
+**Deferred**
+- Runtime-only behaviour (unregister-only page, registration behind a runtime branch), non-JS `<script type>` and ignored `<script src>` bodies scanned as JS, script-data escape states, and RCDATA/RAWTEXT elements other than script/style (`textarea`, `title`, `noscript` with scripting on) not special-cased. All in `pwa-checklist.md` except the last.
+- Correction to earlier Deferred lists: "`>` inside a quoted attribute", "`<script` inside a quoted attribute value", "a `<script>` with no closing tag", and the `parenregex` failure no longer apply.
+
+**Touches**
+- `skills/publish-web/scripts/check-pwa.sh` (`js()` signature now `(array, from, to)`, `strip_comments` takes a second path), `skills/publish-web/references/pwa-checklist.md`, `tests/check-pwa.test.sh` (`reg_line` now expects ` (static scan)`).
+
 implement-loop: slice B deferred: level-3 run and live-URL proof await a fixture-only Vercel account (B.1, B.2, fixture, eval case shipped e5b39dd); remaining: [C]

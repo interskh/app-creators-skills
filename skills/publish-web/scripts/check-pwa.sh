@@ -173,11 +173,10 @@ js_awk='
     idc = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_$"
     kw = " return typeof instanceof in of new delete void throw case do else yield await "
   }
-  function js(t,   n, i, c, d) {
-    n = split(t, ch, "")
-    for (i = 1; i <= n; i++) {
+  function js(ch, from, to,   i, c, d) {
+    for (i = from; i <= to; i++) {
       c = ch[i]
-      d = i < n ? ch[i + 1] : ""
+      d = i < to ? ch[i + 1] : ""
       if (st == "") {
         if (c == "/" && (d == "/" || d == "*")) {
           st = d == "/" ? "line" : "block"
@@ -229,45 +228,94 @@ js_awk='
 '
 
 strip_comments() {
-  LC_ALL=C awk -v q="'" "$js_awk"'
-    function opener(t, name) { return match(t, "<" name "[[:space:]/>]") ? RSTART : 0 }
-    function closer(t, name) { return match(t, "</" name "[[:space:]/>]") ? RSTART : 0 }
-    { s = s $0 "\n" }
+  LC_ALL=C awk -v q="'" -v tags="$2" "$js_awk"'
+    function put(a, b, both,   m, x, y, t) {
+      while (a <= b) {
+        m = int((a - 1) / B) + 1
+        x = a - (m - 1) * B
+        y = b - (m - 1) * B
+        if (y > B) y = B
+        t = substr(blk[m], x, y - x + 1)
+        printf "%s", t
+        if (both) printf "%s", t > tags
+        a += y - x + 1
+      }
+    }
+    function closer(k, name,   len, m, p, w, x, c) {
+      len = length(name)
+      while (k <= n) {
+        m = int((k - 1) / B) + 1
+        p = index(substr(blk[m], k - (m - 1) * B) substr(blk[m + 1], 1, 1), "</")
+        if (!p) { k = m * B + 1; continue }
+        k += p - 1
+        w = ""
+        for (x = k + 2; x < k + 2 + len; x++) w = w hc[x]
+        c = hc[k + 2 + len]
+        if (tolower(w) == name && c != "" && index(" \t\n\r\f/>", c)) return k
+        k++
+      }
+      return n + 1
+    }
+    BEGIN { B = 8192 }
+    {
+      t = $0 "\n"
+      if (NR == 1) n = split(t, hc, "")
+      else {
+        m = split(t, tc, "")
+        for (x = 1; x <= m; x++) hc[++n] = tc[x]
+      }
+      while (t != "") {
+        need = B - length(cur)
+        cur = cur substr(t, 1, need)
+        t = substr(t, need + 1)
+        if (length(cur) == B) { blk[++nb] = cur; cur = "" }
+      }
+    }
     END {
-      low = tolower(s)
-      while (1) {
-        c = index(low, "<!--")
-        name = "script"
-        r = opener(low, "script")
-        t = opener(low, "style")
-        if (t && (!r || t < r)) { name = "style"; r = t }
-        if (!c && !r) break
-        if (r && (!c || r < c)) {
-          e = index(substr(low, r), ">")
-          k = e ? closer(substr(low, r + e), name) : 0
-          if (!k) break
-          b = r + e
-          k = b + k - 1
-          printf "%s", substr(s, 1, b - 1)
-          if (name == "script") {
-            js_reset()
-            js(substr(s, b, k - b))
-          } else {
-            printf "%s", substr(s, b, k - b)
-          }
-          s = substr(s, k)
-          low = substr(low, k)
+      if (cur != "") blk[++nb] = cur
+      printf "" > tags
+      alpha = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+      i = 1
+      from = 1
+      while (i <= n) {
+        if (hc[i] != "<") { i++; continue }
+        if (hc[i + 1] == "!" && hc[i + 2] == "-" && hc[i + 3] == "-") {
+          put(from, i - 1, 1)
+          for (j = i + 4; j + 2 <= n && !(hc[j] == "-" && hc[j + 1] == "-" && hc[j + 2] == ">"); j++) ;
+          if (j + 2 > n) { from = n + 1; break }
+          i = j + 3
+          from = i
           continue
         }
-        printf "%s", substr(s, 1, c - 1)
-        s = substr(s, c + 4)
-        low = substr(low, c + 4)
-        j = index(low, "-->")
-        if (!j) { s = ""; break }
-        s = substr(s, j + 3)
-        low = substr(low, j + 3)
+        if (!index(alpha "/", hc[i + 1])) { i++; continue }
+        eq = 0
+        qt = ""
+        for (j = i + 1; j <= n; j++) {
+          c = hc[j]
+          if (qt != "") { if (c == qt) qt = "" ; continue }
+          if (c == ">") break
+          if (index(" \t\n\r\f", c)) continue
+          if (eq && (c == "\"" || c == q)) qt = c
+          eq = c == "="
+        }
+        if (j > n) break
+        name = ""
+        for (k = i + 1; k < j && !index(" \t\n\r\f/", hc[k]); k++) name = name hc[k]
+        name = tolower(name)
+        if (name != "script" && name != "style") { i = j + 1; continue }
+        put(from, j, 1)
+        b = j + 1
+        k = closer(b, name)
+        if (name == "script") {
+          js_reset()
+          js(hc, b, k - 1)
+        } else {
+          put(b, k - 1, 0)
+        }
+        i = k
+        from = k
       }
-      printf "%s", s
+      put(from, n, 1)
     }
   ' "$1"
 }
@@ -275,7 +323,7 @@ strip_comments() {
 strip_js_comments() {
   LC_ALL=C awk -v q="'" "$js_awk"'
     BEGIN { js_reset() }
-    { js($0 "\n") }
+    { n = split($0 "\n", lc, ""); js(lc, 1, n) }
   ' "$1"
 }
 
@@ -401,7 +449,7 @@ if ! fetched; then
   skip "HTML not fetched" manifest-link manifest-json $manifest_checks service-worker-registration service-worker-script
   exit 1
 fi
-strip_comments "$tmp/page.raw.html" >"$tmp/page.html"
+strip_comments "$tmp/page.raw.html" "$tmp/page.tags.html" >"$tmp/page.html"
 case "$url $page_url" in
   https://*" http://"*)
     if [ "$allow_http" -eq 1 ]; then
@@ -414,7 +462,7 @@ case "$url $page_url" in
 esac
 
 # 3. Manifest link, fetch, and members
-href="$(html_tags manifest "$tmp/page.html")"
+href="$(html_tags manifest "$tmp/page.tags.html")"
 if [ -z "$href" ]; then
   fail manifest-link 'no <link rel="manifest" href="..."> in the HTML'
   skip "no manifest link" manifest-json $manifest_checks
@@ -478,6 +526,7 @@ fi
 
 # 4. Service worker
 cp "$tmp/page.html" "$tmp/haystack"
+cp "$tmp/page.raw.html" "$tmp/haystack.raw"
 n=0
 while IFS= read -r src; do
   [ -n "$src" ] || continue
@@ -487,12 +536,29 @@ while IFS= read -r src; do
   if fetched; then
     printf '\n' >>"$tmp/haystack"
     strip_js_comments "$tmp/script" >>"$tmp/haystack"
+    printf '\n' >>"$tmp/haystack.raw"
+    cat "$tmp/script" >>"$tmp/haystack.raw"
   fi
-done < <(html_tags scripts "$tmp/page.html")
-found=0
-if grep -qE 'serviceWorker\.register\(|registerSW\.js' "$tmp/haystack"; then
-  found=1
-fi
+done < <(html_tags scripts "$tmp/page.tags.html")
+
+register_refs() {
+  (grep -oE "serviceWorker\.register\([[:space:]]*[\"'][^\"']+[\"']" "$1" || true) |
+    sed -E "s/^serviceWorker\.register\([[:space:]]*[\"']//; s/[\"']$//"
+}
+
+candidates="$({ register_refs "$tmp/haystack"; register_refs "$tmp/haystack.raw"; } |
+  awk '$0 != "" && !seen[$0]++' | head -n 5)"
+first="$(printf '%s\n' "$candidates" | head -n 1)"
+sw_url=""
+while IFS= read -r ref; do
+  [ -n "$ref" ] || continue
+  u="$(resolve_url "$page_url" "$ref")"
+  fetch "$u" "$tmp/sw.js"
+  if fetched && is_js_mime "$mime"; then
+    sw_url="$u"
+    break
+  fi
+done <<<"$candidates"
 
 sw_script_check() {
   if ! fetched; then
@@ -506,23 +572,29 @@ sw_script_check() {
   fi
 }
 
-if [ "$found" -eq 1 ]; then
-  sw_ref="$( (grep -oE "serviceWorker\.register\([[:space:]]*[\"'][^\"']+[\"']" "$tmp/haystack" || true) |
-    head -n 1 | sed -E "s/^serviceWorker\.register\([[:space:]]*[\"']//; s/[\"']$//")"
-  [ -n "$sw_ref" ] || sw_ref="sw.js"
-  sw_url="$(resolve_url "$page_url" "$sw_ref")"
-  pass "service-worker-registration: $sw_url"
+report_first() {
+  sw_url="$(resolve_url "$page_url" "${first:-sw.js}")"
+  pass "service-worker-registration: $sw_url (static scan)"
   fetch "$sw_url" "$tmp/sw.js"
   sw_script_check "$sw_url"
+}
+
+if [ -n "$sw_url" ]; then
+  pass "service-worker-registration: $sw_url (static scan)"
+  sw_script_check "$sw_url"
+elif grep -q 'serviceWorker\.register(' "$tmp/haystack" || grep -q 'registerSW\.js' "$tmp/page.tags.html"; then
+  report_first
 elif grep -q 'serviceWorker' "$tmp/haystack"; then
   sw_url="$(resolve_url "$page_url" sw.js)"
   fetch "$sw_url" "$tmp/sw.js"
   if fetched && is_js_mime "$mime"; then
-    pass "service-worker-registration: $sw_url (inferred from sw.js)"
+    pass "service-worker-registration: $sw_url (inferred from sw.js, static scan)"
   else
     fail service-worker-registration "the page mentions serviceWorker but has no register( call, and $sw_url is not a JavaScript file"
   fi
   sw_script_check "$sw_url"
+elif [ -n "$first" ]; then
+  report_first
 else
   fail service-worker-registration "no navigator.serviceWorker.register( call or registerSW.js in the page or its scripts"
   skip "no registration found" service-worker-script
