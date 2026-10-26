@@ -548,3 +548,29 @@ implement-loop: slice B deferred: level-3 run and live-URL proof await a fixture
 
 **Touches**
 - `skills/app-creators/` (new: SKILL.md, SKILL.zh.md, references/verified-runs.md from the template), `README.md` (Skills row, "Two skills so far").
+
+## Slice C — Task 3 — app-creators eval cases
+
+Result (claude 2.1.310, 2026-10-26; `--case 'app-creators-vite-*' --runs 1 --ablation none --scaffold --no-publish --trust-plugin --max-cost-usd 3 --allow-tools Write`, one run): app-creators-vite-en 1.00 (11/11, 8 turns, $0.16); app-creators-vite-zh 1.00 (11/11, 10 turns, $0.23); both llm judges PASS 3/3 in both cases; total $0.39, 74 s, `partial: false`, exit 0. No second run needed.
+
+**Decisions**
+- Case names `app-creators-vite-en`/`-zh` (dirs stay `vite-en`/`vite-zh`): `--case` and the report key on name, and publish-web owns `vite-*`.
+- `Write` listed in `allowed_tools` and granted with `--allow-tools Write` (last, variadic). No Bash (detection needs none), no AskUserQuestion (a question dead-ends an unattended run).
+- Regexes: scalars anchored `^...$` with `flags: m`, optional quotes; `intent`/`status` anchored to the `web:` block by backreferencing its indent (`^([ \t]*)web:` then only deeper-indented lines), so ios/android values cannot satisfy them. `schema-1-0` kept as its own grader (11 total). Patterns parsed from the real case.yaml (PyYAML) and tested with node: pass the SKILL.md example and its CRLF form; reject web `intent: undecided` with ios `wanted`, web `status: deployed`, and wrong kind/pm/slug/goal/schema.
+- Grader-asserted: `framework.kind`, `framework.package_manager`, `targets.web.intent`, `app.slug`. Only covered by the SKILL.md example block (no grader): `accounts.vercel`, `readiness.web`.
+- Last-message judge allows mentions of skills labelled "not shipped yet"/暂未提供, so the routing table's honest labels do not read as invented names.
+
+**Rejected**
+- Unanchored `web:\s*\n(?:[ \t]+.*\n)*?[ \t]+intent:` (brief's sketch): lazily crosses into the ios block and passes when web is `undecided` but ios is `wanted`.
+- Graders for `accounts.vercel`/`readiness.web`: brief fixed the grader list; both are first-run constants.
+
+**Assumptions**
+- `file_exists` counts the Write-created file even though the Write tool also creates `.app-creators/`; confirmed by the run.
+
+**Deferred**
+- Multi-run stability (`--runs 3`) and a two-arm baseline; one run is the level-2 bar here.
+
+**Touches**
+- `evals/app-creators/` (new: README.md, vite-en/{case.yaml,scaffold.sh}, vite-zh/{case.yaml,scaffold.sh}; scaffolds are publish-web's minus the state.md copy, mode 755). No skill, lint, or test file.
+
+**Proof** ("never asks for the framework twice"): this run shows app-creators writing the four publish-web inputs it owns (grader-asserted) without asking for the framework; publish-web's own eval shows it reading state.md instead of asking. `accounts.vercel` and `readiness.web` are set by other actors and only appear in the written file per the example block.
