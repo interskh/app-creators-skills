@@ -842,19 +842,24 @@ two "next beats vite in the table" 'nextjs has no ios route' "$dir" --platform i
 
 # ---- Bounded reads (SEC-1) -------------------------------------------------
 
-# watched <args>: like run_check, with a limit, so a read that blocks gives exit 124 instead of hanging the suite.
-watched() {
+# guarded <command>: run with a limit, so a block gives exit 124 instead of hanging the suite.
+guarded() {
   set +e
   python3 -I -c 'import subprocess,sys
 out,err=open(sys.argv[1],"wb"),open(sys.argv[2],"wb")
 try:
     sys.exit(subprocess.run(sys.argv[3:],stdin=subprocess.DEVNULL,stdout=out,stderr=err,timeout=20).returncode)
 except subprocess.TimeoutExpired:
-    sys.exit(124)' "$tmp/w.out" "$tmp/w.err" python3 -I "$check" "$@"
+    sys.exit(124)' "$tmp/w.out" "$tmp/w.err" "$@"
   code=$?
   set -e
   out="$(cat "$tmp/w.out")"
   err="$(cat "$tmp/w.err")"
+}
+
+# watched <args>: run_check under guarded.
+watched() {
+  guarded python3 -I "$check" "$@"
 }
 
 variant expo fifo-source
@@ -1807,6 +1812,199 @@ sub "$dir/app/build.gradle.kts" 'id("com.android.application")' 'alias(libs.plug
 put "$dir/gradle/libs.versions.toml" '[plugins]\nandroid-application = { id = "com.android.application", version = "8" }\n'
 run_check "$dir" --platform android
 expect "a version catalog alias still marks an Android app" 0 '^PASS package: '
+
+# ---- Gate round 2 ----------------------------------------------------------
+
+variant xcode group-cycle
+sub "$dir/$pbx" "$target_id" ''
+with_xcconfig "$dir/$pbx" target Target.xcconfig
+sub "$dir/$pbx" '	objects = {' '	objects = {
+		D7C147071CF9000F007C117A = {
+			isa = PBXGroup;
+			children = (
+				C7C147071CF9000F007C117D,
+				D7C147071CF9000F007C117B,
+			);
+			path = A;
+			sourceTree = "<group>";
+		};
+		D7C147071CF9000F007C117B = {
+			isa = PBXGroup;
+			children = (
+				D7C147071CF9000F007C117A,
+			);
+			path = B;
+			sourceTree = "<group>";
+		};'
+watched "$dir" --platform ios
+expect "a PBXGroup cycle is UNKNOWN, not a hang" 0 '^UNKNOWN bundle-id: .*xcconfig' '!^(PASS|FAIL) bundle-id: '
+
+variant kotlin slow-appid-spaces
+sub "$dir/app/build.gradle.kts" 'applicationId = "io.github.test.todo"' 'applicationId'
+pad "$dir/app/build.gradle.kts" 'applicationId' ' '
+watched "$dir" --platform android
+expect "applicationId and 2 MB of spaces is UNKNOWN" 0 '^UNKNOWN package: .*not a literal'
+
+variant xcode slow-settings-spaces
+sub "$dir/$pbx" "$target_id" "$target_id
+				FOO_SPACES ="
+pad "$dir/$pbx" 'FOO_SPACES =' ' '
+watched "$dir" --platform ios
+expect "a setting with 2 MB of spaces and no ; is ignored" 0 '^PASS bundle-id: "io.github.test.todo"'
+
+variant xcode slow-repeated-name
+pad "$dir/$pbx" 'buildConfigurationList = 97C147051CF9000F007C117D;' ' name = '
+watched "$dir" --platform ios
+expect "a repeated name = with no ; on its line ends" 0 '^PASS app-name: '
+
+variant xcode slow-repeated-list
+sub "$dir/$pbx" 'buildConfigurations = (
+				97C147061CF9000F007C117D /* Debug */,
+				97C147071CF9000F007C117D /* Release */,
+			);' 'note = x;'
+pad "$dir/$pbx" 'note = x;' ' buildConfigurations = ('
+watched "$dir" --platform ios
+expect "a repeated list opening with no ) is UNKNOWN" 0 '^UNKNOWN bundle-id: .*no Release configuration'
+
+mkdir -p "$tmp/outside-code"
+put "$tmp/outside-code/Away.ts" 'launchCameraAsync();\n'
+variant expo link-outside
+ln -s "$tmp/outside-code" "$dir/src"
+run_check "$dir" --platform ios
+expect "a linked folder outside the project is UNKNOWN, naming it" 0 '^UNKNOWN permission-strings: "src" points outside the project' '!^PASS permission-strings: '
+run_check "$dir" --platform android
+expect "same for permissions-declared" 0 '^UNKNOWN permissions-declared: "src" points outside the project'
+
+variant expo link-inside
+put "$dir/lib/Near.ts" 'launchCameraAsync();\n'
+ln -s lib "$dir/lib2"
+run_check "$dir" --platform ios
+expect "a linked folder the walk already scans stays silent" 1 '^FAIL permission-strings: "lib/Near.ts" uses' '!lib2'
+
+variant expo link-to-skipped
+put "$dir/node_modules/x/Vendored.ts" 'launchCameraAsync();\n'
+ln -s node_modules/x "$dir/vendored"
+run_check "$dir" --platform ios
+expect "a linked folder into a skipped folder is UNKNOWN" 0 '^UNKNOWN permission-strings: "vendored" points at a folder that is not scanned'
+
+variant flutter link-out-of-scan-root
+put "$dir/lib/Near.kt" 'val a = Manifest.permission.READ_SMS\n'
+ln -s ../lib "$dir/android/linked"
+run_check "$dir" --platform android
+expect "a linked folder out of the scan root is UNKNOWN" 0 '^UNKNOWN permissions-declared: "android/linked" points at a folder that is not scanned'
+
+variant flutter dot-symlinks
+mkdir -p "$dir/ios/.symlinks/plugins"
+ln -s "$tmp/outside-code" "$dir/ios/.symlinks/plugins/image_picker_ios"
+run_check "$dir" --platform ios
+expect "Flutter's ios/.symlinks is skipped" 0 '^PASS permission-strings: '
+
+regex_hides_nothing() {
+  variant expo regex-literal
+  put "$dir/Row.ts" "$1\n"
+  run_check "$dir" --platform ios
+  expect "$2" 1 '^FAIL permission-strings: "Row.ts" uses an API that needs "NSCameraUsageDescription"'
+}
+regex_hides_nothing 'p.replace(/\\/*$/, "");\nlaunchCameraAsync();\n/** docs */' 'an escaped slash and star opens no comment'
+regex_hides_nothing 'const r = /https?:\\/\\//; launchCameraAsync();' 'an escaped // in a regex opens no comment'
+regex_hides_nothing 'const r = /[/*]/;\nlaunchCameraAsync();\n/** docs */' 'a /* in a regex class opens no comment'
+regex_hides_nothing 'function f(s) { return /[//]/.test(s) && launchCameraAsync(); }' 'a // in a regex class after return opens no comment'
+regex_hides_nothing 'if (a) {\n    /\\/*$/.test(p);\n}\nlaunchCameraAsync();\n/** docs */' 'an indented regex statement with an escaped slash and star'
+regex_hides_nothing 'a\n    /https?:\\/\\//.test(u); launchCameraAsync();' 'an indented regex statement with an escaped //'
+variant expo regex-literal
+put "$dir/Row.ts" 'launch(1, /* launchCameraAsync(); */ 2); const a = 1 / 2 / 3; // launchCameraAsync();\n'
+run_check "$dir" --platform ios
+expect "comments and division still read as they should" 0 '^PASS permission-strings: ' '!NSCameraUsageDescription'
+
+variant flutter pick-video-far
+sub "$dir/lib/main.dart" 'pickImage(source: ImageSource.camera)' 'pickImage(source: ImageSource.gallery)'
+python3 -I -c 'import sys
+open(sys.argv[1],"w").write("final v = ImagePicker().pickVideo(\n"+"  // note\n  x: 1,\n"*200+"  source: ImageSource.camera);\n")' "$dir/lib/v.dart"
+run_check "$dir" --platform ios
+expect "pickVideo with its camera source far away still needs the microphone" 1 '^FAIL permission-strings: .*needs "NSMicrophoneUsageDescription"'
+variant flutter camera-no-video
+run_check "$dir" --platform ios
+expect "ImageSource.camera with no pickVideo needs no microphone" 0 '^PASS permission-strings: ' '!NSMicrophoneUsageDescription'
+
+meta_is 'export const metadata = { title: "Todo", ...runtimeOverrides };\n'
+expect "a spread after the title is UNKNOWN" 0 '^UNKNOWN app-name: .*spreads' '!^PASS app-name: '
+meta_is 'export const metadata = { ...base, title: "Todo" };\n'
+expect "a spread before the title is UNKNOWN" 0 '^UNKNOWN app-name: .*spreads' '!^PASS app-name: '
+meta_is 'export const metadata = { title: "One", title: "Two" };\n'
+expect "a later title is UNKNOWN" 0 '^UNKNOWN app-name: .*more than once' '!^PASS app-name: '
+meta_is 'export const metadata = { title: { default: "Todo", ...x } };\n'
+expect "a spread in title is UNKNOWN" 0 '^UNKNOWN app-name: .*spreads' '!^PASS app-name: '
+meta_is 'export const metadata = { title: { default: "One", default: "Two" } };\n'
+expect "a later default is UNKNOWN" 0 '^UNKNOWN app-name: .*more than once' '!^PASS app-name: '
+meta_is 'export const metadata = { title, description: "x" };\n'
+expect "a shorthand title is UNKNOWN" 0 '^UNKNOWN app-name: .*not a literal' '!^(PASS|FAIL) app-name: '
+meta_is "const doc = \"metadata = { title: 'Example' }\"; export const metadata = getMetadata();\n"
+expect "metadata inside a string is not the metadata" 0 '^UNKNOWN app-name: .*not an object literal' '!Example'
+meta_is "const doc = \"metadata = { title: 'Example' }\";\n"
+expect "metadata only inside a string fails" 1 '^FAIL app-name: the root layout sets no metadata.title' '!Example'
+meta_is 'function f() { const metadata = { title: "Inner" }; }\nexport const metadata = getMetadata();\n'
+expect "metadata assigned twice is UNKNOWN" 0 '^UNKNOWN app-name: .*more than once' '!Inner'
+
+variant static read-budget
+python3 -I -c 'import sys
+open(sys.argv[1],"w").write("<title>x</title>"+"<link rel=\"icon\" href=\"big.bin\">"*900)
+open(sys.argv[2],"wb").write(bytes(2*1024*1024))' "$dir/index.html" "$dir/big.bin"
+watched "$dir" --platform web
+expect "past the per-run read limit, a check is UNKNOWN" 0 '^UNKNOWN icon-sizes: .*per-run read limit' '!^PASS icon-sizes: '
+
+variant static too-many-icons
+python3 -I -c 'import sys
+open(sys.argv[1],"w").write("<title>x</title>"+"".join("<link rel=\"icon\" href=\"m%d.png\">"%i for i in range(1001)))' "$dir/index.html"
+watched "$dir" --platform web
+expect "over the icon cap is UNKNOWN, not a FAIL for each" 0 '^UNKNOWN icon-sizes: the project declares 1001 icons'
+
+variant xcode too-many-entries
+python3 -I -c 'import json,sys
+json.dump({"images":[{"filename":"m%d.png"%i,"idiom":"iphone","scale":"2x","size":"60x60"} for i in range(1001)]},open(sys.argv[1],"w"))' "$dir/$xset/Contents.json"
+watched "$dir" --platform ios
+expect "over the icon cap in Contents.json is UNKNOWN" 0 '^UNKNOWN icon-sizes: Contents.json lists 1001 icons'
+
+variant xcode one-fix
+put "$dir/$xset/Contents.json" '{"images":[{"filename":"Gone1.png","idiom":"iphone","scale":"2x","size":"60x60"},{"filename":"Gone2.png","idiom":"iphone","scale":"3x","size":"60x60"},{"filename":"Icon-1024.png","idiom":"ios-marketing","scale":"1x","size":"1024x1024"}]}\n'
+run_check "$dir" --platform ios
+expect "a repeated fix prints once, every gap still named" 1 '^FAIL icon-sizes: .*Gone1.*Gone2.*; fix: ' '!fix: .*alpha channel.*alpha channel'
+
+png "$tmp/outside-icon.png" 1024 1024 2
+for rel in outside-icon.png outside-missing.png; do
+  variant expo oracle
+  sub "$dir/app.json" './assets/icon.png' "../../$rel"
+  run_check "$dir" --platform ios
+  expect "expo icon $rel: outside reads the same either way" 0 '^UNKNOWN icon-sizes: .*outside the project' '^UNKNOWN icon-alpha: .*outside the project' '!(is|but) missing'
+  variant static oracle
+  sub "$dir/index.html" 'href="favicon.png"' "href=\"../../$rel\""
+  run_check "$dir" --platform web
+  expect "web icon $rel: outside reads the same either way" 0 '^UNKNOWN icon-sizes: .*outside the project' '!(is|but) missing'
+  variant xcode oracle
+  sub "$dir/$xset/Contents.json" 'Icon-60-2x.png' "../../../../../$rel"
+  run_check "$dir" --platform ios
+  expect "asset catalog icon $rel: outside reads the same either way" 0 '^UNKNOWN icon-sizes: .*outside the project' '!(is|but) missing'
+  variant xcode oracle
+  sub "$dir/$xset/Contents.json" 'Icon-1024.png' "../../../../../$rel"
+  run_check "$dir" --platform ios
+  expect "App Store icon $rel: outside reads the same either way" 0 '^UNKNOWN icon-alpha: .*outside the project' '!(is|but) missing'
+  variant xcode oracle
+  sub "$dir/$pbx" "$target_id" ''
+  with_xcconfig "$dir/$pbx" target Target.xcconfig
+  put "$dir/Target.xcconfig" "#include \"../../$rel\"\nPRODUCT_BUNDLE_IDENTIFIER = io.github.x\n"
+  run_check "$dir" --platform ios
+  expect "xcconfig include $rel: outside reads the same either way" 0 '^UNKNOWN bundle-id: .*xcconfig'
+done
+
+variant static run-limit
+guarded python3 -I -c 'import importlib.util,sys,time
+s=importlib.util.spec_from_file_location("check",sys.argv[1])
+m=importlib.util.module_from_spec(s)
+s.loader.exec_module(m)
+m.RUN_LIMIT_SECONDS=0.3
+m.web_checks=lambda *a:[("done-check",lambda:"ok"),("slow-check",lambda:time.sleep(15) or "late")]
+sys.exit(m.main([sys.argv[2],"--platform","web"]))' "$check" "$dir"
+total=$((total + 1))
+if [ "$code" = 2 ] && printf '%s\n' "$out" | grep -q '^PASS done-check' && ! printf '%s\n' "$out" | grep -q 'slow-check' && printf '%s\n' "$err" | grep -q 'run limit passed'; then pass=$((pass + 1)); else fail "the run limit exits 2 with no PASS for undone checks" "exit $code, out '$out', err '$err'"; fi
 
 # ---- Fixtures --------------------------------------------------------------
 

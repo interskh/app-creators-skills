@@ -21,7 +21,7 @@ The script exits 0 when nothing fails, so `UNKNOWN` alone exits 0. It exits 1 on
 
 ## Rules
 
-**Reading project files.** Every read goes through one helper: it opens without blocking, requires a regular file, requires the real path to stay inside the project, and stops at a size limit (16 MB, 2 MB for a scanned source file). A FIFO, a device, a directory, a symlink out of the project, or an oversized file gives `UNKNOWN` for the checks that depend on it. Image headers come from a 2 MB prefix, and PNG chunks are walked only to `IDAT`, so a large real icon still works; metadata that pushes `IDAT` past the prefix is `UNKNOWN`. XML that declares entities is not parsed. `--expo-config` is the operator's own file: it must be regular and within the limit, may sit outside the project, and otherwise exits 2.
+**Reading project files.** Every read goes through one helper: it opens without blocking, requires a regular file, requires the real path to stay inside the project, and stops at a size limit (16 MB, 2 MB for a scanned source file). A FIFO, a device, a directory, a symlink out of the project, or an oversized file gives `UNKNOWN` for the checks that depend on it. Image headers come from a 2 MB prefix, and PNG chunks are walked only to `IDAT`, so a large real icon still works; metadata that pushes `IDAT` past the prefix is `UNKNOWN`. XML that declares entities is not parsed. A path outside the project is `UNKNOWN` whether or not the file exists, so the output does not reveal which outside files exist. More than 1000 declared icons is `UNKNOWN`. `--expo-config` is the operator's own file: it must be regular and within the limit, may sit outside the project, and otherwise exits 2.
 
 **Printing project values.** Every name, id, path, key, permission, URL, and file name is printed in double quotes, with embedded quotes and backslashes escaped, Unicode categories Cc, Cf, Cs, Zl, and Zp dropped, and anything over 80 characters truncated with a marker. Each check prints one line.
 
@@ -43,7 +43,7 @@ The script exits 0 when nothing fails, so `UNKNOWN` alone exits 0. It exits 1 on
 
 **Expo icons.** iOS: exactly 1024x1024 [6][19]. Android: an adaptive foreground, or `android.icon`, or top-level `icon`; square and at least 512x512 [6]; an adaptive background image has the same dimensions as the foreground [6]. A monochrome layer only has to be square. A remote URL is `UNKNOWN`.
 
-**Web names and icons.** Next.js `metadata.title` is read only from the top level of the `metadata` object, as a plain string or `title: { default: ... }`; a nested or later `title` does not count, and a non-literal value or a spread is `UNKNOWN`. Under the pages router, the title is `UNKNOWN` and `public/favicon.*` counts as a declared icon. A remote or `data:` icon is `UNKNOWN`.
+**Web names and icons.** Next.js `metadata.title` is read only from the top level of the `metadata` object, as a plain string or `title: { default: ... }`; a nested `title` or one inside a string does not count. A non-literal value, a shorthand `title`, a spread anywhere in the object, a repeated `title` or `default`, or `metadata` assigned more than once is `UNKNOWN`. Under the pages router, the title is `UNKNOWN` and `public/favicon.*` counts as a declared icon. A remote or `data:` icon is `UNKNOWN`.
 
 **Incomplete scans.** A source file that was skipped for size, a read error, not being a regular file, or pointing outside the project makes `permission-strings` and `permissions-declared` `UNKNOWN`, naming the file, unless a detected gap already gives `FAIL`.
 
@@ -112,9 +112,11 @@ The table in the script holds only APIs a source below ties to a key or permissi
 - An ignored native folder is matched only in the forms listed above. Other globs and `!` negation are not understood.
 - A release source-set manifest that removes a permission is not read; only the `main` manifest is.
 - Any config plugin outside the script's option table gives `UNKNOWN` for a missing string, including first-party plugins that set none, such as `expo-router`.
-- Text scans stayed under about 2 seconds on the worst repeated tokens tried at 2 MB per file, including HTML. That is a test result, not a proven bound, so run the script under a time limit on a project you do not trust.
+- Crafted input: known slow patterns are fixed and tested, but no time bound is proven. The script has two backstops. Past 512 MB read in one run, further reads give `UNKNOWN`. Past 120 seconds of wall clock, where the platform has `SIGALRM`, it prints an error to stderr and exits 2, and any check not yet printed has no result. A run that reaches the limit is a failed run, not a clean one.
 - An unclosed `/*` is treated as text, so code after it is still scanned. An unclosed quote ends at its line, and an unclosed backtick at the end of the file; text in them is kept, never hidden.
-- A `pickVideo(` call counts its `ImageSource.camera` only within 200 characters, and `metadata` must reach its `= {` within 200 characters. A longer gap is treated as not found.
+- A Dart file naming both `pickVideo(` and `ImageSource.camera` needs the microphone key, even if the two are not one call. `metadata` must reach its `=` within 200 characters; a longer gap is treated as not found.
+- A regex literal is recognized only where an expression can start, as judged by the character before it or by `return`, with at most one space between. Elsewhere, only a `\` before `/*` or `//` keeps it from opening a comment, so a character class such as `[/*]` in an indented regex statement can still hide code.
+- A linked folder is not followed. If it points outside the project, or at a folder the scan does not reach, the permission check is `UNKNOWN` and names it. Flutter's `.symlinks` is skipped, because it points outside by design.
 
 ## Fixes
 

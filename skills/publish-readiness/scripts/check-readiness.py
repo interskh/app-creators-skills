@@ -9,6 +9,7 @@ import json
 import os
 import plistlib
 import re
+import signal
 import stat
 import struct
 import sys
@@ -17,9 +18,13 @@ import xml.etree.ElementTree as ET
 from html.parser import HTMLParser
 from urllib.parse import urlsplit
 
-SKIP_DIRS = {"node_modules", ".git", "build", "Pods", ".dart_tool", "dist", ".expo", ".gradle"}
+SKIP_DIRS = {"node_modules", ".git", "build", "Pods", ".dart_tool", "dist", ".expo", ".gradle", ".symlinks"}
 MAX_SCAN_BYTES = 2 * 1024 * 1024
 MAX_READ_BYTES = 16 * 1024 * 1024
+MAX_RUN_READ_MB = 512
+READS = {"left": MAX_RUN_READ_MB * 1024 * 1024}
+RUN_LIMIT_SECONDS = 120
+MAX_DECLARED_ICONS = 1000
 IMAGE_PREFIX_BYTES = 2 * 1024 * 1024
 SHOW_LIMIT = 80
 MAX_LINE = 8000
@@ -69,7 +74,7 @@ APPLE_APIS = [
 DART_APIS = [
     (r"ImageSource\.gallery|pickMultiImage|pickMedia\b|pickMultipleMedia|pickMultiVideo", (PHOTOS,)),
     (r"ImageSource\.camera", (CAMERA,)),
-    (r"pickVideo\([^)]{0,200}ImageSource\.camera", (MIC,)),
+    (r"(?s)\A(?=.*pickVideo\().*ImageSource\.camera", (MIC,)),
     (r"\bCameraController\(", (CAMERA,)),
     (r"\bCameraController\(", (MIC,)),
     (r"\bLocalAuthentication\(\)", (FACE_ID,)),
@@ -192,14 +197,24 @@ def _rel(path):
     return os.path.basename(path)
 
 
+def _inside(path, root):
+    real = os.path.realpath(path)
+    return real == root or real.startswith(root + os.sep)
+
+
+def contain(path):
+    """Decide before any existence check, so a missing outside path reads the same as a present one."""
+    if not _inside(path, PROJECT["real"]):
+        raise Unknown("%s points outside the project" % show(_rel(path)))
+
+
 def read_bytes(path, limit=MAX_READ_BYTES, contained=True, prefix=False):
     """Every project read: regular file only, inside the project, never more than limit bytes."""
     label = show(_rel(path))
+    if READS["left"] <= 0:
+        raise Unknown("%s was not read: the %d MB per-run read limit is used up" % (label, MAX_RUN_READ_MB))
     if contained:
-        real = os.path.realpath(path)
-        root = PROJECT["real"]
-        if real != root and not real.startswith(root + os.sep):
-            raise Unknown("%s points outside the project" % label)
+        contain(path)
     try:
         fd = os.open(path, os.O_RDONLY | getattr(os, "O_NONBLOCK", 0))
     except OSError as e:
@@ -220,6 +235,7 @@ def read_bytes(path, limit=MAX_READ_BYTES, contained=True, prefix=False):
     finally:
         os.close(fd)
     data = b"".join(parts)
+    READS["left"] -= len(data) + 4096
     if len(data) > limit:
         if prefix:
             return data[:limit]
@@ -262,8 +278,13 @@ def read_xml(path):
 
 
 # An unclosed literal runs to the end of its line or of the input, so a match never fails and rescans.
+# A regex literal counts as a string where an expression can start, so /[/*]/ opens no comment.
 COMMENT_OR_STRING = re.compile(
-    r"""("(?:\\.|[^"\\\n])*(?:"|(?=\n)|\\?\Z)|'(?:\\.|[^'\\\n])*(?:'|(?=\n)|\\?\Z)|`(?:\\.|[^`\\])*(?:`|\\?\Z))|/\*|//[^\n]*""", re.S
+    r"""("(?:\\.|[^"\\\n])*(?:"|(?=\n)|\\?\Z)|'(?:\\.|[^'\\\n])*(?:'|(?=\n)|\\?\Z)|`(?:\\.|[^`\\])*(?:`|\\?\Z)"""
+    r"""|(?:(?<=[(,=:\[!&|?{};\n])|(?<=[(,=:\[!&|?{};\n] )|(?<=return ))/(?![*/])"""
+    r"""(?:\\[^\n]|\[(?:\\[^\n]|[^\]\\\n])*(?:\]|\\?(?=\n)|\\?\Z)|[^/\\\n\[])*(?:/|\\?(?=\n)|\\?\Z))"""
+    r"""|(?<!\\)/\*|(?<!\\)//[^\n]*""",
+    re.S,
 )
 
 
@@ -288,6 +309,11 @@ def strip_comments(text):
             pos = text.find("*/", pos) + 2
         else:
             parts.append("/*")
+
+
+def mask_strings(stripped):
+    """Blank every literal in comment-free text, keeping offsets, for finding code by name."""
+    return COMMENT_OR_STRING.sub(lambda m: " " * len(m.group()) if m.group(1) else m.group(), stripped)
 
 
 def image_info(path):
@@ -349,10 +375,7 @@ def _webp_info(data):
 def verdict(fails, unknowns, evidence):
     """fails: [(reason, fix)]. Every gap goes on the one line."""
     if fails:
-        fixes = []
-        for _, fix in fails:
-            if fix not in fixes:
-                fixes.append(fix)
+        fixes = dict.fromkeys(fix for _, fix in fails)
         raise Fail("; ".join(reason for reason, _ in fails), "; ".join(fixes))
     if unknowns:
         raise Unknown("; ".join(unknowns))
@@ -390,8 +413,15 @@ def scan_code(root, extensions, skipped):
     def unreadable(error):
         skipped.append("%s could not be read (%s)" % (show(_rel(error.filename)), type(error).__name__))
 
+    scan_real = os.path.realpath(root)
     for current, dirs, files in os.walk(root, onerror=unreadable):
         dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS)
+        for name in dirs:
+            path = os.path.join(current, name)
+            if os.path.islink(path):
+                why = _linked_folder_gap(path, scan_real)
+                if why:
+                    skipped.append("%s %s" % (show(_rel(path)), why))
         for name in sorted(files):
             if not name.endswith(extensions):
                 continue
@@ -402,6 +432,15 @@ def scan_code(root, extensions, skipped):
                 skipped.append(str(e))
                 continue
             yield _rel(path), strip_comments(data.decode("utf-8", "replace"))
+
+
+def _linked_folder_gap(path, scan_real):
+    """os.walk does not follow a linked folder. Return why its code goes unscanned, or None if the walk reaches it anyway."""
+    if not _inside(path, PROJECT["real"]):
+        return "points outside the project"
+    if not _inside(path, scan_real) or set(os.path.relpath(os.path.realpath(path), scan_real).split(os.sep)) & SKIP_DIRS:
+        return "points at a folder that is not scanned"
+    return None
 
 
 def detect_keys(root, extensions, table, skipped):
@@ -521,8 +560,7 @@ class Apple:
             raise Unknown("project.pbxproj shows no application target")
         if len(targets) > 1:
             raise Unknown("project.pbxproj has %d application targets; choose one by hand" % len(targets))
-        name = re.search(r"\bname = (.*?);", targets[0])
-        self.builtin["TARGET_NAME"] = _pbx_value(name.group(1)) if name else ""
+        self.builtin["TARGET_NAME"] = _pbx_field(targets[0], "name") or ""
         target_settings, target_ref = _release(objects, targets[0], True)
         project_settings = {}
         project_ref = None
@@ -640,6 +678,8 @@ class Apple:
 
     def icon_sizes(self):
         folder, images = self._icon_set()
+        if len(images) > MAX_DECLARED_ICONS:
+            raise Unknown("Contents.json lists %d icons, over the %d this script checks" % (len(images), MAX_DECLARED_ICONS))
         fails = []
         unknowns = []
         marketing = None
@@ -652,6 +692,11 @@ class Apple:
             if not filename:
                 continue
             path = os.path.join(folder, str(filename))
+            try:
+                contain(path)
+            except Unknown as e:
+                unknowns.append(str(e))
+                continue
             if not os.path.lexists(path):
                 fails.append(("%s is listed in Contents.json but missing" % show(filename), Apple.FIX_ICON))
                 continue
@@ -682,6 +727,7 @@ class Apple:
             raise Unknown("no App Store icon file to read; see icon-sizes")
         filename = str(marketing[0]["filename"])
         path = os.path.join(folder, filename)
+        contain(path)
         if not os.path.lexists(path):
             raise Unknown("%s is missing; see icon-sizes" % show(filename))
         if _has_alpha(path):
@@ -730,8 +776,7 @@ def _release(objects, owner, required):
     """Return (settings, xcconfig file reference) of owner's Release configuration."""
     ref = re.search(r"buildConfigurationList = ([0-9A-Fa-f]{24})", owner)
     config_list = objects.get(ref.group(1)) if ref else None
-    ids = re.search(r"buildConfigurations = \((.*?)\)", config_list or "", re.S)
-    for cid in re.findall(r"([0-9A-Fa-f]{24})(?: /\*.{0,200}?\*/)?,", ids.group(1)) if ids else []:
+    for cid in re.findall(r"([0-9A-Fa-f]{24})(?: /\*.{0,200}?\*/)?,", _pbx_list(config_list or "", "buildConfigurations")):
         block = objects.get(cid, "")
         if re.search(r"\bname = \"?Release\"?;", block):
             base = re.search(r"baseConfigurationReference = (\w+)", block)
@@ -742,24 +787,27 @@ def _release(objects, owner, required):
 
 
 def _file_ref_path(objects, ref, root):
-    block = objects.get(ref)
-    path = re.search(r"\bpath = (.*?);", block or "")
-    if not path:
+    block = objects.get(ref, "")
+    path = _pbx_field(block, "path")
+    if path is None:
         return None
-    parts = [_pbx_value(path.group(1))]
+    parts = [path]
     if '<group>' in block:
         parents = {}
         for gid, group in objects.items():
             if _isa(group) in ("PBXGroup", "PBXVariantGroup"):
-                children = re.search(r"children = \((.*?)\)", group, re.S)
-                for child in re.findall(r"([0-9A-Fa-f]{24})", children.group(1)) if children else []:
+                for child in re.findall(r"([0-9A-Fa-f]{24})", _pbx_list(group, "children")):
                     parents[child] = gid
         current = ref
+        seen = {ref}
         while current in parents:
             current = parents[current]
-            group_path = re.search(r"\bpath = (.*?);", objects[current])
-            if group_path:
-                parts.insert(0, _pbx_value(group_path.group(1)))
+            if current in seen:
+                return None
+            seen.add(current)
+            group_path = _pbx_field(objects[current], "path")
+            if group_path is not None:
+                parts.insert(0, group_path)
     full = os.path.join(root, *parts)
     return None if "$" in full else full
 
@@ -771,6 +819,7 @@ def _read_xcconfig(path, depth):
         include = re.match(r'#include\??\s+"(.+)"', line)
         if include:
             target = os.path.join(os.path.dirname(path), include.group(1))
+            contain(target)
             if depth == 0 and os.path.lexists(target):
                 settings.update(_read_xcconfig(target, depth + 1))
             continue
@@ -815,15 +864,30 @@ def _pbx_value(raw):
     return raw
 
 
+def _pbx_field(block, key):
+    """First `key = value;`, by one forward search, so a repeated key with no `;` cannot rescan."""
+    m = re.search(r"\b%s = " % key, block)
+    end = block.find(";", m.end()) if m else -1
+    return _pbx_value(block[m.end():end]) if end >= 0 else None
+
+
+def _pbx_list(block, key):
+    """Inside of the first `key = (...)`, or an empty string."""
+    m = re.search(r"\b%s = \(" % key, block)
+    end = block.find(")", m.end()) if m else -1
+    return block[m.end():end] if end >= 0 else ""
+
+
 def _pbx_settings(block):
     start = block.find("buildSettings = {")
     if start < 0:
         return {}
     settings = {}
     for line in _pbx_block(block, start + len("buildSettings = ")).split("\n"):
-        m = re.match(r'^\s*("[^"]+"|[\w.-]+(?:\[[^\]]*\])*)\s*=\s*(.*);\s*$', line)
-        if m and not m.group(2).startswith("("):
-            settings[_pbx_value(m.group(1))] = _pbx_value(m.group(2))
+        m = re.match(r'\s*("[^"]+"|[\w.-]+(?:\[[^\]]*\])*)\s*=', line)
+        value = line[m.end():].strip() if m else ""
+        if value.endswith(";") and not value.startswith("("):
+            settings[_pbx_value(m.group(1))] = _pbx_value(value[:-1])
     return settings
 
 
@@ -930,7 +994,7 @@ class AndroidNative:
             raise Unknown("%s has unbalanced braces" % label)
         values = set()
         for rest in re.findall(r"\bapplicationId\b(.*)", text):
-            m = re.match(r"""\s*=?\s*["']([^"'$]*)["']\s*$""", rest)
+            m = re.match(r"""\s*(?:=\s*)?["']([^"'$]*)["']\s*$""", rest)
             if not m:
                 raise Unknown("applicationId in %s is not a literal" % label)
             values.add(m.group(1))
@@ -1127,6 +1191,7 @@ class ExpoConfig:
         if re.match(r"https?://", value):
             raise Unknown("%s is a remote URL (%s), so its size cannot be read" % (what, show(value)))
         path = os.path.normpath(os.path.join(self.project, value))
+        contain(path)
         if not os.path.exists(path):
             raise Fail("%s points at %s, which is missing" % (what, show(value)), "add the file or fix the path in the app config")
         return path
@@ -1338,18 +1403,24 @@ class Web:
         self.framework = framework
         self.expo = expo
         self.base = os.path.join(project, "web") if framework == "flutter" else project
+        self._head = None
+        self._head_read = False
         self.app_dir = os.path.join(project, "app")
         if not os.path.isdir(self.app_dir) and os.path.isdir(os.path.join(project, "src", "app")):
             self.app_dir = os.path.join(project, "src", "app")
 
     def head(self):
+        if self._head_read:
+            return self._head
         for rel in (("index.html",), ("public", "index.html")):
             path = os.path.join(self.base, *rel)
             if os.path.lexists(path):
                 reader = HeadReader()
                 reader.feed(read_text(path))
-                return reader
-        return None
+                self._head = reader
+                break
+        self._head_read = True
+        return self._head
 
     def manifest(self):
         """Return (path, data) for a manifest file, or (None, None). Malformed raises Unknown."""
@@ -1375,17 +1446,20 @@ class Web:
         ref = ref.split("?")[0].split("#")[0]
         rel = ref.lstrip("/")
         roots = [os.path.join(self.base, "public"), self.base] if ref.startswith("/") else [base, os.path.join(self.base, "public"), self.base]
-        for root in roots:
-            path = os.path.normpath(os.path.join(root, rel))
+        paths = [os.path.normpath(os.path.join(root, rel)) for root in roots]
+        inside = [path for path in paths if _inside(path, PROJECT["real"])]
+        for path in inside:
             if os.path.lexists(path):
                 return path
+        if len(inside) < len(paths):
+            raise Unknown("%s points outside the project" % show(ref))
         return None
 
     def _layout(self):
         for ext in ("tsx", "jsx", "ts", "js"):
             path = os.path.join(self.app_dir, "layout." + ext)
             if os.path.lexists(path):
-                return read_text(path)
+                return read_bytes(path, limit=MAX_SCAN_BYTES).decode("utf-8", "replace")
         return None
 
     def _pages_router(self):
@@ -1422,14 +1496,20 @@ class Web:
                 raise Unknown("the pages router sets the title at runtime")
             raise Fail("no root layout or manifest name", fix)
         layout = strip_comments(layout)
-        if "generateMetadata" in layout:
+        code = mask_strings(layout)
+        if "generateMetadata" in code:
             raise Unknown("generateMetadata builds the title at runtime")
-        m = re.search(r"\bmetadata\b[^={;]{0,200}=\s*\{", layout)
-        if not m:
-            if re.search(r"\bmetadata\b", layout):
+        assigns = list(re.finditer(r"\bmetadata\b[^={;]{0,200}=(?!=)", code))
+        if not assigns:
+            if re.search(r"\bmetadata\b", code):
                 raise Unknown("metadata in the root layout is not an object literal")
             raise Fail("the root layout sets no metadata.title", fix)
-        title = _object_key(layout, m.end() - 1, "title")
+        if len(assigns) > 1:
+            raise Unknown("metadata in the root layout is assigned more than once")
+        brace = _skip_space_or_end(code, assigns[0].end())
+        if code[brace:brace + 1] != "{":
+            raise Unknown("metadata in the root layout is not an object literal")
+        title = _object_key(layout, brace, "title")
         if title is None:
             raise Fail("metadata in the root layout has no title", fix)
         return valid_name(title, "metadata.title in the root layout", fix)
@@ -1461,6 +1541,8 @@ class Web:
                 declared.append((link["href"], link.get("sizes"), self.base, "index.html"))
         if self.framework == "nextjs":
             self._next_icons(declared, unknowns)
+        if len(declared) > MAX_DECLARED_ICONS:
+            raise Unknown("the project declares %d icons, over the %d this script checks" % (len(declared), MAX_DECLARED_ICONS))
         for ref, sizes, base, source in declared:
             self._check_declared(ref, sizes, base, source, fails, unknowns, fix)
         if not declared and not unknowns:
@@ -1494,11 +1576,11 @@ class Web:
         if PLACEHOLDER.search(ref):
             unknowns.append("icon %s holds a build placeholder" % show(ref))
             return
-        path = self._find(ref, base)
-        if path is None:
-            fails.append(("%s declares %s, which is missing" % (source, show(ref)), fix))
-            return
         try:
+            path = self._find(ref, base)
+            if path is None:
+                fails.append(("%s declares %s, which is missing" % (source, show(ref)), fix))
+                return
             if not path.endswith((".png", ".webp")):
                 read_bytes(path, limit=IMAGE_PREFIX_BYTES, prefix=True)
                 return
@@ -1524,18 +1606,22 @@ def _skip_string(text, i):
 
 
 def _object_key(text, start, key):
-    """Walk the object at text[start] and return key's literal value, None if absent, Unknown otherwise."""
+    """Walk the whole object at text[start]: key's literal value, or None if absent.
+    A spread anywhere or a repeated key may change the value, so either is Unknown."""
     depth = 0
     spread = False
+    values = []
+    key_at = re.compile(r"\b%s\s*([:,}(])" % key)
     i = start
     while i < len(text):
         c = text[i]
         if c in "\"'`":
-            if depth == 1 and text[i + 1:i + 1 + len(key) + 1] == key + c:
-                after = _skip_space_or_end(text, i + len(key) + 2)
+            end = _skip_string(text, i)
+            if depth == 1 and text[i + 1:end - 1] == key:
+                after = _skip_space_or_end(text, end)
                 if text[after:after + 1] == ":":
-                    return _object_value(text, _skip_space_or_end(text, after + 1), key)
-            i = _skip_string(text, i)
+                    values.append(_skip_space_or_end(text, after + 1))
+            i = end
             continue
         if c in "{[(":
             depth += 1
@@ -1544,15 +1630,21 @@ def _object_key(text, start, key):
             if depth == 0:
                 if spread:
                     raise Unknown("metadata in the root layout spreads another object")
-                return None
+                if len(values) > 1:
+                    raise Unknown("metadata sets %s more than once" % key)
+                return _object_value(text, values[0], key) if values else None
         elif depth == 1:
             if text.startswith("...", i):
                 spread = True
                 i += 3
                 continue
-            m = re.compile(r"\b%s\s*:" % key).match(text, i)
+            m = key_at.match(text, i)
             if m and not re.match(r"[\w.$]", text[i - 1]):
-                return _object_value(text, _skip_space_or_end(text, m.end()), key)
+                if m.group(1) != ":":
+                    raise Unknown("metadata.%s in the root layout is not a literal" % key)
+                values.append(_skip_space_or_end(text, m.end()))
+                i = m.end()
+                continue
         i += 1
     raise Unknown("metadata in the root layout is not closed")
 
@@ -1983,7 +2075,20 @@ def web_checks(project, framework, expo):
     return [("app-name", web.app_name), ("icon-sizes", web.icon_sizes)]
 
 
+def _out_of_time(signum, frame):
+    """Backstop. Checks not reached print nothing, so no PASS stands for undone work."""
+    try:
+        sys.stdout.flush()
+    except (RuntimeError, ValueError, OSError):
+        pass
+    os.write(2, b"error: the %d-second run limit passed; checks not printed above have no result\n" % RUN_LIMIT_SECONDS)
+    os._exit(2)
+
+
 def main(argv):
+    if hasattr(signal, "SIGALRM"):
+        signal.signal(signal.SIGALRM, _out_of_time)
+        signal.setitimer(signal.ITIMER_REAL, RUN_LIMIT_SECONDS)
     for stream in (sys.stdout, sys.stderr):
         stream.reconfigure(errors="backslashreplace")
     parser = argparse.ArgumentParser(prog="check-readiness.py")

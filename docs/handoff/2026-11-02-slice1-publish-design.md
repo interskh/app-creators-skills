@@ -213,3 +213,42 @@ Deferred:
 - Applying answers, an agreed fix, and the rerun after a commit stay unexercised: an eval has no second turn. Level 3 stays `open` until a run does them.
 
 Touches: `skills/publish-readiness/` (SKILL en and zh, `age-rating.md`, `data-inventory.md`, `smoke-run.md`, `verified-runs.md`), `skills/publish-web/SKILL.md`, `SKILL.zh.md`, `README.md`, `evals/publish-readiness/`.
+
+## Slice D / gate fix round 2: script
+
+**Outcomes**
+- 1 fixed: a PBXGroup cycle gives `UNKNOWN` through the xcconfig layer, with no hang.
+- 2 fixed: `applicationId` plus spaces gives `UNKNOWN package`: 1.5 s at 16 MB.
+- 3 fixed: `_pbx_settings` parses the value without a regex tail: `FOO =` plus spaces takes 3.4 s at 16 MB on 3.9. Same class found and fixed: `name =`, `path =`, and list openings repeated with no closer. The false time claim in `checks.md` is removed.
+- 4 fixed: a linked folder outside the project, or at a folder the scan does not reach, gives `UNKNOWN` naming it. One the walk reaches stays silent. `.symlinks` is skipped.
+- 5 fixed: both regex examples `FAIL`. `(?<!\\)` proved necessary for indented statements, but `/[/*]/` still hid code, so regex literals also count as strings where an expression can start.
+- 6 fixed: both tokens in one Dart file need the microphone key, by one anchored linear pattern.
+- 7 fixed: the walker reads the whole object. A spread, a repeated `title` or `default`, or a shorthand `title` gives `UNKNOWN`.
+- 8 fixed: discovery runs on text with literals blanked. `metadata` assigned twice gives `UNKNOWN`.
+- 9 fixed: 512 MB per-run budget in `read_bytes`; `verdict` dedupes with `dict.fromkeys`. The budget alone left the 14 MB `index.html` hanging, so 1000 declared icons is now a cap and `head()` is cached: 2.1 s on 3.9.
+- 10 fixed: `contain()` runs before existence for Expo icons, web icons, asset catalog entries, and xcconfig includes. Missing and present outside paths read the same.
+- 11 fixed: `setitimer` at 120 s when `SIGALRM` exists; the handler flushes finished lines, writes to stderr, and exits 2. Tested in process with a 0.3 s limit. `checks.md` calls it a backstop.
+
+**Evidence**
+- `tests/check-readiness.test.sh`: `PASS 475/475` under 3.14.7 and 3.9.6. Lint clean. Three fixture runs have no `FAIL`. Repro: no hang, no leak.
+- 39 probes, none hung. Slowest on 3.14: 1.4 s. Slowest on 3.9: 3.4 s.
+- Kill rate: 36/36 on this round's branches; first pass 34/36, and both survivors exposed test inputs that matched early. Every restore passed a sha256 check. Round 1's 54 mutants were not rerun on this code.
+
+**Decisions**
+- `_layout` now uses the 2 MB scan cap: a larger root layout gives `UNKNOWN`.
+- `_file_ref_path` returns `None` on a cycle, the path the xcconfig layer already treats as unreadable.
+
+**Rejected**
+- A per-file `[^)]{0,200}` for `pickVideo`: the silent drop in item 6.
+- Only `(?<!\\)` for item 5: it leaves `/[/*]/` hiding code.
+
+**Assumptions**
+- The regex-literal rule fits Swift, Dart, and Kotlin too. An unclosed false match keeps text to its line end, so it can only over-detect. Check: run on real projects in those languages.
+- Flutter desktop `.plugin_symlinks` was not skipped: no source was read, so such a project may get `UNKNOWN`. Check: a Flutter project with desktop folders.
+
+**Deferred**
+- A character class such as `[/*]` in an indented regex statement can still hide code; listed in Known limits.
+- No time bound is proven; the 120-second limit is the backstop. Without `SIGALRM`, as on Windows, there is no limit.
+
+**Touches**
+- `skills/publish-readiness/scripts/check-readiness.py`, `tests/check-readiness.test.sh`, `skills/publish-readiness/references/checks.md`. New exit-2 path on the time limit, and new `UNKNOWN` wording that an eval grader may match.
