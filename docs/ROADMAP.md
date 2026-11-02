@@ -34,6 +34,7 @@ Chinese ships with each skill rather than as a pass at the end.
 - [x] `p0` **publish-readiness zh** `🟡 M` — `skills/publish-readiness/SKILL.zh.md`: same sections and verified date as the English skill, written as a Chinese engineer would write it, not a literal translation. Lint passes.
   - Kyle: install a full Xcode and a JDK on the run machine, then the `smoke-run` step of level 3 can run on `expo+app-store` and `expo+google-play`, and on the Flutter, Xcode, and Kotlin routes once their fixtures exist. Until then those rows in `skills/publish-readiness/references/verified-runs.md` stay open.
   - Kyle: level 4 run of `publish-readiness` on a real app, recorded in `skills/publish-readiness/references/verified-runs.md`.
+  - Kyle: on a machine with a full Xcode and a JDK, pass real `xcodebuild -showBuildSettings -json` and `apkanalyzer manifest print` output to `check-readiness.py --resolved`. So far only hand-written files of the documented shape have run.
   - Kyle: push the fixtures branch, so the pinned `ff71355` is public and an outside contributor can run the evals.
 - [ ] `p1` **store-listing** `🟡 M` — Generate name, subtitle, description, keywords, and screenshot plan from the app code and `state.md`. Screenshot sizes per device class, preview video specs, en and zh listing copy, character limits per store.
 - [ ] `p1` **store-listing zh** `🟡 M` — `skills/store-listing/SKILL.zh.md`: same sections and verified date as the English skill, written as a Chinese engineer would write it, not a literal translation. Lint passes.

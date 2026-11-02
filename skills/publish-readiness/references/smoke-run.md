@@ -59,6 +59,10 @@ Android requires a release build to be signed before it installs [13]. If the pr
 
 JAVA_HOME, when set, decides which JDK Gradle uses on the command line [16].
 
+## After an Android release build
+
+The build's manifest is the only input that lets the check `package` pass, because the resolved application id exists only in the artifact. So on a native Android project, `SKILL.md` Step 6 reads the manifest of the APK or AAB this run just built in the export, with `apkanalyzer manifest print <apk>` [17] or `bundletool dump manifest --bundle=<aab>` [18], and repeats the checks with `--resolved`. A build that cannot install for lack of signing still has a manifest to read.
+
 ## Sources
 
 Fetched with curl and read 2026-11-02 (UTC).
@@ -79,3 +83,5 @@ Fetched with curl and read 2026-11-02 (UTC).
 14. Android Debug Bridge: https://developer.android.com/tools/adb
 15. Logcat command-line tool, Android: https://developer.android.com/tools/logcat
 16. Java versions in Android builds: https://developer.android.com/build/jdks
+17. apkanalyzer, Android (read 2026-11-03): https://developer.android.com/tools/apkanalyzer
+18. `DumpCommand.java`, bundletool source (read 2026-11-03): https://github.com/google/bundletool/blob/master/src/main/java/com/android/tools/build/bundletool/commands/DumpCommand.java
