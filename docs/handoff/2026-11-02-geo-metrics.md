@@ -120,3 +120,11 @@ Suite, fresh reviewer, and Codex all ran on ec37121. The suite passed. Round 1 f
 - The level 3 run is spec Slice B's exit proof and has not happened. The roadmap bullet says so, but nothing enforces it, and Ralph's next pick is `publish-readiness`.
 - No Claude Code or Codex session has loaded the skills after a real install.
 - The `SKILL-CONVENTIONS.md` and spec examples still show the old `publish-web` description. They are illustrations.
+
+**Round 2**
+- The `publish-web` install clause from round 1 told the agent to run `npx skills add ... -y`. That sent the CLI's install telemetry from a skill and installed code without asking, against FR-5 and Task 2's rejection of `--yes`. The skill now asks the creator to run the command, without `-y`.
+- `publish-web` moves to `0.1.1`, because spec §3.4 says a prerequisite change bumps `version`. It stays unverified.
+- The round 1 skills.sh sentence was also wrong: a linked Vercel project can get a short-lived OIDC token. Staying manual is a choice, not a limit, and the wording now says so. Task 3's earlier wording is superseded.
+- `scripts/metrics.sh` now fails on a damaged table instead of losing or duplicating a row, and rejects impossible and future dates.
+
+**Gate cap reached:** two of two fix cycles are used.

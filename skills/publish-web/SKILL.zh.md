@@ -16,7 +16,7 @@
 
 ## 开始之前
 
-先读 `.app-creators/state.md`。文件不存在时，先运行 `app-creators` 再回来；它还没安装的话，用 `npx skills add interskh/app-creators-skills --skill app-creators -y` 安装。`schema` 的主版本号不是 `1` 时，停下来，请创作者运行 `app-creators`。
+先读 `.app-creators/state.md`。文件不存在时，先运行 `app-creators` 再回来；它还没安装的话，请创作者运行 `npx skills add interskh/app-creators-skills --skill app-creators`。`schema` 的主版本号不是 `1` 时，停下来，请创作者运行 `app-creators`。
 
 下列字段必须存在：
 
@@ -104,7 +104,7 @@
 - `targets.web.domain`：自定义域名；没有就写 `""`。
 - `tools.deploy`：`vercel` 或 `cloudflare-pages`。
 - `accounts.vercel`：`has` 或 `missing`，只在创作者本次回答过时写。
-- `history`：追加 `{ skill: publish-web, version: "0.1.0", date: <YYYY-MM-DD>, result: <live | ready | stopped> }`。`ready` 或 `stopped` 的原因写在 frontmatter 下方的备注里，不写进这一行。
+- `history`：追加 `{ skill: publish-web, version: "0.1.1", date: <YYYY-MM-DD>, result: <live | ready | stopped> }`。`ready` 或 `stopped` 的原因写在 frontmatter 下方的备注里，不写进这一行。
 
 ## 来源
 

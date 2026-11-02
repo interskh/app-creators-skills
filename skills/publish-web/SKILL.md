@@ -10,7 +10,7 @@ license: MIT
 metadata:
   stage: publish
   platform: web
-  version: "0.1.0"
+  version: "0.1.1"
   verified: "unverified"
   verified_version: ""
   zh: SKILL.zh.md
@@ -36,7 +36,7 @@ Ask once; record in `.app-creators/state.md`. Never ask for, paste, or store a t
 
 ## Before you start
 
-Read `.app-creators/state.md`. If the file is missing, run `app-creators` first and come back; if it is not installed, install it with `npx skills add interskh/app-creators-skills --skill app-creators -y`. If `schema` has a different major version than `1`, stop and ask the creator to run `app-creators`.
+Read `.app-creators/state.md`. If the file is missing, run `app-creators` first and come back; if it is not installed, ask the creator to run `npx skills add interskh/app-creators-skills --skill app-creators`. If `schema` has a different major version than `1`, stop and ask the creator to run `app-creators`.
 
 These fields must exist:
 
@@ -124,7 +124,7 @@ Read the whole frontmatter, change only these fields, append one `history` row, 
 - `targets.web.domain`: the custom domain, or `""` if none.
 - `tools.deploy`: `vercel` or `cloudflare-pages`.
 - `accounts.vercel`: `has` or `missing`, only if the creator answered in this run.
-- `history`: append `{ skill: publish-web, version: "0.1.0", date: <YYYY-MM-DD>, result: <live | ready | stopped> }`. Write the reason for `ready` or `stopped` in the notes below the frontmatter, not in the row.
+- `history`: append `{ skill: publish-web, version: "0.1.1", date: <YYYY-MM-DD>, result: <live | ready | stopped> }`. Write the reason for `ready` or `stopped` in the notes below the frontmatter, not in the row.
 
 ## Sources
 
