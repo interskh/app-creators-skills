@@ -117,7 +117,10 @@ check "header says 14d windows overlap" 'grep -q "Rows overlap" "$f"'
 check "header says do not sum" 'grep -q "do not sum" "$f"'
 check "absent values are - not 0" '! grep -q "| 0 | 0 | 0 |" "$f"'
 check "exactly one row" '[ "$(row_count)" -eq 1 ]'
-check "only read calls to the repo endpoints" '! grep -v -E "^(auth status|api repos/interskh/app-creators-skills(/traffic/(clones|views))? --jq )" "$log" | grep -q .'
+check "only read calls to the repo endpoints" '! grep -v -E "^api --hostname github.com repos/interskh/app-creators-skills(/traffic/(clones|views))? --jq " "$log" | grep -q .'
+check "three api calls, each pinned to github.com" '[ "$(grep -c -- "^api --hostname github.com " "$log")" -eq 3 ]'
+check "no auth precheck" '! grep -q auth "$log"'
+check "script file is executable" '[ -x "$root/scripts/metrics.sh" ]'
 check "no write method used" '! grep -q -E -- "-X|--method|-f |-F |--input" "$log"'
 
 # append on a new date, earlier rows untouched
@@ -141,9 +144,37 @@ run METRICS_DATE=2026-11-02 -- --plugin-installs 0 --site-visits 130
 check "a flag overrides the stored value" '[ "$(tail -n 1 "$f")" = "| 2026-11-02 | 5 | 2 | 55 | 37 | 10 | 4 | 0 | 9 | 130 |" ]'
 check "explicit 0 is written as 0" 'tail -n 1 "$f" | grep -q "| 0 | 9 |"'
 
-# replace in the middle keeps order
-run -- --site-visits 3
-check "replace of an earlier date edits in place" '[ "$(row_count)" -eq 2 ] && [ "$(grep -n "^| 2026-11-01 " "$f" | cut -d: -f1)" -lt "$(grep -n "^| 2026-11-02 " "$f" | cut -d: -f1)" ] && grep -qxF "| 2026-11-01 | 5 | 2 | 55 | 37 | 10 | 4 | - | - | 3 |" "$f"'
+# a date earlier than the latest row is refused, not overwritten
+expect_fail "earlier date than the latest row" 1 "earlier than the latest row (2026-11-02)" METRICS_DATE=2026-11-01 -- --site-visits 3
+
+# the date stays a hook: GH_HOST must not retarget, direct invocation works
+newrepo
+run GH_HOST=ghe.example.com --
+check "GH_HOST set still records github.com data" '[ "$code" -eq 0 ] && grep -q "^api --hostname github.com " "$log"'
+set +e
+out="$(env PATH="$fakebin:$PATH" METRICS_DATE=2026-11-05 FAKE_GH_LOG="$log" "$work/scripts/metrics.sh" 2>&1)"
+code=$?
+set -e
+check "direct ./scripts/metrics.sh invocation" '[ "$code" -eq 0 ] && grep -q "^| 2026-11-05 " "$f"'
+
+# rows go into the metrics table only, even with another table below it
+newrepo
+run --
+printf '%s\n' "" "## Referrals" "" "| date | source | visits |" "|---|---|---|" "| 2026-11-02 | news | 12 |" "| 2026-12-01 | forum | 3 |" "" "Closing note." >> "$f"
+cp "$f" "$snap"
+run METRICS_DATE=2026-11-02 --
+check "new date with a table below exits 0" '[ "$code" -eq 0 ]'
+check "new row sits right after the last metrics row" '[ "$(grep -n "^| 2026-11-02 | 5 " "$f" | cut -d: -f1)" -eq "$(( $(grep -n "^| 2026-11-01 | 5 " "$f" | cut -d: -f1) + 1 ))" ]'
+check "text and tables below stay byte-identical" 'grep -v "^| 2026-11-02 | 5 " "$f" | cmp -s - "$snap"'
+run METRICS_DATE=2026-11-02 -- --site-visits 4
+check "same-date rerun replaces the metrics row only" '[ "$code" -eq 0 ] && [ "$(grep -c "^| 2026-11-02 | 5 " "$f")" -eq 1 ] && grep -qxF "| 2026-11-02 | news | 12 |" "$f" && grep -qxF "| 2026-12-01 | forum | 3 |" "$f"'
+check "rerun leaves everything else identical" 'grep -v "^| 2026-11-02 | 5 " "$f" | cmp -s - "$snap"'
+
+newrepo
+run --
+printf "%s\n" "| n/a | hand note |" >> "$f"
+run METRICS_DATE=2026-11-02 --
+check "a non-date row inside the table does not block a new date" '[ "$code" -eq 0 ] && grep -q "^| 2026-11-02 | 5 " "$f"'
 
 # default date is today's UTC date
 newrepo
@@ -169,12 +200,17 @@ check "valid flags with existing file still work" 'run -- --plugin-installs 12 -
 # validation also fails first on a fresh repo with nothing created
 newrepo
 expect_fail "invalid flag on a fresh repo creates nothing" 2 "non-negative integer" -- --plugin-installs x
-expect_fail "bad METRICS_DATE" 1 "METRICS_DATE" METRICS_DATE=11/01/2026 --
+for bd in 11/01/2026 2026-13-01 2026-00-10 2026-11-32 2026-11-00 2026-1-1 "2026-11-01 "; do
+  expect_fail "bad METRICS_DATE '$bd'" 1 "valid YYYY-MM-DD" METRICS_DATE="$bd" --
+done
+expect_fail "usage hides the test hook" 2 "usage:" -- --bogus
+check "usage omits METRICS_DATE" '! printf "%s" "$out" | grep -q METRICS_DATE'
+expect_fail "auth exit code 4 on clones" 1 "not logged in" FAKE_FAIL_CLONES=auth --
 
 # failure paths on a fresh repo: nothing is created
 newrepo
 expect_fail "gh missing (fresh)" 1 "gh is not installed" PATH="$nogh" --
-expect_fail "gh not logged in (fresh)" 1 "not logged in" FAKE_AUTH=fail --
+expect_fail "gh not logged in (fresh)" 1 "not logged in" FAKE_FAIL_REPO=auth --
 expect_fail "403 on clones (fresh)" 1 "403 for traffic/clones" FAKE_FAIL_CLONES=403 --
 expect_fail "network failure (fresh)" 1 "gh api failed for repo stats: error connecting" FAKE_FAIL_REPO=net --
 
@@ -182,7 +218,7 @@ expect_fail "network failure (fresh)" 1 "gh api failed for repo stats: error con
 newrepo
 run -- --plugin-installs 3
 expect_fail "gh missing" 1 "gh is not installed" PATH="$nogh" --
-expect_fail "gh not logged in" 1 "not logged in" FAKE_AUTH=fail --
+expect_fail "gh not logged in" 1 "not logged in" FAKE_FAIL_REPO=auth --
 expect_fail "403 on clones" 1 "403 for traffic/clones.*push access" FAKE_FAIL_CLONES=403 --
 expect_fail "403 on views" 1 "403 for traffic/views" FAKE_FAIL_VIEWS=403 --
 expect_fail "403 on repo stats" 1 "403 for repo stats" FAKE_FAIL_REPO=403 --

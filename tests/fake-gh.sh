@@ -1,28 +1,29 @@
 #!/usr/bin/env bash
-# Stand-in for gh in tests/metrics.test.sh. Prints what `gh api ... --jq` would print.
+# Stand-in for gh in tests/metrics.test.sh. Accepts only the exact calls the script is
+# contracted to make, then prints what `gh api ... --jq` would print.
 set -u
 
 echo "$*" >> "${FAKE_GH_LOG:-/dev/null}"
 
 tab=$'\t'
+repo="interskh/app-creators-skills"
 
-case "${1:-}" in
-  auth)
-    if [ "${FAKE_AUTH:-ok}" = ok ]; then
-      exit 0
-    fi
-    echo "You are not logged into any GitHub hosts. To log in, run: gh auth login" >&2
-    exit 1
-    ;;
-  api)
-    case "${2:-}" in
-      */traffic/clones) key=CLONES; default="55${tab}37" ;;
-      */traffic/views) key=VIEWS; default="10${tab}4" ;;
-      *) key=REPO; default="5${tab}2" ;;
-    esac
+if [ "${1:-}" = api ] && [ "${2:-}" = --hostname ] && [ "${3:-}" = github.com ] && [ "${5:-}" = --jq ] && [ "$#" -eq 6 ]; then
+  case "${4:-}" in
+    "repos/$repo/traffic/clones") key=CLONES; want='[.count,.uniques]|@tsv'; default="55${tab}37" ;;
+    "repos/$repo/traffic/views") key=VIEWS; want='[.count,.uniques]|@tsv'; default="10${tab}4" ;;
+    "repos/$repo") key=REPO; want='[.stargazers_count,.forks_count]|@tsv'; default="5${tab}2" ;;
+    *) key="" ;;
+  esac
+  if [ -n "$key" ] && [ "${6:-}" = "$want" ]; then
     failvar="FAKE_FAIL_$key"
     valvar="FAKE_VAL_$key"
     case "${!failvar:-}" in
+      auth)
+        echo "To get started with GitHub CLI, please run:  gh auth login" >&2
+        echo "Alternatively, populate the GH_TOKEN environment variable with a GitHub API authentication token." >&2
+        exit 4
+        ;;
       403)
         echo "gh: Resource not accessible by personal access token (HTTP 403)" >&2
         exit 1
@@ -38,8 +39,8 @@ case "${1:-}" in
       printf '%s\n' "$default"
     fi
     exit 0
-    ;;
-esac
+  fi
+fi
 
 echo "fake gh: unexpected call: $*" >&2
-exit 99
+exit 97
