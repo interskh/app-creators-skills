@@ -1,8 +1,9 @@
 ---
 name: publish-web
 description: >
-  Deploy a Next.js, Vite, or static web app to Vercel or Cloudflare Pages
-  with a custom domain and PWA install support. Use when the creator says
+  Deploy a Next.js, Vite, or static web app to Vercel, or a Vite, static,
+  or Next.js static-export app to Cloudflare Pages, with a custom domain
+  and PWA install support. Use when the creator says
   publish, deploy, go live, put it online, PWA, custom domain,
   发布网站, 部署, 上线, 网页版.
 license: MIT
@@ -22,8 +23,8 @@ metadata:
 - The creator wants a web app live on a public HTTPS URL: "publish", "deploy", "go live", "put it online".
 - The creator wants the app installable from the browser (PWA) or served on their own domain.
 - `.app-creators/state.md` has `targets.web.intent: wanted` and `targets.web.status` is not `live`.
-- Not this skill: the app ships as a native iOS or Android binary. Use `publish-ios` or `publish-android`.
-- Not this skill: the creator asks whether the app is ready to publish, not to publish it. Use `publish-readiness`.
+- Not this skill: the app ships as a native iOS or Android binary. Use `publish-ios` or `publish-android` (not shipped yet).
+- Not this skill: the creator asks whether the app is ready to publish, not to publish it. Use `publish-readiness` (not shipped yet).
 
 ## What you must provide
 
@@ -35,7 +36,7 @@ Ask once; record in `.app-creators/state.md`. Never ask for, paste, or store a t
 
 ## Before you start
 
-Read `.app-creators/state.md`. If the file is missing, run `app-creators` first and come back. If `schema` has a different major version than `1`, stop and ask the creator to run `app-creators`.
+Read `.app-creators/state.md`. If the file is missing, run `app-creators` first and come back; if it is not installed, install it with `npx skills add interskh/app-creators-skills --skill app-creators -y`. If `schema` has a different major version than `1`, stop and ask the creator to run `app-creators`.
 
 These fields must exist:
 

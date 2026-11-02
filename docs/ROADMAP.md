@@ -19,7 +19,7 @@ Chinese ships with each skill rather than as a pass at the end.
   - [x] `p0` **publish-web SKILL.md and scripts** `🟡 M` — Default Vercel, alternative Cloudflare Pages. `scripts/check-pwa.sh`, `references/vercel.md`, `references/cloudflare-pages.md`, `references/pwa-checklist.md`. Under 300 lines. Lint passes.
   - [x] `p0` **publish-web zh** `🟡 M` — `SKILL.zh.md` in the `zh-rewrite` register. Heading parity lint passes.
   - [x] `p0` **Fixture and eval** `🟡 M` — `todo-vite/` to-do app fixture in the fixtures repo (Kyle creates the repo first), one eval case under `evals/publish-web/`.
-  - Kyle: create a fixture-only Vercel account and log the CLI into it, then the level 3 run reaches a live Vercel URL that passes `check-pwa.sh`.
+  - Kyle: create a fixture-only Vercel account and log the CLI into it, then the level 3 run reaches a live Vercel URL that passes `check-pwa.sh`. This is spec Slice B's exit proof and is still open.
   - Kyle: level 4 run of `publish-web` on a real app, recorded in `references/verified-runs.md`.
 - [x] `p0` **State schema doc** `🟢 S` — Spec slice C.1. `docs/STATE.md` publishes §4.1 as the normative `state.md` schema with per-field notes.
 - [x] `p0` **Entry skill: app-creators** `🟡 M` — Spec slice C.2 and C.3. Detection table (file → framework), two questions (outcome: publish, get users, make money; wanted destinations), write `.app-creators/state.md`, routing table (goal × target → skill). `SKILL.zh.md` included. Eval case on the fixture expects `framework.kind: vite` and next skill `publish-web`.

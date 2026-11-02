@@ -3,8 +3,8 @@
 - 创作者想让网页应用上线，用公开的 HTTPS URL 访问：“发布”“部署”“上线”“放到网上”。
 - 创作者想让应用能从浏览器安装（PWA），或者用自己的域名访问。
 - `.app-creators/state.md` 里 `targets.web.intent: wanted`，且 `targets.web.status` 不是 `live`。
-- 不适用：应用要发布成 iOS 或 Android 原生安装包，改用 `publish-ios` 或 `publish-android`。
-- 不适用：创作者问的是应用能不能发布，并没有要现在发布，改用 `publish-readiness`。
+- 不适用：应用要发布成 iOS 或 Android 原生安装包，改用 `publish-ios` 或 `publish-android`（暂未提供）。
+- 不适用：创作者问的是应用能不能发布，并没有要现在发布，改用 `publish-readiness`（暂未提供）。
 
 ## 你需要准备
 
@@ -16,7 +16,7 @@
 
 ## 开始之前
 
-先读 `.app-creators/state.md`。文件不存在时，先运行 `app-creators` 再回来。`schema` 的主版本号不是 `1` 时，停下来，请创作者运行 `app-creators`。
+先读 `.app-creators/state.md`。文件不存在时，先运行 `app-creators` 再回来；它还没安装的话，用 `npx skills add interskh/app-creators-skills --skill app-creators -y` 安装。`schema` 的主版本号不是 `1` 时，停下来，请创作者运行 `app-creators`。
 
 下列字段必须存在：
 

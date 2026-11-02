@@ -8,7 +8,7 @@ Claude Code install: `claude plugin marketplace add interskh/app-creators-skills
 
 - [app-creators](https://raw.githubusercontent.com/interskh/app-creators-skills/main/skills/app-creators/SKILL.md): Detects the project's framework and destinations, writes .app-creators/state.md, and names the next skill. Triggers: start, where do I begin, set up app creators, what's next, ship my app.
 - [app-creators, Chinese](https://raw.githubusercontent.com/interskh/app-creators-skills/main/skills/app-creators/SKILL.zh.md): Chinese version of app-creators. Triggers: 开始, 从哪开始, 下一步, 发布我的应用.
-- [publish-web](https://raw.githubusercontent.com/interskh/app-creators-skills/main/skills/publish-web/SKILL.md): Deploys a Next.js, Vite, or static web app to Vercel or Cloudflare Pages with a custom domain and PWA install support. Triggers: publish, deploy, go live, put it online, PWA, custom domain.
+- [publish-web](https://raw.githubusercontent.com/interskh/app-creators-skills/main/skills/publish-web/SKILL.md): Deploys a Next.js, Vite, or static web app to Vercel, or a Vite, static, or Next.js static-export app to Cloudflare Pages, with a custom domain and PWA install support. Triggers: publish, deploy, go live, put it online, PWA, custom domain.
 - [publish-web, Chinese](https://raw.githubusercontent.com/interskh/app-creators-skills/main/skills/publish-web/SKILL.zh.md): Chinese version of publish-web. Triggers: 发布网站, 部署, 上线, 网页版.
 
 ## Docs

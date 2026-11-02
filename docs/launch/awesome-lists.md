@@ -17,7 +17,7 @@ submission at a time and read the target list first.
 | 1 | BehiSecc/awesome-claude-skills | 10,334 | 2026-11-02 | yes, no stated bar |
 | 2 | acvnace/awesome-vibe-coding-resources | 330 | 2026-11-02 | yes, no stated bar |
 | 3 | roboco-io/awesome-vibecoding | 215 | 2026-11-01 | probably; expect a manual review |
-| 4 | hesreallyhim/awesome-claude-code | 57,091 | 2026-11-02 | no; earliest 2026-11-08 |
+| 4 | hesreallyhim/awesome-claude-code | 57,091 | 2026-11-02 | no; earliest 2026-11-08 18:34 UTC |
 | 5 | VoltAgent/awesome-agent-skills | 36,758 | 2026-11-02 | no; needs real usage |
 | 6 | heilcheng/awesome-agent-skills | 6,334 | 2026-11-02 | no; needs 20 stars and 14 days |
 | 7 | hashgraph-online/awesome-codex-plugins | 1,486 | 2026-11-02 | no; needs a Codex plugin manifest |
@@ -27,14 +27,15 @@ submission at a time and read the target list first.
 https://github.com/BehiSecc/awesome-claude-skills
 
 Route: fork, change, open a pull request. Its README lists only those
-steps and no eligibility rule. Its last merged PR found closed on 2026-11-01.
+steps and no eligibility rule. The most recent merged PR found closed on
+2026-11-01.
 
 Meets the rules today: yes. Add to `🛠 Development & Code Tools`.
 
 PR title: `Add app-creators-skills`
 
 ```markdown
-- [app-creators-skills](https://github.com/interskh/app-creators-skills) - Pre-release Claude Code plugin with two skills: write a project state file, then deploy a Next.js, Vite, or static app to Vercel or Cloudflare Pages. Not yet verified on a real account.
+- [app-creators-skills](https://github.com/interskh/app-creators-skills) - Pre-release Claude Code plugin with two skills: write a project state file, then deploy a Next.js, Vite, or static app to Vercel, or a Vite, static, or Next.js static-export app to Cloudflare Pages. Not yet verified on a real account.
 ```
 
 PR body:
@@ -60,7 +61,7 @@ Meets the rules today: no rule is stated. Add to `Plugins and Extensions`.
 PR title: `Add App Creators skills to Plugins and Extensions`
 
 ```markdown
-- [App Creators skills](https://github.com/interskh/app-creators-skills) - Agent skills for Claude Code and Codex that write a project state file and deploy a Next.js, Vite, or static app to Vercel or Cloudflare Pages. Pre-release, not yet verified on a real account. MIT.
+- [App Creators skills](https://github.com/interskh/app-creators-skills) - Agent skills that install into Claude Code and Codex, write a project state file, and deploy a Next.js, Vite, or static app to Vercel, or a Vite, static, or Next.js static-export app to Cloudflare Pages. Pre-release, not yet verified on a real account. MIT.
 ```
 
 ## 3. roboco-io/awesome-vibecoding
@@ -74,7 +75,7 @@ minimum requirement nor sufficient evidence on their own". A submission must
 pass five conditions: relevance, usable public evidence, distinct value,
 transparent claims, and maintenance.
 
-Meets the rules today: probably. The install commands work and github.com
+Meets the rules today: probably. The install commands ran and github.com
 counts as an independent host in its policy, but a resource that is
 pre-release and unverified may get the `needs-review` label.
 
@@ -84,8 +85,8 @@ Form fields:
 Category: Deployment & Execution
 Resource Name: App Creators skills
 URL: https://github.com/interskh/app-creators-skills
-Description: Agent skills for Claude Code and Codex. app-creators writes a project state file; publish-web deploys a Next.js, Vite, or static app to Vercel or Cloudflare Pages. Pre-release.
-Public Evidence: The README has tested install commands, and the skill source is at https://github.com/interskh/app-creators-skills/blob/main/skills/publish-web/SKILL.md
+Description: Agent skills that install into Claude Code and Codex. app-creators writes a project state file; publish-web deploys a Next.js, Vite, or static app to Vercel, or a Vite, static, or Next.js static-export app to Cloudflare Pages. Pre-release.
+Public Evidence: The README lists install commands. On 2026-11-02 each one ran against the public repo and installed both skill files; no agent session has loaded the skills yet. Skill source: https://github.com/interskh/app-creators-skills/blob/main/skills/publish-web/SKILL.md
 Access and License: Free, MIT. Deploying needs a Vercel account or a Cloudflare account. The Vercel Hobby plan covers personal, non-commercial apps only.
 Current Availability: A new user can install it today. It is pre-release, and no skill has been verified on a real account.
 Affiliation: I maintain this repo.
@@ -101,13 +102,22 @@ recommendations "must be created by human beings". Only one resource at a
 time.
 
 Rules: at least 14 days since the first commit on the default branch with
-commits after the first day, or at least 100 stars.
+commits after the first day, or at least 100 stars. Resources that fail "will
+be closed automatically". A project that "requires any form of signup or
+payment" is "a blocker for reviewing it", and the list then recommends it only
+on community adoption signals.
 
-Meets the rules today: no. The repo has 0 stars, and the 14 days end on
-2026-11-08. All public commits date from 2026-10-25 and 2026-10-26, so push
-later work before filing to show active development. The form also requires ticking "This resource is specific to Claude Code". The
-plugin is, but these skills also install into Codex, so the person filing
-decides whether that box is honest. The form's last checkbox must stay
+Meets the rules today: no. The repo has 0 stars. The first commit is
+2026-10-25 18:34 UTC, so the 14 days end at 18:34 UTC on 2026-11-08. Filing
+earlier gets an automatic close. `publish-web` needs a Vercel or Cloudflare
+account, so the signup rule may block review; `app-creators` needs no account.
+
+The form requires ticking "I have visited this repo before with my own eyes,
+and I have confirmed that this resource is sufficiently distinct from any
+existing resource", so the person filing must do that first. It also requires
+ticking "This resource is specific to Claude Code". The plugin is, but these
+skills also install into Codex, so the person filing decides whether that box
+is honest. The form's last checkbox must stay
 unchecked. The list warns against relying on a listing for promotion and
 promises no response.
 
@@ -119,7 +129,7 @@ Category: Skills
 Link: https://github.com/interskh/app-creators-skills
 Author Name: interskh
 Author Link: https://github.com/interskh
-Description: Claude Code plugin with two skills. app-creators detects the project and writes a state file; publish-web deploys a Next.js, Vite, or static app to Vercel or Cloudflare Pages. Pre-release, not yet verified on a real account.
+Description: Claude Code plugin with two skills. app-creators detects the project and writes a state file; publish-web deploys a Next.js, Vite, or static app to Vercel, or a Vite, static, or Next.js static-export app to Cloudflare Pages. Pre-release, not yet verified on a real account.
 ```
 
 ## 5. VoltAgent/awesome-agent-skills
@@ -135,10 +145,13 @@ Meets the rules today: no. The repo is 7 days old with no usage to show. The
 list states no numeric bar. Wait until install counts or stars show usage. Add
 to `Development and Testing`.
 
-PR title: `Add skill: interskh/publish-web`
+`publish-web` reads the state file that `app-creators` writes, so the entry
+covers the repo and names both skills.
+
+PR title: `Add skill: interskh/app-creators-skills`
 
 ```markdown
-- **[interskh/publish-web](https://github.com/interskh/app-creators-skills/tree/main/skills/publish-web)** - Deploy web apps to Vercel or Cloudflare Pages (pre-release)
+- **[interskh/app-creators-skills](https://github.com/interskh/app-creators-skills)** - Project setup (app-creators) and web deploy (publish-web); pre-release
 ```
 
 ## 6. heilcheng/awesome-agent-skills
@@ -158,7 +171,7 @@ Meets the rules today: no. It needs 20 stars and a date of 2026-11-09 or later.
 PR title: `Add interskh/app-creators-skills to Development and Testing`
 
 ```markdown
-- [interskh/app-creators-skills](https://github.com/interskh/app-creators-skills) - Write app state, deploy web apps to Vercel or Cloudflare Pages. Pre-release.
+- [interskh/app-creators-skills](https://github.com/interskh/app-creators-skills) - Set up project state; deploy web apps to Vercel or Cloudflare Pages. Pre-release.
 ```
 
 ## 7. hashgraph-online/awesome-codex-plugins

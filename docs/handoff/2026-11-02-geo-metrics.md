@@ -93,3 +93,30 @@
 - New: `scripts/metrics.sh`, `tests/metrics.test.sh`, `tests/fake-gh.sh`, `docs/metrics.md` (first real row 2026-11-02).
 - Edited: `.github/workflows/lint.yml` (one step), `docs/ROADMAP.md` (Metrics script tick).
 - Shared: `docs/metrics.md` column order; the Community launch item also writes there.
+
+## Whole-run gate
+
+Suite, fresh reviewer, and Codex all ran on ec37121. The suite passed. Round 1 fixes landed in two commits: one for the metrics script, one for the prose.
+
+**Fixed in round 1**
+- `docs/metrics.md` said skills.sh documents no install API. It documents one that needs a Vercel OIDC token, so the field stays manual and the sentence now says why.
+- `tests/fake-gh.sh` ignored `--jq`, so swapped columns passed. It now rejects any call other than the contracted one.
+- New rows could land in a later table in `docs/metrics.md`. Reads and writes are now scoped to the metrics table.
+- `gh auth status` gave false "not logged in" errors; the precheck is gone and exit 4 maps to the login message. `--hostname github.com` is pinned on every call. The script is executable. Dates earlier than the latest row are refused.
+- README, `llms.txt`, drafts, and the `publish-web` description overclaimed Next.js on Cloudflare Pages. Cloudflare Pages takes Next.js only as a static export.
+- `publish-web` named unshipped skills without saying so and gave no way forward when `app-creators` was absent. Both are fixed in English and Chinese.
+- README now discloses the `npx skills` CLI's own telemetry and the no-terminal case, which needs `-a <agent> -y`.
+- The new-skill rule now also covers the skill count, the shipped list, the `llms.txt` summary, and both manifest descriptions. The spec carries the same sentence.
+
+**Corrects Task 2's Deferred entry**
+- The orchestrator corrected both manifests in the Task 2 commit, so that entry is closed. The manifests also belong in Task 2's Touches.
+- The orchestrator applies the repo topics and description after the gate.
+
+**Rejected**
+- A script run through a symlink writes to the symlink's tree: nobody runs it that way.
+- Preserving a `600` mode on `docs/metrics.md`: the file is tracked at `644`.
+
+**Open, for Kyle**
+- The level 3 run is spec Slice B's exit proof and has not happened. The roadmap bullet says so, but nothing enforces it, and Ralph's next pick is `publish-readiness`.
+- No Claude Code or Codex session has loaded the skills after a real install.
+- The `SKILL-CONVENTIONS.md` and spec examples still show the old `publish-web` description. They are illustrations.

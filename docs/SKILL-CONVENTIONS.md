@@ -59,8 +59,10 @@ Rules:
   (`vercel.md`, `pwa-checklist.md`). One level deep.
 - `references/verified-runs.md` exists in every skill, possibly with
   only the header row.
-- A new skill adds its paragraph to `README.md` and its entries to
-  `llms.txt`.
+- A new skill adds its table row and paragraph to `README.md` and its
+  entries to `llms.txt`. It also updates the skill count and what ships
+  today in `README.md`, the `llms.txt` summary, and the descriptions in
+  `marketplace.json` and `plugin.json`.
 
 ## SKILL.zh.md headings
 
