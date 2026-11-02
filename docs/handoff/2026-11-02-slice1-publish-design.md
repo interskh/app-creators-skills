@@ -310,3 +310,45 @@ Codex third pass at f016003 returned 3 MAJOR and 2 MINOR. All five are concrete 
 - T2 doer a1f564b called the advisor once before it was told not to. No other agent used it.
 
 implement-loop: slice D shipped f016003; remaining: [E, F, G, H, I, J]
+
+## Slice D follow-up
+
+Every PASS now needs an authoritative input. Script at 1558 lines, tests at 1855 lines, 463/463 tests, mutations: 14/14 caught.
+
+**Decisions**
+- `-json` kept on `xcodebuild -showBuildSettings`. The man page documents the action, `-configuration`, `-sdk`, `-project`, `-workspace`, and `-scheme`, and is silent on `-json`; silence is not a contradiction, and if the flag fails the skill's "command failed" path leaves `UNKNOWN`.
+- Doc change to the design: Flutter's command is `flutter build ios --release --no-codesign --config-only`, the form docs.flutter.dev/deployment/cd shows. The iOS deployment page has no such flag.
+- Doc finding: `developer.android.com/tools/bundletool` does not mention `dump`. `bundletool dump manifest --bundle=` is cited from Google's `DumpCommand.java` help text.
+- Doc finding: no documented Android command prints the resolved id without building. `apkanalyzer manifest application-id` exists but needs an APK; the Merged Manifest view is Android Studio only. The built-artifact design stands, and `manifest print` stays because `--resolved` takes XML.
+- `android:debuggable` with any value but `false` is `UNKNOWN`, stricter than `true` only, because the printed form was not seen on real output.
+- `allow_abbrev=False` on argparse, so `--res` or a mistyped flag cannot pass as `--resolved`.
+- Unclosed `/*` now runs to end of file. The raw-only rule makes the stripper's mistakes harmless, which let the "leave it as text" branch go.
+- Extra fine distinctions turned to `UNKNOWN` beyond the design, for H: Expo `ios.icon` as light/dark/tinted variants; a non-string Expo image path; any malformed `res/values` file met before the name is found. Removed: the App Store entry "declares size" check, since the file's pixels are still required to be 1024x1024.
+- `check_strings` and `check_android_permissions` share `_code_gap` and `_scan_verdict`. Rows dedupe by table index, with `verdict` dropping repeated reasons on the line.
+- `_package_deps` merges dev and prod dependencies, since it is only a detection signal.
+
+**Rejected**
+- Parsing the text form of `-showBuildSettings` in case `-json` is missing: that is a new hand-written parser, which the rule forbids.
+- A `--expo-config` alias: nothing shipped depends on it.
+- Reaching about 1,000 lines by single blank lines, removing section banners, or moving the API tables to a data file: the count would fall with no fall in complexity.
+- Cutting a KEEP item to hit the number: API tables (about 120 lines), PNG/WebP and per-framework icon checks (about 300), bounded reads and security (about 130), plugin and route logic that prevents false results.
+- Stopping the dedupe at the first file per row: a row raw-only in file A and code in file B has to end FAIL-capable in either order.
+
+**Assumptions**
+- Real `-showBuildSettings -json` output is a JSON array of objects with `buildSettings`, and holds `PRODUCT_TYPE`, `PLATFORM_NAME`, `CONFIGURATION`, and `SRCROOT` as strings. `PRODUCT_TYPE` and `PLATFORM_NAME` are not entries in Apple's build settings reference, and `-json` is in no Apple page fetched. Check: the `Kyle:` line in `docs/ROADMAP.md`.
+- `apkanalyzer manifest print` output is XML with `package` on the root and `xmlns:android` declared. Same check. No resolved Xcode or Android path has run against real tool output; fixtures are hand-written to the documented shape, and this machine has no full Xcode, JDK, apkanalyzer, or bundletool.
+- A mismatch in either shape fails safe: exit 2 from classification, or `UNKNOWN` from a gate, never `PASS`.
+- `flutter build ios --config-only` writes only files Flutter's template ignores. The skill treats a new `git status` entry as uncommitted changes, so a wrong assumption gives `unknown`.
+
+**Deferred**
+- Script size: about 1,000 not reached, see Rejected. Tests shrink less than asked because the K list adds about 300 lines back.
+- `Package.swift` alone, or a Gradle project with a relocated manifest, now exits 2 with "no supported framework" while `app-creators` detection still names them `xcode` or `kotlin`. Safe: no PASS, and the message stops the skill. `skills/app-creators/SKILL.md` was not changed because its detection serves other skills.
+- Eval graders: the multi-line `evidence` case and the comment-or-BOM false fail stay open, as the earlier gate recorded.
+- A native Android `package` line stays `UNKNOWN` until a release build runs, so on a machine with no JDK a native Android route cannot reach `pass`. That is the intended honest result.
+
+**Touches**
+- `skills/publish-readiness/scripts/check-readiness.py`, `tests/check-readiness.test.sh`.
+- `skills/publish-readiness/SKILL.md`, `SKILL.zh.md` (`metadata.version` 0.2.0, history template), `references/checks.md`, `references/smoke-run.md`.
+- `docs/specs/2026-11-02-slice1-publish-design.md` §3.4, `docs/ROADMAP.md` (one `Kyle:` line).
+- `evals/publish-readiness/*/case.yaml` (result graders), `evals/publish-readiness/README.md`.
+- Shared surface: the script's CLI, `--expo-config` replaced by repeatable `--resolved`. Any sibling calling it must change; `store-listing` does not call it.

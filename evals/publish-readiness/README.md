@@ -14,7 +14,7 @@ Each `scaffold.sh` sources `lib/scaffold.sh`, which finds the app-creators-fixtu
 
 Every case: `skill-fired` (the Skill tool loaded `publish-readiness`) and a Bash call that invokes `check-readiness.py` with `--platform`; `ls` or `cat` of the file does not count. `web-nodata` requires that call to carry `--collects-data no`.
 
-Result regexes read the frontmatter of `.app-creators/readiness.md` and `.app-creators/state.md`. They accept flow or block YAML, and read `result` as the first key under the platform, which `SKILL.md` requires. In block form the platform key must sit at the indentation of the parent's first child. In a one-line flow parent, the regex walks complete earlier entries to reach it. A check's `result`, a sibling platform, a deeper map, a quoted value, a block scalar, `targets:`, and the notes below the frontmatter cannot satisfy them. `confirmed` and the age rating answers are anchored the same way. Each loop reads one line or one token in one way, so they run in linear time.
+Result regexes read the frontmatter of `.app-creators/readiness.md` and `.app-creators/state.md`. They accept flow or block YAML, and read `result` as the first key under the platform, which `SKILL.md` requires. In block form the platform key must sit at the indentation of the parent's first child. In a one-line flow parent, the regex walks complete earlier entries to reach it. A check's `result`, a sibling platform, a deeper map, a quoted value, a block scalar, `targets:`, and the notes below the frontmatter cannot satisfy them. The value must end at optional spaces then a comma, a closing brace, or the end of the line, or at spaces then a comment, so `result: pass-pending` does not satisfy a `pass` grader, and the same for `fail-x` and `unknown-x`. `confirmed` and the age rating answers are anchored the same way. Each loop reads one line or one token in one way, so they run in linear time.
 
 - `expo-gaps`: `todo-expo` with `photosPermission` removed and an alpha `assets/icon.png`; iOS wanted, Android undecided, no privacy URL.
   - `readiness-written`, `ios-fail-in-readiness`, `ios-fail-in-state`: this proves slice D's proof line, a clean session writes the report and sets `state.md`.
@@ -42,7 +42,8 @@ On a Mac without a full Xcode, `/usr/bin/git` is a shim that fails inside the ev
 ## What these evals cannot prove
 
 - The smoke run itself. This machine has no full Xcode and no JDK, so no `pass` or `fail` on `smoke-run` is exercised.
-- The step that resolves a dynamic Expo config. No case has an `app.config.js` or `app.config.ts`. `tests/check-readiness.test.sh` covers `--expo-config`.
+- The step that resolves what a framework computes. No case has an `app.config.js`, an `app.config.ts`, or a native folder. `tests/check-readiness.test.sh` covers `--resolved`.
+- The resolved Xcode and Android paths against real tool output. This machine has no full Xcode, JDK, `apkanalyzer`, or `bundletool`, so the tests use hand-written files of the documented shape. `docs/ROADMAP.md` holds that check.
 - Flutter, Xcode, Kotlin, Next.js, and static routes. `tests/check-readiness.test.sh` covers their static checks; no skill run does.
 - A second turn. Nobody answers in a run, so applying answers, applying an agreed fix, and the rerun after a commit are not exercised.
 - That store forms accept these answers. No store is touched.
