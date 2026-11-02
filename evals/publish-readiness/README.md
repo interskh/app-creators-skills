@@ -14,7 +14,7 @@ Each `scaffold.sh` sources `lib/scaffold.sh`, which finds the app-creators-fixtu
 
 Every case: `skill-fired` (the Skill tool loaded `publish-readiness`) and a Bash call that invokes `check-readiness.py` with `--platform`; `ls` or `cat` of the file does not count. `web-nodata` requires that call to carry `--collects-data no`.
 
-Result regexes read the frontmatter of `.app-creators/readiness.md` and `.app-creators/state.md`. They accept flow or block YAML, and read `result` as the first key under the platform, which `SKILL.md` requires. A check's `result`, a sibling platform, `targets:`, and the notes below the frontmatter cannot satisfy them. Each loop in them consumes one whole line in one way, so they run in linear time.
+Result regexes read the frontmatter of `.app-creators/readiness.md` and `.app-creators/state.md`. They accept flow or block YAML, and read `result` as the first key under the platform, which `SKILL.md` requires. In block form the platform key must sit at the indentation of the parent's first child. In a one-line flow parent, the regex walks complete earlier entries to reach it. A check's `result`, a sibling platform, a deeper map, a quoted value, a block scalar, `targets:`, and the notes below the frontmatter cannot satisfy them. `confirmed` and the age rating answers are anchored the same way. Each loop reads one line or one token in one way, so they run in linear time.
 
 - `expo-gaps`: `todo-expo` with `photosPermission` removed and an alpha `assets/icon.png`; iOS wanted, Android undecided, no privacy URL.
   - `readiness-written`, `ios-fail-in-readiness`, `ios-fail-in-state`: this proves slice D's proof line, a clean session writes the report and sets `state.md`.

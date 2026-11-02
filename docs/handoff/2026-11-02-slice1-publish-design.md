@@ -252,3 +252,40 @@ Touches: `skills/publish-readiness/` (SKILL en and zh, `age-rating.md`, `data-in
 
 **Touches**
 - `skills/publish-readiness/scripts/check-readiness.py`, `tests/check-readiness.test.sh`, `skills/publish-readiness/references/checks.md`. New exit-2 path on the time limit, and new `UNKNOWN` wording that an eval grader may match.
+
+## Slice D / gate fix round 2: evals
+
+**Outcome**
+- Fixed: evidence can no longer stand in for a platform result. In block form, the platform key must sit at the indentation of the parent's first child, captured from the file. In a one-line flow parent, the regex walks complete earlier entries, so a key inside a nested value or a string is never reached.
+- Same flaw closed in `inventory-confirmation-kept` and the two answer graders, which share the builder. `confirmed` must be a direct child of `data_inventory:`, and an answer a direct child of `age_rating.answers`.
+- `SKILL.md` needs no indentation rule, because the pattern reads the indentation from the file. `result` stays the first key, from round 1. No schema change.
+- `evals/publish-readiness/README.md` describes the new anchoring.
+
+**Evidence**
+- Node: 386 runs, slowest 0.31 ms, 0 problems. Flow, block, CRLF, four-space, and flow-parent positives kept.
+- Both Codex inputs are negatives for every result regex: quoted evidence holding `<p>: { result: <v> }`, and block-scalar evidence holding indented `<p>:` and `result: <v>`. Also: the platform key in a deeper map, in a check item, and in a sibling's nested value or string.
+- New timing inputs: whitespace lines after the first child and inside `answers`, an 8000-space run, an unclosed map, 1500 siblings, an unterminated string, and deep openers.
+- Regex mutations: 15/15 caught. The first pass was 12/15; the three misses were test gaps, closed with new inputs. `regexes.json` restored and compared with `cmp`.
+- Scaffold alone, rerun with the new patterns: all 12 result graders fail; the three `*-kept` graders match by design.
+- `scripts/lint-skills.sh` clean. Tests 77/77, 475/475, 48/48. `SKILL.md` 180 lines, `SKILL.zh.md` 156. `privacy-scan --staged` rc=0 after a path-scoped add, then unstaged by path.
+
+**Evals**, `--model sonnet --no-publish`:
+- `publish-readiness-*`: `evals/results/2026-11-02T21-36-11-213Z`, 7 of 8 at 1.00, $1.68. `expo-gaps-en` scored 0.88 on `reply-names-three-gaps-with-fixes`, votes FAIL PASS FAIL. The judges gave no reasons. The final reply names all three gaps, each with a fix, so I read this as judge noise.
+- `publish-readiness-expo-gaps-en` re-run once: `evals/results/2026-11-02T21-45-24-184Z`, 1.00, $0.27. Total $1.95.
+
+**`UNKNOWN` wording at HEAD**
+- No grader or doc matches the new wording: result graders read frontmatter only, and the llm graders name gaps, not script text. The three fixtures give the same results.
+- One stale sentence fixed, en and zh: SKILL's exit 2 line now includes the script's new time limit.
+
+**Rejected**
+- A fixed two-space indentation rule in `SKILL.md`: the captured indentation gives the same anchor with no new rule, and fails no valid report.
+- Dropping the one-line flow parent: the brief keeps flow positives.
+
+**Assumptions**
+- `evidence` stays on one line, as the script prints it. A multi-line quoted scalar with a continuation line at the platform's own indentation would still fool the block anchor; a regex cannot tell. Check: only a hand-edited report could produce it.
+- A one-line flow parent's plain scalar holding `'` or an unbalanced bracket fails to match. The error is a false fail, never a false pass.
+
+**Deferred**
+- CI skips fixture assertions until Kyle pushes the fixtures branch, as in round 1.
+
+**Touches**: `evals/publish-readiness/` (all `case.yaml`, `README.md`), `skills/publish-readiness/SKILL.md`, `SKILL.zh.md`.
