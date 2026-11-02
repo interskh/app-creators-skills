@@ -62,3 +62,34 @@
 **Touches**
 - `README.md`, `llms.txt` (new), `docs/launch/awesome-lists.md` (new), `docs/SKILL-CONVENTIONS.md` (one rule), `docs/ROADMAP.md` (line for this item only).
 - Shared surface: repo topics and possibly `description` via the orchestrator. A sibling that adds a skill must now update `README.md` and `llms.txt`.
+
+## Task 3: metrics script
+
+**Decisions**
+- Flags `--plugin-installs/--skills-sh-installs/--site-visits N`; absent writes `-`; a same-day rerun reads the existing row and keeps omitted manual cells. Explicit `0` is kept as 0.
+- Date from `METRICS_DATE` (default UTC today); tests copy the script into a temp tree, so no path override exists.
+- All three `gh api` calls and number validation finish before any write; the file is built in a temp file beside it, chmod 644, then `mv`.
+- Refuses to edit a metrics.md whose header row differs, or whose same-date row is malformed or duplicated.
+- Test uses `tests/fake-gh.sh` (separate file, copied as `gh`) and a symlinked PATH without `gh` for the missing-gh case, because CI runners ship gh.
+- The test found a real bug: `die` inside `$(pair ...)` only left the subshell and wrote an empty row. `pair` now sets globals.
+- Install counts: no documented API. Claude Code plugin docs (code.claude.com/docs/en/plugin-marketplaces, plugins-reference) mention none. skills.sh/docs documents only an SVG badge at `skills.sh/b/owner/repo`, which is a display image, not a data API.
+
+**Rejected**
+- Scraping the skills.sh badge SVG or page: undocumented, can break, and the repo has no skills.sh page yet (404).
+- Storing per-day traffic arrays, referrers, or paths: public repo, aggregates only, and the rolling totals are what FR-10 needs.
+- Summing or de-duplicating 14d windows from daily arrays: possible, but out of scope; the header says not to sum.
+- `--flag=N` syntax: one form is enough.
+
+**Assumptions**
+- `--jq` on `traffic/*` returns top-level `count` and `uniques` (verified on the real repo, 2026-11-02). 403 detection greps gh stderr for `HTTP 403` (fake emits it; real wording not triggered, the local login has push access).
+- The first real row shows clones 55/37: it includes this run's own clones and Task 2 test installs, so it is not organic traffic.
+
+**Deferred**
+- Scheduling the script (cron or Action): the Action token would need push access to read traffic; Kyle runs it by hand for now.
+- Install counts via skills.sh if it ever documents an API; re-check before the exit-criterion review.
+- A killed run (SIGKILL) can leave a hidden `.metrics.*` temp file in `docs/`; metrics.md itself stays intact.
+
+**Touches**
+- New: `scripts/metrics.sh`, `tests/metrics.test.sh`, `tests/fake-gh.sh`, `docs/metrics.md` (first real row 2026-11-02).
+- Edited: `.github/workflows/lint.yml` (one step), `docs/ROADMAP.md` (Metrics script tick).
+- Shared: `docs/metrics.md` column order; the Community launch item also writes there.

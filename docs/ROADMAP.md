@@ -24,7 +24,7 @@ Chinese ships with each skill rather than as a pass at the end.
 - [x] `p0` **State schema doc** `🟢 S` — Spec slice C.1. `docs/STATE.md` publishes §4.1 as the normative `state.md` schema with per-field notes.
 - [x] `p0` **Entry skill: app-creators** `🟡 M` — Spec slice C.2 and C.3. Detection table (file → framework), two questions (outcome: publish, get users, make money; wanted destinations), write `.app-creators/state.md`, routing table (goal × target → skill). `SKILL.zh.md` included. Eval case on the fixture expects `framework.kind: vite` and next skill `publish-web`.
 - [x] `p0` **GitHub GEO pass** `🟢 S` — README rewritten for agent crawlers: one paragraph per skill (what, when, install), repo topics, `llms.txt` at repo root, list of awesome-lists to PR with the PR text drafted. Done early so indexing starts while skills are written.
-- [ ] `p1` **Metrics script** `🟢 S` — `scripts/metrics.sh` pulls GitHub stars, clones, and traffic via `gh api`, and records marketplace install counts where an API exists (manual field otherwise). Appends a dated row to `docs/metrics.md`.
+- [x] `p1` **Metrics script** `🟢 S` — `scripts/metrics.sh` pulls GitHub stars, clones, and traffic via `gh api`, and records marketplace install counts where an API exists (manual field otherwise). Appends a dated row to `docs/metrics.md`.
 
 ## Slice 1 — Publish
 
