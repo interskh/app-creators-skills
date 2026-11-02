@@ -120,3 +120,48 @@ Expo SDK 58 (expo ~58.0.19, RN 0.88.0). Docs checked 2026-11-02: https://docs.ex
 - A physical device: Flutter's release launch, because its release mode does not run on a simulator or emulator.
 - Fixture accounts are not needed by this skill; it touches no store. They stay needed by Slices F and H.
 - Push the fixtures branch so `ff71355` is public.
+
+## Slice D / gate fix round 1: script
+
+Finished by a third doer after two earlier doers stalled on multi-line Bash calls. All items were rechecked against the working file; earlier drafts were read as intent only.
+
+**Outcomes**
+- SEC-1 fixed: one bounded reader for all project reads; FIFO, `/dev/zero`, outside symlink, and oversized files give `UNKNOWN` with no hang. Repro: no hang, no leak.
+- SEC-2 fixed: `show()` at every echo of a project value, `_one_line` strips again. Tests assert raw bytes and one line per check.
+- 3 fixed: a skipped source file gives `UNKNOWN` naming it, unless a detected gap gives `FAIL`.
+- 4 fixed: launcher or layer drawables the code cannot judge give `UNKNOWN`, never a counted pass.
+- 5 fixed: template literals are strings to `strip_comments`.
+- 6 fixed: Xcode layer order, literal xcconfig lines, one `#include` level, `$(inherited)` and conditionals `UNKNOWN`, `INFOPLIST_KEY_NS*` from xcconfig counts.
+- 7 fixed: bad marketing entry `FAIL`s; only the marketing well filled is `UNKNOWN`, no rule sourced.
+- 8 fixed: every gap on one line, with every fix.
+- 9 fixed: all `res/values/*.xml`, `resValue` `UNKNOWN`, real native project required, unknown plugin `UNKNOWN`, pages-router `public/favicon.*`.
+- 10 fixed: depth-1 walk of `metadata`; `default:` form kept and tested.
+- 11 fixed: `.easignore` replaces `.gitignore`, cited from Expo's easignore page; `ios/*`, `/ios/*`, `ios/**` accepted.
+- 12 fixed: `data:` icon `UNKNOWN`. 13 fixed: `com..foo`, `.mjs`/`.cjs`/`.mts`, Flutter scan scope, `checks.md` says "Expo Build" as the page does.
+- 14: no Apple primary source. Searched HIG app-icons, configuring-your-app-icon, ASC platform-version-information, CFBundleIcons on 2026-11-02 UTC. Native PNG with alpha is `UNKNOWN` with the reason, no alpha is `PASS`, Expo config route stays `FAIL` from Expo's "no transparent pixels". Forum citation removed.
+- 15: no Google primary source. Android's configure-app-module only uses `com.example.myapp` as the value to replace; prepare-for-release and Play Help 9859152 do not name it. Rule, its test, and the claim removed; a test now pins that it passes.
+- Added mid-round, crafted-input slowdown fixed: 15 inputs of 2 MB hung past a 15-second watchdog before, and now each ends in about 2 seconds or less under 3.14 and 3.9. Fixed: `strip_comments`, Dart `pickVideo`, pbxproj object index, nesting, settings keys, configuration lists, `resolve`, `resValue`, catalog aliases, state keys and flow lines, Next.js `metadata`. Tests use the watchdog. Other tokens tried, including HTML and the Swift and Expo tables, were already fast.
+- 16 and 17: rows and branches tested; `needed by code:` half asserted; `seed` and the fixture-seeded cases assert the reason. Kill rate: listed and round mutants 35/35, run before the speed fix; speed-fix mutants 19/19 after four gaps were closed (first pass 15/19; those inputs closed their own match too early). Every restore passed a sha256 check.
+
+**Decisions**
+- A bad `--expo-config` exits 2, not `UNKNOWN`: it is the operator's argument, and the spec's exit 2 covers a usage error. A project file stays `UNKNOWN`.
+- `checks.md` source numbers stay stable: [3] is now the easignore page, [7] lists the Apple pages searched. No renumbering.
+- Tests from the recovered draft were corrected to what is right, not copied: xc-dangling and xc-var-path now remove the target-level id, because target settings correctly outrank a broken xcconfig; media-library rows drop the base tree's photo string, which satisfied them.
+
+**Rejected**
+- `\Z` as a closer for `/*`, the suggested one-line fix: `/\/*/` in a regex literal would then hide every API after it, a false `PASS`. `strip_comments` uses a short loop and `rfind` instead; quotes and backticks do use end-of-input closers, because their text is kept, not hidden.
+- `FAIL` for native alpha from the forum-quoted validator message: spec §3.6 does not count a community post.
+- Keeping `com.example` because Android's page says to replace the sample id: that is build advice, not a store rule.
+- Treating first-party plugins such as `expo-router` as known non-string plugins: no source states the negative.
+
+**Assumptions**
+- `/ios/*` and `ios/**` ignore the folder for Expo Build: the page shows only `/android` and `/ios`; the forms follow gitignore semantics. Check: an EAS build with that line.
+- The Edit tool decoded `‮` and ` ` in test text into raw characters; a scratch script restored the escapes. Check: `LC_ALL=C grep -c $'\xe2\x80' tests/check-readiness.test.sh` prints 0.
+
+**Deferred**
+- A release source-set manifest removing a permission: per the round's script; listed in Known limits.
+- `expo-router` and similar plugins make a missing string `UNKNOWN`, not `FAIL`, as item 9 specifies. A common template loses that `FAIL`; listed in Known limits.
+- `SKILL.md`, `SKILL.zh.md`, evals, README, and `verified-runs.md`: the next doer's. A grep of `SKILL.md` and evals for `alpha` and `com.example` finds nothing stale; the others were not checked.
+
+**Touches**
+- `skills/publish-readiness/scripts/check-readiness.py`, `tests/check-readiness.test.sh`, `skills/publish-readiness/references/checks.md`. Output wording changed: values are now quoted, which any eval grader matching old lines must follow.
