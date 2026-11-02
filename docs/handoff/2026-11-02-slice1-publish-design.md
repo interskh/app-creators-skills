@@ -306,7 +306,7 @@ Codex third pass at f016003 returned 3 MAJOR and 2 MINOR. All five are concrete 
 - A release source-set manifest that removes a permission is not modelled. Second-turn eval coverage is not built. `check-pwa` failed once (47/48, connection refused) under reviewer load; 8/8 repeats and the suite at f016003 pass, and the file has no diff in this slice.
 
 **Process**
-- Two doers (a1f564b, ac51dc6) stalled on multi-line Bash calls that never started. A third fresh doer (acbd3cd) finished with one-line Bash calls. Recovery used no fix cycle. No collision was observed.
+- Two doers (a1f564b, ac51dc6) stalled on multi-line Bash calls that never started. A third fresh doer (acbd3cd) finished with one-line Bash calls. Recovery used no fix cycle. After the slice finished at 956f27b, both stalled doers woke. a1f564b wrote nothing. A queued command from ac51dc6 ran and patched `tests/check-readiness.test.sh` with 99 stale added lines that duplicate tests already at HEAD. The patch was never committed. It was discarded for this one file, and the file passes 475/475. Both doers have now stopped.
 - T2 doer a1f564b called the advisor once before it was told not to. No other agent used it.
 
 implement-loop: slice D shipped f016003; remaining: [E, F, G, H, I, J]
