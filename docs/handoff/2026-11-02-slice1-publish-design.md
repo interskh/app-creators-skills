@@ -69,3 +69,54 @@ Expo SDK 58 (expo ~58.0.19, RN 0.88.0). Docs checked 2026-11-02: https://docs.ex
 
 **Kill rate**
 - mutations: 23/23 caught, after closing two gaps the first pass (21/23) found: dark-appearance entry ordered first; nested target id written after the target. Restores verified by sha256.
+
+## Slice D / T3 skill, evals, routing
+
+**Decisions**
+- Flutter smoke run departs from §3.4's wording: Flutter's build-modes page says release mode is not supported on a simulator or emulator. It builds release, launches only on a physical device, and otherwise stays `unknown`; a debug launch never counts.
+- Xcode route's launch is Xcode's UI (scheme Run action set to Release, Product > Run), done by the creator: no fetched Apple source documents `simctl install`, `simctl launch`, or `xcodebuild -configuration`, and the machine has no man page for them. Removed as from memory.
+- Play age rating ids are this skill's own topic ids (`play_*`). IARC's FAQ says the questionnaire exists only inside storefront portals, so no stable question ids can be sourced. App Store ids are the API's `AgeRatingDeclaration` attribute names.
+- `history`: one row on the first write of a run, one more only if answers change the result. Rows are append-only and a run writes twice.
+- A confirmation in the prompt counts only once the scan agrees, so `web-nodata` needs no second turn and a wrong claim is surfaced.
+- `git` failure is its own Troubleshooting row, from a verified run: under the eval's OS sandbox `/usr/bin/git` exits 72 on this machine, and a real binary works.
+- A platform block in `readiness.md` from another run is kept only when the recorded revision is current, because the file has one `revision`.
+- An empty `revision` or a failing git command counts as not current in `publish-web`, so a `fail` recorded with no commits does not stop it. §4.4 stops only "at the current revision".
+- `docs/launch/awesome-lists.md`: drafts now say three skills; the dated snapshot and `Public Evidence` line stay, with a note to rerun install commands after push.
+
+**Rejected**
+- A `clean-tree` check id: the brief fixes the judgment checks, and the rule already reads the revision separately. The reason goes in the notes below the frontmatter.
+- Asking `unknown` inventory fields at submission: §4.1 says forms never come from a new interview, so the review here asks them.
+- Mapping Apple's frequency answers from `INFREQUENT_OR_MILD`: allowed by the API, absent from the help tables.
+- `--keep-temp` runs as evidence: used only to diagnose. Scores below are from plain runs.
+
+**Assumptions**
+- Eval rows count as level 3, per the brief. They ran `check-readiness.py` and wrote the report through a real agent session on the fixtures; nobody answered a question and no fix was applied.
+- `calendar events` and `installed apps` map to App Privacy `Other Data Types`, and `files and documents` to `Other User Content`: Apple lists no closer type. Check at the first real submission.
+- `java -version` and `xcodebuild -version` as toolchain checks rest on running them here, not on a vendor page.
+- TN2339 is the only Apple page found for `xcodebuild -list`; it was last revised 2017.
+
+**Deferred**
+- No lint rule for README route status: Slice E item 3.
+- The second turn (answers, an agreed fix, rerun after commit) has no eval: runs cannot answer. `evals/publish-readiness/README.md` says so.
+- Dynamic Expo config has no skill-level eval; `tests/check-readiness.test.sh` covers `--expo-config`.
+- `check-readiness.py` unchanged: no eval showed a defect.
+
+**Touches**
+- New: `skills/publish-readiness/references/{data-inventory,age-rating,smoke-run}.md`, `evals/publish-readiness/`. Rewritten: `skills/publish-readiness/SKILL.md`, `SKILL.zh.md`, `references/verified-runs.md`.
+- Shared: `docs/STATE.md` (readiness validity), `skills/publish-web/` gate and `0.1.2`, `skills/app-creators/` routing and `0.1.1`, `evals/app-creators/` grader rename, `README.md`, `llms.txt`, `.claude-plugin/*.json`, `docs/ROADMAP.md`, `docs/launch/awesome-lists.md`.
+- `age_rating.answers` ids and `readiness.md` shape are read by the later publish skills.
+
+**Eval results (`--no-publish`, `--model sonnet`, reports under gitignored `evals/results/`)**
+- `publish-readiness-*`, final skill except for one wording change in Step 7: `evals/results/2026-11-02T17-05-58-398Z/aggregate-result.json`, 8 cases, $1.58. 1.00 on 7; `expo-gaps-en` 0.88 (`reply-names-three-gaps-with-fixes`, votes FAIL FAIL PASS: the reply gave the URL gap with no fix). Skill fixed.
+- `publish-readiness-expo-gaps-*` after that fix: `evals/results/2026-11-02T17-16-30-062Z/aggregate-result.json`, 1.00 and 1.00, $0.51.
+- First full run: `evals/results/2026-11-02T16-54-52-517Z/aggregate-result.json`, $1.75. `web-nodata-en` 0.60: git could not run in the sandbox, so an honest `unknown`. One `--keep-temp` diagnosis rerun of it (0.40, $0.14) and of `expo-rerun-en` (1.00, $0.14). Skill gained the Troubleshooting row and Verify before the final reply.
+- `app-creators-vite-*`: `evals/results/2026-11-02T17-12-58-797Z/aggregate-result.json`, 1.00 and 1.00, $0.22.
+- `vite-*`: `evals/results/2026-11-02T17-14-21-254Z/aggregate-result.json`, 0.80 and 0.80, $0.30; only `ran-verify-script` fails, the known ceiling.
+- Regex graders: 15 regexes tested in Node against flow and block samples. mutations: 6/6 caught, restored by sha256.
+
+**Blocked prerequisites for Kyle**
+- Full Xcode: `smoke-run` on `expo+app-store`, `flutter+app-store`, `xcode+app-store`.
+- JDK: `smoke-run` on `expo+google-play`, `flutter+google-play`, `kotlin+google-play`.
+- A physical device: Flutter's release launch, because its release mode does not run on a simulator or emulator.
+- Fixture accounts are not needed by this skill; it touches no store. They stay needed by Slices F and H.
+- Push the fixtures branch so `ff71355` is public.

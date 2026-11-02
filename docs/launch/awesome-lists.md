@@ -9,6 +9,11 @@ This repo on that date: first commit 2026-10-25, repo created 2026-10-26,
 We have no measurement of what a listing does for discovery, so treat each
 submission as a cheap bet.
 
+`publish-readiness` landed after that check. The drafts below name three
+skills, which holds only once `main` is pushed; rerun the install commands
+then, because the dated `Public Evidence` line covers the two skills
+public on 2026-11-02.
+
 The order is what can be filed today first, then by fit and reach. Open one
 submission at a time and read the target list first.
 
@@ -35,7 +40,7 @@ Meets the rules today: yes. Add to `🛠 Development & Code Tools`.
 PR title: `Add app-creators-skills`
 
 ```markdown
-- [app-creators-skills](https://github.com/interskh/app-creators-skills) - Pre-release Claude Code plugin with two skills: write a project state file, then deploy a Next.js, Vite, or static app to Vercel, or a Vite, static, or Next.js static-export app to Cloudflare Pages. Not yet verified on a real account.
+- [app-creators-skills](https://github.com/interskh/app-creators-skills) - Pre-release Claude Code plugin with three skills: write a project state file, check publish readiness, then deploy a Next.js, Vite, or static app to Vercel, or a Vite, static, or Next.js static-export app to Cloudflare Pages. Not yet verified on a real account.
 ```
 
 PR body:
@@ -43,7 +48,7 @@ PR body:
 ```markdown
 Adds app-creators-skills to Development & Code Tools. I maintain it.
 
-It is pre-release: two skills ship, and neither has been verified on a real account. MIT.
+It is pre-release: three skills ship, and none has been verified on a real account. MIT.
 ```
 
 ## 2. acvnace/awesome-vibe-coding-resources
@@ -85,7 +90,7 @@ Form fields:
 Category: Deployment & Execution
 Resource Name: App Creators skills
 URL: https://github.com/interskh/app-creators-skills
-Description: Agent skills that install into Claude Code and Codex. app-creators writes a project state file; publish-web deploys a Next.js, Vite, or static app to Vercel, or a Vite, static, or Next.js static-export app to Cloudflare Pages. Pre-release.
+Description: Agent skills that install into Claude Code and Codex. app-creators writes a project state file; publish-readiness checks readiness for the App Store, Google Play, or the web; publish-web deploys a Next.js, Vite, or static app to Vercel, or a Vite, static, or Next.js static-export app to Cloudflare Pages. Pre-release.
 Public Evidence: The README lists install commands. On 2026-11-02 each one ran against the public repo and installed both skill files; no agent session has loaded the skills yet. Skill source: https://github.com/interskh/app-creators-skills/blob/main/skills/publish-web/SKILL.md
 Access and License: Free, MIT. Deploying needs a Vercel account or a Cloudflare account. The Vercel Hobby plan covers personal, non-commercial apps only.
 Current Availability: A new user can install it today. It is pre-release, and no skill has been verified on a real account.
@@ -129,7 +134,7 @@ Category: Skills
 Link: https://github.com/interskh/app-creators-skills
 Author Name: interskh
 Author Link: https://github.com/interskh
-Description: Claude Code plugin with two skills. app-creators detects the project and writes a state file; publish-web deploys a Next.js, Vite, or static app to Vercel, or a Vite, static, or Next.js static-export app to Cloudflare Pages. Pre-release, not yet verified on a real account.
+Description: Claude Code plugin with three skills. app-creators detects the project and writes a state file; publish-readiness checks readiness for the App Store, Google Play, or the web; publish-web deploys a Next.js, Vite, or static app to Vercel, or a Vite, static, or Next.js static-export app to Cloudflare Pages. Pre-release, not yet verified on a real account.
 ```
 
 ## 5. VoltAgent/awesome-agent-skills
@@ -145,13 +150,13 @@ Meets the rules today: no. The repo is 7 days old with no usage to show. The
 list states no numeric bar. Wait until install counts or stars show usage. Add
 to `Development and Testing`.
 
-`publish-web` reads the state file that `app-creators` writes, so the entry
-covers the repo and names both skills.
+`publish-readiness` and `publish-web` read the state file that `app-creators`
+writes, so the entry covers the repo and names all three skills.
 
 PR title: `Add skill: interskh/app-creators-skills`
 
 ```markdown
-- **[interskh/app-creators-skills](https://github.com/interskh/app-creators-skills)** - Project setup (app-creators) and web deploy (publish-web); pre-release
+- **[interskh/app-creators-skills](https://github.com/interskh/app-creators-skills)** - Project setup (app-creators), readiness check (publish-readiness), and web deploy (publish-web); pre-release
 ```
 
 ## 6. heilcheng/awesome-agent-skills

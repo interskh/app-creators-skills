@@ -10,7 +10,7 @@ Graders, equal weight:
 - `state-created`: Claude created `.app-creators/state.md`.
 - `schema-1-0`, `kind-vite`, `package-manager-npm`, `slug-todo-vite`, `web-intent-wanted`, `web-status-unknown`, `goal-publish`: regexes on the written file, scoped to the frontmatter (from the first line `---` to the next `---` line), so a correct value in the notes below cannot pass for a wrong frontmatter. `intent` and `status` are matched only inside the `targets.web` block. Scalar lines may carry a trailing YAML comment; blank lines inside `web:` are allowed.
 - `asks-only-the-two-questions` (llm judge on the trace): any question covers only the outcome, the destinations, or a go-ahead; never the framework, package manager, build tool, output directory, or an account or secret.
-- `names-publish-web-no-outcome-claims` (llm judge on the trace): the final reply names `publish-web` as the next skill, and no assistant message in the run claims an external outcome (published, deployed, live, listed, online, or a live URL).
+- `names-readiness-then-publish-web-no-outcome-claims` (llm judge on the trace): the final reply names `publish-readiness` as the next skill with `publish-web` after it, and no assistant message in the run claims an external outcome (published, deployed, live, listed, online, or a live URL).
 
 Each llm judge takes the majority of three votes. The ceiling is 1.0 per case.
 

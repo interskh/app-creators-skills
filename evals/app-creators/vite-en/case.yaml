@@ -7,7 +7,8 @@ description: >
   fires, writes state.md with schema 1.0, framework vite, package manager
   npm, slug todo-vite, web intent wanted, web status unknown, and goal
   publish, asks the creator nothing beyond the two questions, and names
-  publish-web as the next skill without claiming any external outcome.
+  publish-readiness as the next skill with publish-web after it, without
+  claiming any external outcome.
 tags: [app-creators, level-2]
 runs: 1
 execution:
@@ -68,9 +69,9 @@ graders:
     criteria: |
       PASS if the assistant asked the creator nothing, or asked only about the outcome wanted (publish, get users, or make money) and/or the destinations wanted (web, iOS, Android), or asked only for confirmation to proceed. The prompt already answers both questions, so inferring them without asking also passes.
       FAIL if the assistant asked which framework, package manager, build tool, or output directory the project uses, asked the creator for an account, token, or secret, or asked about anything else.
-  - name: names-publish-web-no-outcome-claims
+  - name: names-readiness-then-publish-web-no-outcome-claims
     type: llm
     focus: trace
     criteria: |
-      PASS if the assistant's final reply names `publish-web` as the next skill or step to run, and no assistant message anywhere in the trace claims the app is published, deployed, live, listed, or online, or gives a live URL.
-      FAIL if the final reply names a different next skill or none, invents a skill name that the App Creators plugin does not ship (other skills labelled "not shipped yet" are fine), or any assistant message in the trace claims an external outcome, such as saying the app is published, deployed, or live, or giving a live URL.
+      PASS if the assistant's final reply names `publish-readiness` as the next skill or step to run with `publish-web` after it, and no assistant message anywhere in the trace claims the app is published, deployed, live, listed, or online, or gives a live URL.
+      FAIL if the final reply names a different next skill or none, omits `publish-web` after `publish-readiness`, puts `publish-web` first, invents a skill name that the App Creators plugin does not ship (other skills labelled "not shipped yet" are fine), or any assistant message in the trace claims an external outcome, such as saying the app is published, deployed, or live, or giving a live URL.

@@ -1,0 +1,41 @@
+schema_version: "1.1"
+name: publish-readiness-web-nodata-en
+description: >
+  Level-2 eval for publish-readiness with an English prompt. Workspace: todo-vite, web wanted, empty privacy URL, and a prompt that confirms nothing leaves the device.
+  Same graders as publish-readiness-web-nodata-zh.
+tags: [publish-readiness, level-2]
+runs: 1
+execution:
+  max_turns: 40
+  timeout_seconds: 1200
+  allowed_tools: [Read, Glob, Grep, Skill, Bash, Write]
+  prompt: |
+    Is this app ready to publish on the web? It keeps everything in the browser and sends nothing off the device, and I confirm that. Write the readiness report and tell me what to run next.
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?publish-readiness"'
+    arm: both
+  - name: ran-script-with-collects-data-no
+    type: tool_used
+    tool: Bash
+    input_match: 'check-readiness\.py[^\n]*--collects-data[ =]no\b'
+  - name: web-pass-in-readiness
+    type: regex
+    target: { source: file, path: .app-creators/readiness.md }
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?(?:platforms:[ \t]*(?:#[^\n]*)?\r?\n(?:[ \t]+[^\n]*\r?\n|[ \t]*\r?\n)*?([ \t]+)web:[ \t]*(?:\{[^}\n]*?\bresult:[ \t]*["'']?pass\b|(?:#[^\n]*)?\r?\n(?=(\1[ \t]+)\S)(?:\2[^\n]*\r?\n|[ \t]*\r?\n)*?\2result:[ \t]*["'']?pass\b)|platforms:[ \t]*\{[^\n]*?\bweb:[ \t]*\{[^}\n]*?\bresult:[ \t]*["'']?pass\b)'
+    flags: m
+  - name: web-pass-in-state
+    type: regex
+    target: { source: file, path: .app-creators/state.md }
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?(?:readiness:[ \t]*(?:#[^\n]*)?\r?\n(?:[ \t]+[^\n]*\r?\n|[ \t]*\r?\n)*?([ \t]+)web:[ \t]*(?:\{[^}\n]*?\bresult:[ \t]*["'']?pass\b|(?:#[^\n]*)?\r?\n(?=(\1[ \t]+)\S)(?:\2[^\n]*\r?\n|[ \t]*\r?\n)*?\2result:[ \t]*["'']?pass\b)|readiness:[ \t]*\{[^\n]*?\bweb:[ \t]*\{[^}\n]*?\bresult:[ \t]*["'']?pass\b)'
+    flags: m
+  - name: names-publish-web-next
+    type: llm
+    focus: trace
+    criteria: |
+      PASS if the assistant's final reply names `publish-web` as the next skill to run.
+      FAIL if the final reply names a different next skill or none, or claims the app is already published or live.

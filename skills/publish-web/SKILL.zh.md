@@ -4,7 +4,7 @@
 - 创作者想让应用能从浏览器安装（PWA），或者用自己的域名访问。
 - `.app-creators/state.md` 里 `targets.web.intent: wanted`，且 `targets.web.status` 不是 `live`。
 - 不适用：应用要发布成 iOS 或 Android 原生安装包，改用 `publish-ios` 或 `publish-android`（暂未提供）。
-- 不适用：创作者问的是应用能不能发布，并没有要现在发布，改用 `publish-readiness`（暂未提供）。
+- 不适用：创作者问的是应用能不能发布，并没有要现在发布，改用 `publish-readiness`。
 
 ## 你需要准备
 
@@ -31,7 +31,7 @@
 
 `framework.kind` 是其他值时停止，本 skill 只部署网页构建。项目和 `framework.kind` 不一致时（例如标为 `vite` 的项目里有 `next.config.*` 文件），以项目为准，并告诉创作者。
 
-就绪检查关口。`readiness.web.result: fail` 时停止本 skill，告诉创作者先修好 `publish-readiness` 报告的问题。结果是 `unknown`，或者是 `pass` 但 `revision` 不是当前 commit，本 skill 可以继续，做自己的最小检查，同时对创作者说“就绪检查结果未知，正在运行最小检查”。最小检查指生产构建成功（第 1 步）和 `scripts/check-pwa.sh` 在本地预览上通过（第 2 步）。
+就绪检查关口。某个 revision 算当前，要求 `.app-creators/` 以外的项目文件都和它没有差异，已提交的和工作区里的都算：`git status --porcelain -- . ':(exclude).app-creators'` 没有输出，并且 `git diff --quiet <revision> HEAD -- . ':(exclude).app-creators'` 退出码为 0。`revision` 为空或命令出错，都算不是当前。`readiness.web.result: fail` 且 revision 是当前的，才停止本 skill，告诉创作者先修好 `publish-readiness` 报告的问题。结果是 `unknown`，或者是 `pass`、`fail` 但 `revision` 不是当前的，本 skill 可以继续，做自己的最小检查，同时对创作者说“就绪检查结果未知，正在运行最小检查”。最小检查指生产构建成功（第 1 步）和 `scripts/check-pwa.sh` 在本地预览上通过（第 2 步）。
 
 本 skill 里说的 `scripts/` 是本 skill 自己的 `scripts/` 目录。下面每条命令都在项目根目录运行。
 
@@ -104,7 +104,7 @@
 - `targets.web.domain`：自定义域名；没有就写 `""`。
 - `tools.deploy`：`vercel` 或 `cloudflare-pages`。
 - `accounts.vercel`：`has` 或 `missing`，只在创作者本次回答过时写。
-- `history`：追加 `{ skill: publish-web, version: "0.1.1", date: <YYYY-MM-DD>, result: <live | ready | stopped> }`。`ready` 或 `stopped` 的原因写在 frontmatter 下方的备注里，不写进这一行。
+- `history`：追加 `{ skill: publish-web, version: "0.1.2", date: <YYYY-MM-DD>, result: <live | ready | stopped> }`。`ready` 或 `stopped` 的原因写在 frontmatter 下方的备注里，不写进这一行。
 
 ## 来源
 

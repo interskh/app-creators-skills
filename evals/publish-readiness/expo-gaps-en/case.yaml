@@ -1,0 +1,56 @@
+schema_version: "1.1"
+name: publish-readiness-expo-gaps-en
+description: >
+  Level-2 eval for publish-readiness with an English prompt. Workspace: seeded todo-expo: no photosPermission, an alpha icon, an empty privacy URL.
+  Same graders as publish-readiness-expo-gaps-zh.
+tags: [publish-readiness, level-2]
+runs: 1
+execution:
+  max_turns: 40
+  timeout_seconds: 1200
+  allowed_tools: [Read, Glob, Grep, Skill, Bash, Write]
+  prompt: |
+    Is this app ready for the App Store? Check it and write the readiness report.
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?publish-readiness"'
+    arm: both
+  - name: ran-check-script
+    type: tool_used
+    tool: Bash
+    input_match: 'check-readiness\.py'
+  - name: readiness-written
+    type: file_exists
+    path: .app-creators/readiness.md
+  - name: ios-fail-in-readiness
+    type: regex
+    target: { source: file, path: .app-creators/readiness.md }
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?(?:platforms:[ \t]*(?:#[^\n]*)?\r?\n(?:[ \t]+[^\n]*\r?\n|[ \t]*\r?\n)*?([ \t]+)ios:[ \t]*(?:\{[^}\n]*?\bresult:[ \t]*["'']?fail\b|(?:#[^\n]*)?\r?\n(?=(\1[ \t]+)\S)(?:\2[^\n]*\r?\n|[ \t]*\r?\n)*?\2result:[ \t]*["'']?fail\b)|platforms:[ \t]*\{[^\n]*?\bios:[ \t]*\{[^}\n]*?\bresult:[ \t]*["'']?fail\b)'
+    flags: m
+  - name: ios-fail-in-state
+    type: regex
+    target: { source: file, path: .app-creators/state.md }
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?(?:readiness:[ \t]*(?:#[^\n]*)?\r?\n(?:[ \t]+[^\n]*\r?\n|[ \t]*\r?\n)*?([ \t]+)ios:[ \t]*(?:\{[^}\n]*?\bresult:[ \t]*["'']?fail\b|(?:#[^\n]*)?\r?\n(?=(\1[ \t]+)\S)(?:\2[^\n]*\r?\n|[ \t]*\r?\n)*?\2result:[ \t]*["'']?fail\b)|readiness:[ \t]*\{[^\n]*?\bios:[ \t]*\{[^}\n]*?\bresult:[ \t]*["'']?fail\b)'
+    flags: m
+  - name: reply-names-three-gaps-with-fixes
+    type: llm
+    focus: trace
+    criteria: |
+      PASS if the assistant's replies to the creator name all three gaps, each with what to do about it: (1) the missing photo library permission string, with the fix of setting a specific `photosPermission` or `NSPhotoLibraryUsageDescription`; (2) the App Store icon's alpha channel, with the fix of re-exporting without alpha; (3) the empty privacy policy URL, with the fix of publishing a policy page and giving the URL.
+      FAIL if any of the three gaps is missing from the replies, or is named with no fix.
+  - name: asks-only-human-facts
+    type: llm
+    focus: trace
+    criteria: |
+      PASS if every question the assistant put to the creator is about a human-only fact: the privacy policy URL, a review of the data inventory, age rating answers, a go-ahead on a specific fix, or a request to commit. Asking nothing also passes.
+      FAIL if the assistant asked which framework the project uses, asked for the bundle id, package, or app name, or asked for a token, password, keystore, or other secret.
+  - name: changed-nothing-outside-app-creators-without-agreement
+    type: llm
+    focus: trace
+    criteria: |
+      PASS if the trace shows no Write, Edit, or Bash call that changes a project file outside `.app-creators/`, because no fix was agreed in this run. Temp files outside the project are fine.
+      FAIL if the assistant changed `app.json`, an icon, code, or any other project file outside `.app-creators/`, or committed on the creator's behalf.

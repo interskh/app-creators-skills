@@ -4,10 +4,12 @@ Open-source agent skills for creators who built an app with AI and now
 need to publish it. They install into Claude Code, Codex, and other
 coding agents that skills.sh supports.
 
-This is a pre-release. Two skills ship today, and neither has been
+This is a pre-release. Three skills ship today, and none has been
 verified on a real account. `app-creators` detects the project and
-writes its state file. `publish-web` deploys a web app to Vercel or
-Cloudflare Pages.
+writes its state file. `publish-readiness` checks whether the app is
+ready for the App Store, Google Play, or the web, and reports each gap
+with its fix. `publish-web` deploys a web app to Vercel or Cloudflare
+Pages.
 
 Publishing to the App Store and Google Play, user acquisition, and
 monetization are planned and have not shipped. See
@@ -27,13 +29,14 @@ npx skills add interskh/app-creators-skills -a codex
 npx skills add interskh/app-creators-skills
 ```
 
-The Claude Code commands install both skills for your user. Run the
+The Claude Code commands install all three skills for your user. Run the
 `npx skills` commands from your project root; by default they write to
 the project, under `.agents/skills/` for Codex.
 
-In a terminal, the `npx skills` CLI shows a picker. Select both skills,
-because `publish-web` reads the state file that `app-creators` writes.
-When the CLI detects a coding agent, it installs both without asking.
+In a terminal, the `npx skills` CLI shows a picker. Select all the skills,
+because `publish-readiness` and `publish-web` read the state file that
+`app-creators` writes. When the CLI detects a coding agent, it installs
+them all without asking.
 With no terminal and no detected agent, it stops with "Nothing was
 installed"; add `-a <agent> -y`.
 
@@ -46,6 +49,7 @@ skills add no telemetry of their own.
 | skill | stage | platform | verified |
 |---|---|---|---|
 | `app-creators` | core | all | unverified |
+| `publish-readiness` | publish | all | unverified |
 | `publish-web` | publish | web | unverified |
 
 ### app-creators
@@ -53,14 +57,31 @@ skills add no telemetry of their own.
 [`app-creators`](skills/app-creators/SKILL.md) is the first skill to run.
 It detects the framework and which destinations the project already has
 config for, asks the creator what they want now and where the app should
-go, writes `.app-creators/state.md`, and names the next skill. Today that
-next skill is `publish-web`; for anything else it says the skill has not
-shipped. Use it when the creator says start, where do I begin, set up app
+go, writes `.app-creators/state.md`, and names the next skill. To publish,
+that is `publish-readiness`, then `publish-web` for the web; for anything
+else it says the skill has not shipped. Use it when the creator says start, where do I begin, set up app
 creators, what's next, or ship my app (开始, 从哪开始, 下一步, 发布我的应用),
 or when another App Creators skill reports that `state.md` is missing or
 on a different schema major. Install it with
 `npx skills add interskh/app-creators-skills` or the Claude Code commands
 above. Chinese version: [`SKILL.zh.md`](skills/app-creators/SKILL.zh.md).
+
+### publish-readiness
+
+[`publish-readiness`](skills/publish-readiness/SKILL.md) checks whether an
+app is ready for the App Store, Google Play, or the web, before anything is
+submitted. It runs static checks on the name, bundle id or package, icons,
+permission strings, and privacy policy URL, builds the data collection
+inventory for the creator to confirm, records age rating answers, and runs a
+release smoke test when the toolchain is present. It writes
+`.app-creators/readiness.md` with a fix for every gap, and changes a project
+file only after the creator agrees to that fix. It touches no store or
+account. Use it when the creator asks is my app ready, readiness check,
+pre-flight, before I submit, privacy policy, age rating, or data inventory
+(发布前检查, 能发布了吗, 就绪检查, 上架前检查, 隐私政策, 年龄分级). Install it with
+`npx skills add interskh/app-creators-skills` or the Claude Code commands
+above; it needs `app-creators` installed too. Chinese version:
+[`SKILL.zh.md`](skills/publish-readiness/SKILL.zh.md).
 
 ### publish-web
 
@@ -77,6 +98,31 @@ Claude Code commands above; it needs `app-creators` installed too. Chinese
 version: [`SKILL.zh.md`](skills/publish-web/SKILL.zh.md).
 
 An index of these files for coding agents is at [llms.txt](llms.txt).
+
+## Verification per route
+
+A route is one framework plus one provider or store path. Status comes from
+each skill's `references/verified-runs.md`. One route's run says nothing
+about another.
+
+| skill | route | status |
+|---|---|---|
+| `app-creators` | all frameworks | unverified, no run recorded |
+| `publish-readiness` | expo+app-store | unverified, level 3 open: smoke run needs a full Xcode |
+| `publish-readiness` | expo+google-play | unverified, level 3 open: smoke run needs a JDK |
+| `publish-readiness` | vite+web | unverified, level 3 pass on the to-do fixture, nothing deployed |
+| `publish-readiness` | flutter+app-store | unverified, level 3 open: no fixture yet, smoke run needs a full Xcode |
+| `publish-readiness` | flutter+google-play | unverified, level 3 open: no fixture yet, smoke run needs a JDK |
+| `publish-readiness` | xcode+app-store | unverified, level 3 open: no fixture yet, smoke run needs a full Xcode |
+| `publish-readiness` | kotlin+google-play | unverified, level 3 open: no fixture yet, smoke run needs a JDK |
+| `publish-readiness` | nextjs+web | unverified, level 3 open: no fixture |
+| `publish-readiness` | static+web | unverified, level 3 open: no fixture |
+| `publish-web` | vite+vercel | unverified, no run recorded |
+| `publish-web` | nextjs+vercel | unverified, no run recorded |
+| `publish-web` | static+vercel | unverified, no run recorded |
+| `publish-web` | vite+cloudflare-pages | unverified, no run recorded |
+| `publish-web` | nextjs+cloudflare-pages | unverified, no run recorded |
+| `publish-web` | static+cloudflare-pages | unverified, no run recorded |
 
 ## Contributing
 

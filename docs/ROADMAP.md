@@ -28,8 +28,15 @@ Chinese ships with each skill rather than as a pass at the end.
 
 ## Slice 1 — Publish
 
-- [ ] `p0` **publish-readiness** `🟡 M` — Pre-flight for any target: app name and bundle id, icons and splash at every required size, privacy policy URL, permission usage strings, age rating answers, data collection inventory, crash-free smoke run. Outputs a per-platform readiness report in `.app-creators/readiness.md` with fix steps for each gap.
-- [ ] `p0` **publish-readiness zh** `🟡 M` — `skills/publish-readiness/SKILL.zh.md`: same sections and verified date as the English skill, written as a Chinese engineer would write it, not a literal translation. Lint passes.
+**Requirements:** docs/specs/2026-11-02-slice1-publish-design.md
+
+- [x] `p0` **publish-readiness** `🟡 M` — Pre-flight for any target: app name and bundle id, icons and splash at every required size, privacy policy URL, permission usage strings, age rating answers, data collection inventory, crash-free smoke run. Outputs a per-platform readiness report in `.app-creators/readiness.md` with fix steps for each gap.
+- [x] `p0` **publish-readiness zh** `🟡 M` — `skills/publish-readiness/SKILL.zh.md`: same sections and verified date as the English skill, written as a Chinese engineer would write it, not a literal translation. Lint passes.
+  - Kyle: install a full Xcode and a JDK on the run machine, then the `smoke-run` step of level 3 can run on `expo+app-store` and `expo+google-play`, and on the Flutter, Xcode, and Kotlin routes once their fixtures exist. Until then those rows in `skills/publish-readiness/references/verified-runs.md` stay open.
+  - Kyle: level 4 run of `publish-readiness` on a real app, recorded in `skills/publish-readiness/references/verified-runs.md`.
+  - Kyle: push the fixtures branch, so the pinned `ff71355` is public and an outside contributor can run the evals.
+- [ ] `p1` **store-listing** `🟡 M` — Generate name, subtitle, description, keywords, and screenshot plan from the app code and `state.md`. Screenshot sizes per device class, preview video specs, en and zh listing copy, character limits per store.
+- [ ] `p1` **store-listing zh** `🟡 M` — `skills/store-listing/SKILL.zh.md`: same sections and verified date as the English skill, written as a Chinese engineer would write it, not a literal translation. Lint passes.
 - [ ] `p0` **publish-ios** `🔴 L` — Ship to the App Store from Expo, Flutter, or Xcode. **Requirements:** `docs/prds/prd-phase1-skills.md`
   - [ ] `p0` **Account and signing** `🟡 M` — Apple Developer Program enrollment (individual vs organization, D-U-N-S), App Store Connect app record, bundle id registration, certificates and provisioning via EAS (default) or Xcode automatic signing (alternative).
   - [ ] `p0` **Build and TestFlight** `🟡 M` — Produce a release build per framework (EAS Build, `flutter build ipa`, Xcode archive), upload, TestFlight internal testing, export compliance answer.
@@ -42,8 +49,6 @@ Chinese ships with each skill rather than as a pass at the end.
   - [ ] `p0` **publish-android zh** `🟡 M` — `skills/publish-android/SKILL.zh.md`: same sections and verified date as the English skill, written as a Chinese engineer would write it, not a literal translation. Lint passes.
 - [ ] `p1` **store-review** `🟡 M` — Apple and Google guideline distillation into pre-submit checks: demo account for login, 4.3 spam and minimum functionality, 5.1.1 data collection, subscription disclosure, Play deceptive behavior. How to read a rejection, respond, and appeal. Expected review times.
 - [ ] `p1` **store-review zh** `🟡 M` — `skills/store-review/SKILL.zh.md`: same sections and verified date as the English skill, written as a Chinese engineer would write it, not a literal translation. Lint passes.
-- [ ] `p1` **store-listing** `🟡 M` — Generate name, subtitle, description, keywords, and screenshot plan from the app code and `state.md`. Screenshot sizes per device class, preview video specs, en and zh listing copy, character limits per store.
-- [ ] `p1` **store-listing zh** `🟡 M` — `skills/store-listing/SKILL.zh.md`: same sections and verified date as the English skill, written as a Chinese engineer would write it, not a literal translation. Lint passes.
 - [ ] `p1` **Registry submission** `🟢 S` — Publish the marketplace, verify `/plugin install` in a clean Claude Code session and `npx skills add` for Codex, submit to skills.sh index. Record install commands in README.
 
 ## Slice 2 — Acquire and analytics

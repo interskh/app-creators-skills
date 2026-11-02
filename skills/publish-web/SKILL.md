@@ -10,7 +10,7 @@ license: MIT
 metadata:
   stage: publish
   platform: web
-  version: "0.1.1"
+  version: "0.1.2"
   verified: "unverified"
   verified_version: ""
   zh: SKILL.zh.md
@@ -24,7 +24,7 @@ metadata:
 - The creator wants the app installable from the browser (PWA) or served on their own domain.
 - `.app-creators/state.md` has `targets.web.intent: wanted` and `targets.web.status` is not `live`.
 - Not this skill: the app ships as a native iOS or Android binary. Use `publish-ios` or `publish-android` (not shipped yet).
-- Not this skill: the creator asks whether the app is ready to publish, not to publish it. Use `publish-readiness` (not shipped yet).
+- Not this skill: the creator asks whether the app is ready to publish, not to publish it. Use `publish-readiness`.
 
 ## What you must provide
 
@@ -51,7 +51,7 @@ These fields must exist:
 
 If `framework.kind` is another value, stop: this skill deploys web builds only. If the project contradicts `framework.kind` (for example a `next.config.*` file in a project marked `vite`), trust the project and say so.
 
-Readiness gate. `readiness.web.result: fail` stops the skill; tell the creator to fix what `publish-readiness` reported. `unknown`, or a `pass` whose `revision` is not the current commit, lets the skill proceed with its own minimal checks; say "readiness is unknown, running minimal checks" to the creator. The minimal checks are: the production build succeeds (step 1) and `scripts/check-pwa.sh` passes on the local preview (step 2).
+Readiness gate. A revision is current when no project file outside `.app-creators/` differs from it, in commits or the working tree: `git status --porcelain -- . ':(exclude).app-creators'` prints nothing and `git diff --quiet <revision> HEAD -- . ':(exclude).app-creators'` exits 0. An empty `revision` or a failing command means not current. `readiness.web.result: fail` at the current revision stops the skill; tell the creator to fix what `publish-readiness` reported. `unknown`, or a `pass` or `fail` whose `revision` is not current, lets the skill proceed with its own minimal checks; say "readiness is unknown, running minimal checks" to the creator. The minimal checks are: the production build succeeds (step 1) and `scripts/check-pwa.sh` passes on the local preview (step 2).
 
 `scripts/` in this skill means this skill's own `scripts/` directory. Run every command below from the project root.
 
@@ -124,7 +124,7 @@ Read the whole frontmatter, change only these fields, append one `history` row, 
 - `targets.web.domain`: the custom domain, or `""` if none.
 - `tools.deploy`: `vercel` or `cloudflare-pages`.
 - `accounts.vercel`: `has` or `missing`, only if the creator answered in this run.
-- `history`: append `{ skill: publish-web, version: "0.1.1", date: <YYYY-MM-DD>, result: <live | ready | stopped> }`. Write the reason for `ready` or `stopped` in the notes below the frontmatter, not in the row.
+- `history`: append `{ skill: publish-web, version: "0.1.2", date: <YYYY-MM-DD>, result: <live | ready | stopped> }`. Write the reason for `ready` or `stopped` in the notes below the frontmatter, not in the row.
 
 ## Sources
 

@@ -1,0 +1,72 @@
+schema_version: "1.1"
+name: publish-readiness-expo-rerun-zh
+description: >
+  Level-2 eval for publish-readiness with a Chinese prompt. Workspace: clean todo-expo with an earlier assessment committed, so only .app-creators/ differs from the recorded revision.
+  Same graders as publish-readiness-expo-rerun-en.
+tags: [publish-readiness, level-2]
+runs: 1
+execution:
+  max_turns: 40
+  timeout_seconds: 1200
+  allowed_tools: [Read, Glob, Grep, Skill, Bash, Write]
+  prompt: |
+    上次就绪检查之后我没改过应用。再跑一遍 App Store 和 Google Play 的就绪检查，把报告更新一下。
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?publish-readiness"'
+    arm: both
+  - name: ran-check-script
+    type: tool_used
+    tool: Bash
+    input_match: 'check-readiness\.py'
+  - name: ios-pass-in-readiness
+    type: regex
+    target: { source: file, path: .app-creators/readiness.md }
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?(?:platforms:[ \t]*(?:#[^\n]*)?\r?\n(?:[ \t]+[^\n]*\r?\n|[ \t]*\r?\n)*?([ \t]+)ios:[ \t]*(?:\{[^}\n]*?\bresult:[ \t]*["'']?pass\b|(?:#[^\n]*)?\r?\n(?=(\1[ \t]+)\S)(?:\2[^\n]*\r?\n|[ \t]*\r?\n)*?\2result:[ \t]*["'']?pass\b)|platforms:[ \t]*\{[^\n]*?\bios:[ \t]*\{[^}\n]*?\bresult:[ \t]*["'']?pass\b)'
+    flags: m
+  - name: ios-pass-in-state
+    type: regex
+    target: { source: file, path: .app-creators/state.md }
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?(?:readiness:[ \t]*(?:#[^\n]*)?\r?\n(?:[ \t]+[^\n]*\r?\n|[ \t]*\r?\n)*?([ \t]+)ios:[ \t]*(?:\{[^}\n]*?\bresult:[ \t]*["'']?pass\b|(?:#[^\n]*)?\r?\n(?=(\1[ \t]+)\S)(?:\2[^\n]*\r?\n|[ \t]*\r?\n)*?\2result:[ \t]*["'']?pass\b)|readiness:[ \t]*\{[^\n]*?\bios:[ \t]*\{[^}\n]*?\bresult:[ \t]*["'']?pass\b)'
+    flags: m
+  - name: android-pass-in-readiness
+    type: regex
+    target: { source: file, path: .app-creators/readiness.md }
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?(?:platforms:[ \t]*(?:#[^\n]*)?\r?\n(?:[ \t]+[^\n]*\r?\n|[ \t]*\r?\n)*?([ \t]+)android:[ \t]*(?:\{[^}\n]*?\bresult:[ \t]*["'']?pass\b|(?:#[^\n]*)?\r?\n(?=(\1[ \t]+)\S)(?:\2[^\n]*\r?\n|[ \t]*\r?\n)*?\2result:[ \t]*["'']?pass\b)|platforms:[ \t]*\{[^\n]*?\bandroid:[ \t]*\{[^}\n]*?\bresult:[ \t]*["'']?pass\b)'
+    flags: m
+  - name: android-pass-in-state
+    type: regex
+    target: { source: file, path: .app-creators/state.md }
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?(?:readiness:[ \t]*(?:#[^\n]*)?\r?\n(?:[ \t]+[^\n]*\r?\n|[ \t]*\r?\n)*?([ \t]+)android:[ \t]*(?:\{[^}\n]*?\bresult:[ \t]*["'']?pass\b|(?:#[^\n]*)?\r?\n(?=(\1[ \t]+)\S)(?:\2[^\n]*\r?\n|[ \t]*\r?\n)*?\2result:[ \t]*["'']?pass\b)|readiness:[ \t]*\{[^\n]*?\bandroid:[ \t]*\{[^}\n]*?\bresult:[ \t]*["'']?pass\b)'
+    flags: m
+  - name: inventory-confirmation-kept
+    type: regex
+    target: { source: file, path: .app-creators/readiness.md }
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?data_inventory:(?:[ \t]*(?:#[^\n]*)?\r?\n(?:[ \t]+[^\n]*\r?\n|[ \t]*\r?\n)*?[ \t]+[^\n]*?|[ \t]*\{[^\n]*?)\bconfirmed:[ \t]*["'']?true\b'
+    flags: m
+  - name: apple-answer-kept
+    type: regex
+    target: { source: file, path: .app-creators/readiness.md }
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?age_rating:(?:[ \t]*(?:#[^\n]*)?\r?\n(?:[ \t]+[^\n]*\r?\n|[ \t]*\r?\n)*?[ \t]+[^\n]*?|[ \t]*\{[^\n]*?)\bprofanityOrCrudeHumor:[ \t]*["'']?NONE\b'
+    flags: m
+  - name: play-answer-kept
+    type: regex
+    target: { source: file, path: .app-creators/readiness.md }
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?age_rating:(?:[ \t]*(?:#[^\n]*)?\r?\n(?:[ \t]+[^\n]*\r?\n|[ \t]*\r?\n)*?[ \t]+[^\n]*?|[ \t]*\{[^\n]*?)\bplay_gambling:[ \t]*["'']?none\b'
+    flags: m
+  - name: did-not-re-ask-confirmed-answers
+    type: llm
+    focus: trace
+    criteria: |
+      PASS if the assistant did not ask the creator to confirm the data inventory again and did not ask any age rating question. Reporting that the earlier answers were kept also passes. The replies may be in Chinese.
+      FAIL if the assistant asked the creator to review or confirm the existing inventory, or asked any age rating question.
+  - name: said-smoke-run-did-not-run-and-the-risk
+    type: llm
+    focus: trace
+    criteria: |
+      PASS if the assistant told the creator that the smoke run did not run (or stayed unknown) and stated the risk, such as a crash in a release build going unnoticed until upload, review, or users. The replies may be in Chinese.
+      FAIL if the assistant does not mention the smoke run, claims it passed, or mentions it with no risk.

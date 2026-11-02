@@ -100,8 +100,19 @@ state" distinguishable.
 ## Readiness validity
 
 A readiness `pass` is bound to the project revision it assessed. A
-skill that reads a `pass` whose revision is not the current one treats
-it as `unknown` in its own reasoning, never in the file.
+revision is current when no project file outside `.app-creators/`
+differs from it, in commits or the working tree. The directory is
+excluded because `publish-readiness` writes there and the creator
+commits it, so comparing raw commits would make every pass stale at
+once. A skill that reads a `pass` or `fail` whose revision is not
+current treats it as `unknown` in its own reasoning, never in the file.
+The rule comes from `docs/specs/2026-11-02-slice1-publish-design.md`
+§4.1 and §4.4.
+
+```bash
+git status --porcelain -- . ':(exclude).app-creators'           # prints nothing
+git diff --quiet <revision> HEAD -- . ':(exclude).app-creators' # exits 0
+```
 
 ## Ownership
 
@@ -179,8 +190,8 @@ mentioned is `undecided`.
 | `targets.ios.bundle_id` | recorded | string | the skill that performed the action | |
 | `targets.ios.asc_app_id` | recorded | string | the skill that performed the action | App Store Connect app ID. |
 | `targets.android.package` | recorded | string | the skill that performed the action | |
-| `readiness.*.result` | recorded | `pass`, `fail`, `unknown` | `publish-readiness` | Stays `unknown` until `publish-readiness` ships; skills proceed under the gate's `unknown` rule. |
-| `readiness.*.revision` | recorded | revision or `""` | `publish-readiness` | The revision a `pass` is bound to. |
+| `readiness.*.result` | recorded | `pass`, `fail`, `unknown` | `publish-readiness` | `unknown` until `publish-readiness` runs, and when it cannot decide; skills proceed under the gate's `unknown` rule. |
+| `readiness.*.revision` | recorded | revision or `""` | `publish-readiness` | The revision assessed; `""` when the project has no commits. See Readiness validity. |
 | `readiness.*.date` | recorded | date or `""` | `publish-readiness` | |
 | `accounts.apple_developer` | provided | `has`, `missing`, `pending`, `""` | the skill that asks | Presence only; string, never a boolean. `""` until the skill that asks has asked (first-run value written by `app-creators`). |
 | `accounts.google_play` | provided | `has`, `missing`, `pending`, `""` | the skill that asks | Presence only; string, never a boolean. `""` until the skill that asks has asked (first-run value written by `app-creators`). |
