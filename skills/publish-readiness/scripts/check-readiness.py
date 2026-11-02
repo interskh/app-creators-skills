@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # Static publish-readiness checks. Rules and sources: references/checks.md.
 # usage: python3 -I check-readiness.py <project> --platform ios|android|web
-#          [--expo-config <file>] [--collects-data yes|no]
-# Prints PASS, FAIL, or UNKNOWN per check. Exit 0 when nothing fails, 1 on a
-# failure, 2 on a usage or environment error. No network; writes nothing.
+#          [--resolved <file>]... [--collects-data yes|no]
+# Prints PASS, FAIL, or UNKNOWN per check. Every PASS needs an authoritative input:
+# a data format the tools consume or emit, never source that only a compiler can
+# interpret. Exit 0 when nothing fails, 1 on a failure, 2 on a usage or environment
+# error. No network; writes nothing.
 import argparse
 import json
 import os
@@ -30,6 +32,10 @@ SHOW_LIMIT = 80
 MAX_LINE = 8000
 UNSAFE_CATEGORIES = {"Cc", "Cf", "Cs", "Zl", "Zp"}
 EXPO_EXTENSIONS = (".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".mts")
+GRADLE_FILES = ("build.gradle", "build.gradle.kts")
+APP_PRODUCT_TYPE = "com.apple.product-type.application"
+PERMISSION_SCOPE = ("this covers declared permissions and the known API patterns the script's table lists; "
+                    "it does not claim the app needs no permission")
 PROJECT = {"path": "", "real": ""}
 
 PHOTOS = "NSPhotoLibraryUsageDescription"
@@ -153,6 +159,7 @@ ANDROID_NS = "{http://schemas.android.com/apk/res/android}"
 TOOLS_NS = "{http://schemas.android.com/tools}"
 
 
+
 class UsageError(Exception):
     pass
 
@@ -209,7 +216,7 @@ def contain(path):
 
 
 def read_bytes(path, limit=MAX_READ_BYTES, contained=True, prefix=False):
-    """Every project read: regular file only, inside the project, never more than limit bytes."""
+    """Every read: regular file only, inside the project unless the operator named it, never over limit bytes."""
     label = show(_rel(path))
     if READS["left"] <= 0:
         raise Unknown("%s was not read: the %d MB per-run read limit is used up" % (label, MAX_RUN_READ_MB))
@@ -267,30 +274,29 @@ def read_json_quietly(path):
         return None
 
 
-def read_xml(path):
-    data = read_bytes(path)
+def parse_xml(data, label):
     if b"<!ENTITY" in data.replace(b"\x00", b""):
-        raise Unknown("%s declares XML entities, which are not read" % show(_rel(path)))
+        raise Unknown("%s declares XML entities, which are not read" % label)
     try:
         return ET.fromstring(data)
     except (ET.ParseError, ValueError):
-        raise Unknown("%s is not well-formed XML" % show(_rel(path)))
+        raise Unknown("%s is not well-formed XML" % label)
+
+
+def read_xml(path):
+    return parse_xml(read_bytes(path), show(_rel(path)))
 
 
 # An unclosed literal runs to the end of its line or of the input, so a match never fails and rescans.
-# A regex literal counts as a string where an expression can start, so /[/*]/ opens no comment.
 COMMENT_OR_STRING = re.compile(
-    r"""("(?:\\.|[^"\\\n])*(?:"|(?=\n)|\\?\Z)|'(?:\\.|[^'\\\n])*(?:'|(?=\n)|\\?\Z)|`(?:\\.|[^`\\])*(?:`|\\?\Z)"""
-    r"""|(?:(?<=[(,=:\[!&|?{};\n])|(?<=[(,=:\[!&|?{};\n] )|(?<=return ))/(?![*/])"""
-    r"""(?:\\[^\n]|\[(?:\\[^\n]|[^\]\\\n])*(?:\]|\\?(?=\n)|\\?\Z)|[^/\\\n\[])*(?:/|\\?(?=\n)|\\?\Z))"""
+    r"""("(?:\\.|[^"\\\n])*(?:"|(?=\n)|\\?\Z)|'(?:\\.|[^'\\\n])*(?:'|(?=\n)|\\?\Z)|`(?:\\.|[^`\\])*(?:`|\\?\Z))"""
     r"""|(?<!\\)/\*|(?<!\\)//[^\n]*""",
     re.S,
 )
 
 
 def strip_comments(text):
-    """Linear time. An unclosed /* is left as text, so code after it is still scanned."""
-    last_close = text.rfind("*/")
+    """Linear time. A mistake here only moves a row to raw-only, which is UNKNOWN, so it can never produce a PASS."""
     parts = []
     pos = 0
     while True:
@@ -300,20 +306,12 @@ def strip_comments(text):
             return "".join(parts)
         parts.append(text[pos:m.start()])
         pos = m.end()
-        if m.group(1):
-            parts.append(m.group(1))
-        elif m.group() != "/*":
-            parts.append(" ")
-        elif pos <= last_close:
-            parts.append(" ")
-            pos = text.find("*/", pos) + 2
-        else:
-            parts.append("/*")
-
-
-def mask_strings(stripped):
-    """Blank every literal in comment-free text, keeping offsets, for finding code by name."""
-    return COMMENT_OR_STRING.sub(lambda m: " " * len(m.group()) if m.group(1) else m.group(), stripped)
+        parts.append(m.group(1) or " ")
+        if m.group() == "/*":
+            end = text.find("*/", pos)
+            if end < 0:
+                return "".join(parts)
+            pos = end + 2
 
 
 def image_info(path):
@@ -375,10 +373,11 @@ def _webp_info(data):
 def verdict(fails, unknowns, evidence):
     """fails: [(reason, fix)]. Every gap goes on the one line."""
     if fails:
+        reasons = dict.fromkeys(reason for reason, _ in fails)
         fixes = dict.fromkeys(fix for _, fix in fails)
-        raise Fail("; ".join(reason for reason, _ in fails), "; ".join(fixes))
+        raise Fail("; ".join(reasons), "; ".join(fixes))
     if unknowns:
-        raise Unknown("; ".join(unknowns))
+        raise Unknown("; ".join(dict.fromkeys(unknowns)))
     return evidence
 
 
@@ -391,25 +390,26 @@ def valid_name(value, source, fix):
     return "%s from %s" % (show(value.strip()), source)
 
 
-def valid_bundle_id(value, source, fix):
+def _valid_id(value, pattern, what, rule, source, fix):
     if not isinstance(value, str) or not value:
-        raise Fail("no bundle id in %s" % source, fix)
-    if not re.fullmatch(r"[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*", value):
-        raise Fail("bundle id %s must be letters, digits, hyphens, and periods, with no empty segment" % show(value), fix)
+        raise Fail("no %s in %s" % (what, source), fix)
+    if not re.fullmatch(pattern, value):
+        raise Fail("%s %s %s" % (what, show(value), rule), fix)
     return "%s from %s" % (show(value), source)
+
+
+def valid_bundle_id(value, source, fix):
+    return _valid_id(value, r"[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*", "bundle id",
+                     "must be letters, digits, hyphens, and periods, with no empty segment", source, fix)
 
 
 def valid_package(value, source, fix):
-    if not isinstance(value, str) or not value:
-        raise Fail("no application id in %s" % source, fix)
-    if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+", value):
-        raise Fail("application id %s needs two or more segments, each starting with a letter, "
-                   "using only letters, digits, and underscores" % show(value), fix)
-    return "%s from %s" % (show(value), source)
+    return _valid_id(value, r"[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+", "application id",
+                     "needs two or more segments, each starting with a letter, using only letters, digits, and underscores", source, fix)
 
 
 def scan_code(root, extensions, skipped):
-    """Yield (relative path, comment-free text); a file that cannot be read goes in skipped."""
+    """Yield (relative path, comment-free text, raw text); a file that cannot be read goes in skipped."""
     def unreadable(error):
         skipped.append("%s could not be read (%s)" % (show(_rel(error.filename)), type(error).__name__))
 
@@ -418,10 +418,11 @@ def scan_code(root, extensions, skipped):
         dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS)
         for name in dirs:
             path = os.path.join(current, name)
-            if os.path.islink(path):
-                why = _linked_folder_gap(path, scan_real)
-                if why:
-                    skipped.append("%s %s" % (show(_rel(path)), why))
+            if os.path.islink(path) and not _inside(path, PROJECT["real"]):
+                skipped.append("%s points outside the project" % show(_rel(path)))
+            elif os.path.islink(path) and (not _inside(path, scan_real) or set(
+                    os.path.relpath(os.path.realpath(path), scan_real).split(os.sep)) & SKIP_DIRS):
+                skipped.append("%s points at a folder that is not scanned" % show(_rel(path)))
         for name in sorted(files):
             if not name.endswith(extensions):
                 continue
@@ -431,87 +432,134 @@ def scan_code(root, extensions, skipped):
             except Unknown as e:
                 skipped.append(str(e))
                 continue
-            yield _rel(path), strip_comments(data.decode("utf-8", "replace"))
+            raw = data.decode("utf-8", "replace")
+            yield _rel(path), strip_comments(raw), raw
 
 
-def _linked_folder_gap(path, scan_real):
-    """os.walk does not follow a linked folder. Return why its code goes unscanned, or None if the walk reaches it anyway."""
-    if not _inside(path, PROJECT["real"]):
-        return "points outside the project"
-    if not _inside(path, scan_real) or set(os.path.relpath(os.path.realpath(path), scan_real).split(os.sep)) & SKIP_DIRS:
-        return "points at a folder that is not scanned"
-    return None
+def _row_hits(row, text):
+    module = row[1]
+    return (not module or module in text) and re.search(row[0], text)
 
 
-def detect_keys(root, extensions, table, skipped):
-    """Return [(keys, file)] for every table row found in code."""
-    found = []
-    seen = set()
-    for rel, text in scan_code(root, extensions, skipped):
-        for pattern, keys in table:
-            if keys not in seen and re.search(pattern, text):
-                seen.add(keys)
-                found.append((keys, rel))
-    return found
-
-
-def detect_expo(root, skipped):
-    """Return [(iOS keys, Android permissions, file)] for every Expo API found in code."""
-    found = []
-    seen = set()
-    for rel, text in scan_code(root, EXPO_EXTENSIONS, skipped):
-        for index, (pattern, module, keys, perms) in enumerate(EXPO_APIS):
-            if index in seen or (module and module not in text):
+def detect(root, extensions, table, skipped):
+    """Return (row, file, certain) per table row found. A row seen only in raw text is not certain; code in any file wins."""
+    found = {}
+    for rel, stripped, raw in scan_code(root, extensions, skipped):
+        for index, row in enumerate(table):
+            if index in found and found[index][2]:
                 continue
-            if re.search(pattern, text):
-                seen.add(index)
-                found.append((keys, perms, rel))
-    return found
+            if _row_hits(row, stripped):
+                found[index] = (row, rel, True)
+            elif index not in found and _row_hits(row, raw):
+                found[index] = (row, rel, False)
+    return [found[index] for index in sorted(found)]
 
 
-def not_scanned(skipped):
-    return ["%s, so permission APIs in it are unknown" % reason for reason in skipped]
+def detect_android_native(root, skipped):
+    """Return (permission, "declare", file, certain). Same rule as detect."""
+    found = {}
+    for rel, stripped, raw in scan_code(root, (".kt", ".java"), skipped):
+        code = set(a or b for a, b in re.findall(ANDROID_API, stripped))
+        for perm in code:
+            if perm not in found or not found[perm][1]:
+                found[perm] = (rel, True)
+        for perm in set(a or b for a, b in re.findall(ANDROID_API, raw)) - code:
+            found.setdefault(perm, (rel, False))
+    return [(perm, "declare", rel, certain) for perm, (rel, certain) in sorted(found.items())]
 
 
-def check_strings(strings, unresolved, required, fix_for, skipped=(), maybe=None):
-    """strings: key -> text. required: [(keys, file)]. fix_for(key) -> (reason, fix)."""
-    fails = []
+def _code_gap(need, rel, certain, maybe, reason, fix, fails, unknowns):
+    if not certain:
+        unknowns.append("%s mentions an API that needs %s, but only in what reads as a comment; confirm it is not code"
+                        % (show(rel), show(need)))
+    elif maybe:
+        unknowns.append("%s uses an API that needs %s, and %s" % (show(rel), show(need), maybe))
+    else:
+        fails.append(("%s uses an API that needs %s%s" % (show(rel), show(need), reason), fix))
+
+
+def _scan_verdict(fails, unknowns, skipped, declared, needed):
+    unknowns += ["%s, so permission APIs in it are unknown" % reason for reason in skipped]
+    return verdict(fails, unknowns, "%s; needed by code: %s; %s" % (
+        declared, show_list(sorted(set(needed))) if needed else "none detected", PERMISSION_SCOPE))
+
+
+def check_strings(strings, unresolved, required, fix_for, skipped, maybe):
+    """strings: key -> text. required: [(keys, file, certain)]. fix_for(key) -> (reason, fix)."""
+    fails = [("%s is declared but empty" % show(key), fix_for(key)[1]) for key in sorted(strings) if not strings[key].strip()]
     unknowns = []
-    for key in sorted(strings):
-        if not strings[key].strip():
-            fails.append(("%s is declared but empty" % show(key), fix_for(key)[1]))
-    for keys, rel in required:
-        if any(k in strings or k in unresolved for k in keys):
-            continue
-        if maybe:
-            unknowns.append("%s uses an API that needs %s, and %s" % (show(rel), show(keys[0]), maybe))
-            continue
-        reason, fix = fix_for(keys[0])
-        fails.append(("%s uses an API that needs %s; %s" % (show(rel), show(keys[0]), reason), fix))
+    for keys, rel, certain in required:
+        if not any(k in strings or k in unresolved for k in keys):
+            reason, fix = fix_for(keys[0])
+            _code_gap(keys[0], rel, certain, maybe, "; " + reason, fix, fails, unknowns)
     unknowns += ["%s holds a build variable that cannot be resolved here" % show(k) for k in sorted(unresolved)]
-    unknowns += not_scanned(skipped)
-    needed = sorted(set(k[0] for k, _ in required))
-    return verdict(fails, unknowns, "declared: %s; needed by code: %s" % (
-        show_list(sorted(strings)), show_list(needed) if needed else "none detected"))
+    return _scan_verdict(fails, unknowns, skipped, "declared: %s" % show_list(sorted(strings)),
+                         [keys[0] for keys, _, certain in required if certain])
 
 
-def check_android_permissions(declared, blocked, required, fix, skipped=(), maybe=None):
-    """required: [(permission, how, file)]."""
+def check_android_permissions(declared, blocked, required, fix, skipped, maybe):
+    """required: [(permission, how, file, certain)]."""
     fails = []
     unknowns = []
-    for perm, how, rel in required:
+    for perm, how, rel, certain in required:
         if perm in blocked:
-            fails.append(("%s uses an API that needs %s, which the project removes" % (show(rel), show(perm)), fix(perm)))
+            _code_gap(perm, rel, certain, None, ", which the project removes", fix(perm), fails, unknowns)
         elif how == "declare" and perm not in declared:
-            if maybe:
-                unknowns.append("%s uses an API that needs %s, and %s" % (show(rel), show(perm), maybe))
-            else:
-                fails.append(("%s uses an API that needs %s, which is not declared" % (show(rel), show(perm)), fix(perm)))
-    unknowns += not_scanned(skipped)
+            _code_gap(perm, rel, certain, maybe, ", which is not declared", fix(perm), fails, unknowns)
     dangerous = sorted(p for p in declared if p in DANGEROUS)
-    needed = sorted(set(r[0] for r in required))
-    return verdict(fails, unknowns, "declared dangerous: %s; needed by code: %s" % (
-        show_list(dangerous), show_list(needed) if needed else "none detected"))
+    return _scan_verdict(fails, unknowns, skipped, "declared dangerous: %s" % show_list(dangerous),
+                         [r[0] for r in required if r[3]])
+
+
+# Resolved inputs ---------------------------------------------------------
+
+
+def _resolved_file(path):
+    """Classify one operator file by its content: (kind, data)."""
+    label = show(path)
+    try:
+        data = read_bytes(path, contained=False)
+        if data.lstrip(b"\xef\xbb\xbf \t\r\n").startswith(b"<"):
+            root = parse_xml(data, label)
+            if root.tag != "manifest":
+                raise Unknown("root element is not manifest")
+            return "android", root
+        parsed = json.loads(data.decode("utf-8-sig"))
+    except (Unknown, ValueError, RecursionError) as e:
+        raise UsageError("--resolved %s could not be read (%s)" % (label, clean(e) or type(e).__name__))
+    if isinstance(parsed, dict):
+        return "expo", parsed["expo"] if isinstance(parsed.get("expo"), dict) else parsed
+    if parsed and isinstance(parsed, list) and all(isinstance(e, dict) and isinstance(e.get("buildSettings"), dict) for e in parsed):
+        return "xcode", parsed
+    raise UsageError("--resolved %s is not Xcode settings, an Expo config, or an Android manifest" % label)
+
+
+def load_resolved(paths):
+    resolved = {}
+    for path in paths:
+        kind, data = _resolved_file(path)
+        if kind in resolved:
+            raise UsageError("--resolved was given two %s files" % kind)
+        resolved[kind] = data
+    return resolved
+
+
+def xcode_settings(entries, framework):
+    """Return the settings of the one application target, only for a Release device resolve of this checkout."""
+    if entries is None:
+        first = "`flutter build ios --release --no-codesign --config-only`, then " if framework == "flutter" else ""
+        raise Unknown("no resolved Xcode settings; run %s`xcodebuild -showBuildSettings -json -configuration Release -sdk iphoneos` "
+                      "with -project or -workspace and -scheme, save the output outside the project, and pass --resolved <file>" % first)
+    apps = [e["buildSettings"] for e in entries if e["buildSettings"].get("PRODUCT_TYPE") == APP_PRODUCT_TYPE]
+    if len(apps) != 1:
+        raise Unknown("the resolved Xcode settings hold %d application targets, not one; pick one with -scheme" % len(apps))
+    settings = dict((k, v) for k, v in apps[0].items() if isinstance(v, str))
+    if settings.get("CONFIGURATION") != "Release" or settings.get("PLATFORM_NAME") != "iphoneos":
+        raise Unknown("the resolved Xcode settings are not for Release on iphoneos, so they are not the release truth")
+    root = settings.get("SRCROOT")
+    if not root or not os.path.isabs(root) or not _inside(root, PROJECT["real"]):
+        raise Unknown("SRCROOT in the resolved Xcode settings is not inside this project; resolve from this checkout")
+    return settings
 
 
 # Apple native ------------------------------------------------------------
@@ -520,107 +568,29 @@ def check_android_permissions(declared, blocked, required, fix, skipped=(), mayb
 class Apple:
     FIX_ICON = "add a 1024x1024 PNG with no alpha channel to the app icon set in the asset catalog"
 
-    def __init__(self, root):
-        self.root = root
-        self.layers = None
-        self.builtin = {"PROJECT_DIR": root, "SRCROOT": root}
-        self.error = None
-        try:
-            self._load()
-        except Unknown as e:
-            self.error = str(e)
+    def __init__(self, settings):
+        self.settings = settings
+        self.root = settings["SRCROOT"]
+        self.generated = settings.get("GENERATE_INFOPLIST_FILE") == "YES"
 
-    def _project_file(self):
-        projects = [d for d in os.listdir(self.root) if d.endswith(".xcodeproj")]
-        if not projects:
-            for sub in sorted(os.listdir(self.root)):
-                path = os.path.join(self.root, sub)
-                if sub not in SKIP_DIRS and os.path.isdir(path) and not sub.endswith((".xcodeproj", ".xcworkspace")):
-                    projects += [os.path.join(sub, d) for d in os.listdir(path) if d.endswith(".xcodeproj")]
-        if not projects:
-            raise Unknown("no .xcodeproj under %s; open the project in Xcode or generate one" % show(_rel(self.root)))
-        if len(projects) > 1:
-            raise Unknown("more than one .xcodeproj: %s" % show_list(sorted(projects)))
-        return os.path.join(self.root, projects[0], "project.pbxproj")
-
-    def _load(self):
-        text = read_text(self._project_file())
-        objects = {}
-        end = 0
-        for m in re.finditer(r"^[ \t]*([0-9A-Fa-f]{24})(?: /\*.*?\*/)? = \{", text, re.M):
-            if m.start() < end:
-                continue
-            block = _pbx_block(text, m.end() - 1)
-            end = m.end() - 1 + len(block)
-            if _isa(block):
-                objects[m.group(1)] = block
-        targets = [b for b in objects.values() if _isa(b) == "PBXNativeTarget"
-                   and 'productType = "com.apple.product-type.application"' in b]
-        if not targets:
-            raise Unknown("project.pbxproj shows no application target")
-        if len(targets) > 1:
-            raise Unknown("project.pbxproj has %d application targets; choose one by hand" % len(targets))
-        self.builtin["TARGET_NAME"] = _pbx_field(targets[0], "name") or ""
-        target_settings, target_ref = _release(objects, targets[0], True)
-        project_settings = {}
-        project_ref = None
-        projects = [b for b in objects.values() if _isa(b) == "PBXProject"]
-        if projects:
-            project_settings, project_ref = _release(objects, projects[0], False)
-        self.layers = [
-            target_settings,
-            self._xcconfig_layer(objects, target_ref),
-            project_settings,
-            self._xcconfig_layer(objects, project_ref),
-        ]
-
-    def _xcconfig_layer(self, objects, ref):
-        """Return the layer's settings, or None when a referenced file cannot be read."""
-        if ref is None:
-            return {}
-        path = _file_ref_path(objects, ref, self.root)
-        if path is None or not os.path.lexists(path):
-            return None
-        try:
-            return _read_xcconfig(path, 0)
-        except Unknown:
-            return None
-
-    def _need(self):
-        if self.error:
-            raise Unknown(self.error)
-
-    def get(self, key):
-        """Xcode's order: target settings, target xcconfig, project settings, project xcconfig."""
-        for layer in self.layers:
-            if layer is None:
-                raise Unknown("an .xcconfig file could not be read, and it may set %s" % show(key))
-            if any(k.startswith(key + "[") for k in layer):
-                raise Unknown("%s has a conditional override" % show(key))
-            if key in layer:
-                value = layer[key]
-                if re.search(r"\$[({]inherited[)}]", value):
-                    raise Unknown("%s uses $(inherited)" % show(key))
-                return value
-        return self.builtin.get(key)
-
-    def resolve(self, value):
+    def expand(self, value):
         for _ in range(8):
             m = re.search(r"\$\(([^)$]*)\)|\$\{([^}$]*)\}", value)
             if not m:
+                if "$(" in value or "${" in value:
+                    raise Unknown("%s does not resolve" % show(value))
                 return value
             var = m.group(1) if m.group(1) is not None else m.group(2)
-            replacement = self.get(var)
-            if replacement is None:
-                raise Unknown("%s holds %s, which the Release settings do not define" % (show(value), show("$(%s)" % var)))
-            value = value[:m.start()] + replacement + value[m.end():]
+            if var not in self.settings:
+                raise Unknown("%s holds %s, which the resolved settings do not define" % (show(value), show("$(%s)" % var)))
+            value = value[:m.start()] + self.settings[var] + value[m.end():]
         raise Unknown("%s does not resolve" % show(value))
 
     def plist(self):
-        rel = self.get("INFOPLIST_FILE")
-        if rel is None:
+        rel = self.settings.get("INFOPLIST_FILE")
+        if not rel:
             return {}
-        path = os.path.join(self.root, self.resolve(rel))
+        path = os.path.join(self.root, self.expand(rel))
         data = read_bytes(path)
         try:
             parsed = plistlib.loads(data)
@@ -631,33 +601,33 @@ class Apple:
         return parsed
 
     def app_name(self):
-        self._need()
         plist = self.plist()
         fix = "set the Display Name of the app target in Xcode, which writes CFBundleDisplayName"
-        for source in ("CFBundleDisplayName", "INFOPLIST_KEY_CFBundleDisplayName", "CFBundleName", "PRODUCT_NAME"):
-            value = plist.get(source) if source.startswith("CF") else self.get(source)
+        generated = self.settings.get("INFOPLIST_KEY_CFBundleDisplayName") if self.generated else None
+        for source, value in (("CFBundleDisplayName", plist.get("CFBundleDisplayName")),
+                              ("INFOPLIST_KEY_CFBundleDisplayName", generated),
+                              ("CFBundleName", plist.get("CFBundleName")),
+                              ("PRODUCT_NAME", self.settings.get("PRODUCT_NAME"))):
             if value is not None:
-                return valid_name(self.resolve(value) if isinstance(value, str) else "", source, fix)
-        raise Fail("no app name in project.pbxproj or Info.plist", fix)
+                return valid_name(self.expand(value) if isinstance(value, str) else "", source, fix)
+        raise Fail("no app name in the resolved settings or Info.plist", fix)
 
     def bundle_id(self):
-        self._need()
         fix = "set a reverse-DNS Bundle Identifier on the app target in Xcode (letters, digits, hyphens, periods)"
-        value = self.get("PRODUCT_BUNDLE_IDENTIFIER")
+        value = self.settings.get("PRODUCT_BUNDLE_IDENTIFIER")
         source = "PRODUCT_BUNDLE_IDENTIFIER"
         if value is None:
             value = self.plist().get("CFBundleIdentifier")
             source = "CFBundleIdentifier"
         if value is None:
-            raise Fail("no bundle id in project.pbxproj or Info.plist", fix)
-        return valid_bundle_id(self.resolve(value) if isinstance(value, str) else "", source, fix)
+            raise Fail("no bundle id in the resolved settings or Info.plist", fix)
+        return valid_bundle_id(self.expand(value) if isinstance(value, str) else "", source, fix)
 
     def _icon_set(self):
-        self._need()
-        name = self.get("ASSETCATALOG_COMPILER_APPICON_NAME")
+        name = self.settings.get("ASSETCATALOG_COMPILER_APPICON_NAME")
         if name is None:
-            raise Fail("no ASSETCATALOG_COMPILER_APPICON_NAME in project.pbxproj", Apple.FIX_ICON)
-        name = self.resolve(name)
+            raise Fail("no ASSETCATALOG_COMPILER_APPICON_NAME in the resolved settings", Apple.FIX_ICON)
+        name = self.expand(name)
         sets = []
         for current, dirs, _ in os.walk(self.root):
             dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
@@ -694,21 +664,15 @@ class Apple:
             path = os.path.join(folder, str(filename))
             try:
                 contain(path)
-            except Unknown as e:
-                unknowns.append(str(e))
-                continue
-            if not os.path.lexists(path):
-                fails.append(("%s is listed in Contents.json but missing" % show(filename), Apple.FIX_ICON))
-                continue
-            want = (1024, 1024) if is_marketing else _icon_pixels(image)
-            if is_marketing and _icon_pixels(image) != want:
-                fails.append(("the App Store icon entry declares size %s, not 1024x1024" % show(image.get("size", "none")), Apple.FIX_ICON))
-            try:
+                if not os.path.lexists(path):
+                    fails.append(("%s is listed in Contents.json but missing" % show(filename), Apple.FIX_ICON))
+                    continue
                 width, height, _ = image_info(path)
             except Unknown as e:
                 unknowns.append(str(e))
                 continue
             checked += 1
+            want = (1024, 1024) if is_marketing else _icon_pixels(image)
             if want and (width, height) != want:
                 fails.append(("%s is %dx%d, expected %dx%d" % (show(filename), width, height, want[0], want[1]),
                               "export the icon at %dx%d" % want))
@@ -726,169 +690,32 @@ class Apple:
         if not marketing:
             raise Unknown("no App Store icon file to read; see icon-sizes")
         filename = str(marketing[0]["filename"])
-        path = os.path.join(folder, filename)
-        contain(path)
-        if not os.path.lexists(path):
-            raise Unknown("%s is missing; see icon-sizes" % show(filename))
-        if _has_alpha(path):
+        if _has_alpha(os.path.join(folder, filename)):
             raise Unknown("%s has an alpha channel or transparency; no current Apple document states a rule for this, "
                           "so confirm by validating the archive in Xcode" % show(filename))
         return "%s has no alpha channel or tRNS chunk" % show(filename)
 
     def strings(self):
-        self._need()
-        plist = self.plist()
-        strings = {}
-        unresolved = set()
-        names = set()
-        for layer in self.layers:
-            for key in layer or {}:
-                m = re.match(r"INFOPLIST_KEY_(NS\w+UsageDescription)(\[.*)?$", key)
-                if m:
-                    names.add(m.group(1))
         values = {}
-        for name in names:
-            try:
-                values[name] = self.get("INFOPLIST_KEY_" + name)
-            except Unknown:
-                unresolved.add(name)
-        for key, value in plist.items():
+        if self.generated:
+            for key, value in self.settings.items():
+                m = re.fullmatch(r"INFOPLIST_KEY_(NS\w+UsageDescription)", key)
+                if m:
+                    values[m.group(1)] = value
+        for key, value in self.plist().items():
             if isinstance(key, str) and re.fullmatch(r"NS\w+UsageDescription", key):
                 values[key] = value if isinstance(value, str) else ""
-                unresolved.discard(key)
+        strings = {}
+        unresolved = set()
         for key, value in values.items():
             try:
-                strings[key] = self.resolve(value)
+                strings[key] = self.expand(value)
             except Unknown:
                 unresolved.add(key)
         return strings, unresolved
 
-    def maybe(self):
-        if any(layer is None for layer in self.layers or []):
-            return "an .xcconfig file that could not be read may set it"
-        return None
-
     def fix_for(self, key):
         return "no string for it", "add %s with a specific reason to Info.plist" % show(key)
-
-
-def _release(objects, owner, required):
-    """Return (settings, xcconfig file reference) of owner's Release configuration."""
-    ref = re.search(r"buildConfigurationList = ([0-9A-Fa-f]{24})", owner)
-    config_list = objects.get(ref.group(1)) if ref else None
-    for cid in re.findall(r"([0-9A-Fa-f]{24})(?: /\*.{0,200}?\*/)?,", _pbx_list(config_list or "", "buildConfigurations")):
-        block = objects.get(cid, "")
-        if re.search(r"\bname = \"?Release\"?;", block):
-            base = re.search(r"baseConfigurationReference = (\w+)", block)
-            return _pbx_settings(block), base.group(1) if base else None
-    if required:
-        raise Unknown("project.pbxproj has no Release configuration for the app target")
-    return {}, None
-
-
-def _file_ref_path(objects, ref, root):
-    block = objects.get(ref, "")
-    path = _pbx_field(block, "path")
-    if path is None:
-        return None
-    parts = [path]
-    if '<group>' in block:
-        parents = {}
-        for gid, group in objects.items():
-            if _isa(group) in ("PBXGroup", "PBXVariantGroup"):
-                for child in re.findall(r"([0-9A-Fa-f]{24})", _pbx_list(group, "children")):
-                    parents[child] = gid
-        current = ref
-        seen = {ref}
-        while current in parents:
-            current = parents[current]
-            if current in seen:
-                return None
-            seen.add(current)
-            group_path = _pbx_field(objects[current], "path")
-            if group_path is not None:
-                parts.insert(0, group_path)
-    full = os.path.join(root, *parts)
-    return None if "$" in full else full
-
-
-def _read_xcconfig(path, depth):
-    settings = {}
-    for raw in read_text(path).splitlines():
-        line = raw.split("//", 1)[0].strip()
-        include = re.match(r'#include\??\s+"(.+)"', line)
-        if include:
-            target = os.path.join(os.path.dirname(path), include.group(1))
-            contain(target)
-            if depth == 0 and os.path.lexists(target):
-                settings.update(_read_xcconfig(target, depth + 1))
-            continue
-        m = re.match(r"([A-Za-z_]\w*(?:\[[^\]]*\])*)\s*=\s*(.*)$", line)
-        if m:
-            settings[m.group(1)] = m.group(2).strip()
-    return settings
-
-
-def _pbx_block(text, start):
-    depth = 0
-    quoted = False
-    i = start
-    while i < len(text):
-        c = text[i]
-        if quoted:
-            if c == "\\":
-                i += 1
-            elif c == '"':
-                quoted = False
-        elif c == '"':
-            quoted = True
-        elif c == "{":
-            depth += 1
-        elif c == "}":
-            depth -= 1
-            if depth == 0:
-                return text[start:i + 1]
-        i += 1
-    raise Unknown("project.pbxproj has unbalanced braces")
-
-
-def _isa(block):
-    m = re.search(r"\bisa = (\w+);", block)
-    return m.group(1) if m else ""
-
-
-def _pbx_value(raw):
-    raw = raw.strip()
-    if len(raw) >= 2 and raw[0] == '"' and raw[-1] == '"':
-        return re.sub(r"\\(.)", lambda m: "\n" if m.group(1) == "n" else m.group(1), raw[1:-1])
-    return raw
-
-
-def _pbx_field(block, key):
-    """First `key = value;`, by one forward search, so a repeated key with no `;` cannot rescan."""
-    m = re.search(r"\b%s = " % key, block)
-    end = block.find(";", m.end()) if m else -1
-    return _pbx_value(block[m.end():end]) if end >= 0 else None
-
-
-def _pbx_list(block, key):
-    """Inside of the first `key = (...)`, or an empty string."""
-    m = re.search(r"\b%s = \(" % key, block)
-    end = block.find(")", m.end()) if m else -1
-    return block[m.end():end] if end >= 0 else ""
-
-
-def _pbx_settings(block):
-    start = block.find("buildSettings = {")
-    if start < 0:
-        return {}
-    settings = {}
-    for line in _pbx_block(block, start + len("buildSettings = ")).split("\n"):
-        m = re.match(r'\s*("[^"]+"|[\w.-]+(?:\[[^\]]*\])*)\s*=', line)
-        value = line[m.end():].strip() if m else ""
-        if value.endswith(";") and not value.startswith("("):
-            settings[_pbx_value(m.group(1))] = _pbx_value(value[:-1])
-    return settings
 
 
 def _ios_icon_entry(image):
@@ -920,8 +747,9 @@ def _has_alpha(path):
 
 
 class AndroidNative:
-    def __init__(self, root):
+    def __init__(self, root, built):
         self.root = root
+        self.built = built
         self.module = os.path.join(root, "app") if os.path.isdir(os.path.join(root, "app")) else root
         self.main = os.path.join(self.module, "src", "main")
         self._manifest = None
@@ -929,7 +757,7 @@ class AndroidNative:
     def manifest(self):
         path = os.path.join(self.main, "AndroidManifest.xml")
         if not os.path.lexists(path):
-            raise Fail("%s is missing" % show(_rel(path)), "restore AndroidManifest.xml in the app module")
+            raise Unknown("%s is missing; a Gradle source set can relocate it" % show(_rel(path)))
         if self._manifest is None:
             self._manifest = read_xml(path)
         return self._manifest
@@ -940,98 +768,60 @@ class AndroidNative:
             raise Fail("AndroidManifest.xml has no <application>", "restore the <application> element")
         return node
 
-    def _gradle_path(self):
-        for name in ("build.gradle.kts", "build.gradle"):
-            path = os.path.join(self.module, name)
-            if os.path.lexists(path):
-                return path
-        return None
-
     def app_name(self):
         fix = 'set android:label on <application>, usually "@string/app_name" in res/values/strings.xml'
         label = self.application().get(ANDROID_NS + "label")
         if label is None:
             raise Fail("android:label is missing on <application>", fix)
-        if "${" in label:
-            raise Unknown("android:label %s comes from a Gradle placeholder" % show(label))
         if label.startswith("@string/"):
             return self._string_name(label, fix)
-        if label.startswith("@"):
-            raise Unknown("android:label %s is a reference this script does not follow" % show(label))
+        if "${" in label or label.startswith("@"):
+            raise Unknown("android:label %s is a placeholder or a reference this script does not follow" % show(label))
         return valid_name(label, "android:label", fix)
 
     def _string_name(self, label, fix):
         name = label[len("@string/"):]
         folder = os.path.join(self.main, "res", "values")
-        bad = None
         for file in sorted(os.listdir(folder)) if os.path.isdir(folder) else []:
-            if not file.endswith(".xml"):
-                continue
             path = os.path.join(folder, file)
-            try:
-                root = read_xml(path)
-            except Unknown as e:
-                bad = str(e)
-                continue
-            for node in root.findall("string"):
+            for node in read_xml(path).findall("string") if file.endswith(".xml") else []:
                 if node.get("name") == name:
                     return valid_name("".join(node.itertext()), "%s (%s)" % (show(_rel(path)), show(name)), fix)
-        if bad:
-            raise Unknown(bad)
-        gradle = self._gradle_path()
-        if gradle and any(name in line and re.search(r"\bresValue\b", line) for line in read_text(gradle).splitlines()):
-            raise Unknown("%s comes from resValue in %s" % (show(label), show(_rel(gradle))))
-        raise Fail("%s is not in res/values" % show(label), fix)
+        raise Unknown("%s is not in res/values; a Gradle resValue or a flavor can supply it" % show(label))
 
     def package(self):
+        if self.built is None:
+            raise Unknown("the application id comes from Gradle, which this script does not read; build a release from the "
+                          "current commit, read its manifest with apkanalyzer or bundletool, and pass --resolved <file>")
+        application = self.built.find("application")
+        debuggable = application.get(ANDROID_NS + "debuggable") if application is not None else None
+        if debuggable not in (None, "false"):
+            raise Unknown("the resolved manifest is from a debuggable build, whose id may carry a suffix; use a release build")
         fix = 'set applicationId in the app module\'s build.gradle to your own reverse-DNS id, e.g. "com.yourname.app"'
-        path = self._gradle_path()
-        if path is None:
-            raise Fail("no build.gradle in the app module", fix)
-        label = show(_rel(path))
-        text = strip_comments(read_text(path))
-        if text.count("{") != text.count("}"):
-            raise Unknown("%s has unbalanced braces" % label)
-        values = set()
-        for rest in re.findall(r"\bapplicationId\b(.*)", text):
-            m = re.match(r"""\s*(?:=\s*)?["']([^"'$]*)["']\s*$""", rest)
-            if not m:
-                raise Unknown("applicationId in %s is not a literal" % label)
-            values.add(m.group(1))
-        if len(values) > 1:
-            raise Unknown("%s sets more than one applicationId" % label)
-        return valid_package(values.pop() if values else "", label, fix)
-
-    def _drawables(self, ref):
-        m = re.fullmatch(r"@(mipmap|drawable)/(\w+)", ref or "")
-        if not m:
-            return None
-        res = os.path.join(self.main, "res")
-        found = []
-        if os.path.isdir(res):
-            for folder in sorted(os.listdir(res)):
-                if folder == m.group(1) or folder.startswith(m.group(1) + "-"):
-                    for ext in (".png", ".webp", ".xml", ".jpg", ".jpeg"):
-                        path = os.path.join(res, folder, m.group(2) + ext)
-                        if os.path.lexists(path):
-                            found.append((folder, path))
-        return found
+        return valid_package(self.built.get("package"), "the built manifest", fix)
 
     def _check_layer(self, ref, base_dp, fails, unknowns, fix):
-        files = self._drawables(ref)
-        if files is None:
+        """Return how many files were judged."""
+        m = re.fullmatch(r"@(mipmap|drawable)/(\w+)", ref or "")
+        if not m:
             unknowns.append("icon reference %s is not a @mipmap or @drawable file" % show(ref))
             return 0
+        res = os.path.join(self.main, "res")
+        files = []
+        for folder in sorted(os.listdir(res)) if os.path.isdir(res) else []:
+            if folder == m.group(1) or folder.startswith(m.group(1) + "-"):
+                for ext in (".png", ".webp", ".xml", ".jpg", ".jpeg"):
+                    if os.path.lexists(os.path.join(res, folder, m.group(2) + ext)):
+                        files.append((folder, os.path.join(res, folder, m.group(2) + ext)))
         if not files:
             fails.append(("%s has no file under res/" % show(ref), fix))
-            return 0
         count = 0
         for folder, path in files:
             label = show(os.path.join(folder, os.path.basename(path)))
-            if path.endswith(".xml"):
-                count += self._check_xml_drawable(path, label, base_dp, fails, unknowns, fix)
-                continue
             try:
+                if path.endswith(".xml"):
+                    count += self._check_xml_drawable(read_xml(path), label, base_dp, fails, unknowns, fix)
+                    continue
                 width, height, _ = image_info(path)
             except Unknown as e:
                 unknowns.append(str(e))
@@ -1047,15 +837,24 @@ class AndroidNative:
                               "export it at %dx%d (%d dp at %s)" % (want, want, base_dp, density.group(1))))
         return count
 
-    def _check_xml_drawable(self, path, label, base_dp, fails, unknowns, fix):
-        """Return how many files were judged."""
-        try:
-            node = read_xml(path)
-        except Unknown as e:
-            unknowns.append(str(e))
-            return 0
+    def _check_xml_drawable(self, node, label, base_dp, fails, unknowns, fix):
         if node.tag == "adaptive-icon":
-            return self._check_adaptive(node, label, fails, unknowns, fix)
+            if node.find("foreground") is None:
+                fails.append(("%s has no <foreground>" % label, fix))
+                return 0
+            count = 0
+            for tag in ("foreground", "background", "monochrome"):
+                layer = node.find(tag)
+                ref = layer.get(ANDROID_NS + "drawable") if layer is not None else None
+                if layer is None:
+                    continue
+                if ref is None and len(layer):
+                    unknowns.append("<%s> in %s is an inline drawable, whose size cannot be judged here" % (tag, label))
+                elif ref is None:
+                    fails.append(("<%s> in %s has no drawable" % (tag, label), fix))
+                elif not ref.startswith(("@color/", "@android:color/", "#")):
+                    count += self._check_layer(ref, 108, fails, unknowns, fix)
+            return count
         if node.tag == "vector" and base_dp == 108:
             for attr in ("width", "height"):
                 value = node.get(ANDROID_NS + attr)
@@ -1065,25 +864,6 @@ class AndroidNative:
             return 1
         unknowns.append("%s is a %s drawable, whose size cannot be judged here" % (label, show(node.tag)))
         return 0
-
-    def _check_adaptive(self, node, label, fails, unknowns, fix):
-        if node.find("foreground") is None:
-            fails.append(("%s has no <foreground>" % label, fix))
-            return 0
-        count = 0
-        for tag in ("foreground", "background", "monochrome"):
-            layer = node.find(tag)
-            if layer is None:
-                continue
-            ref = layer.get(ANDROID_NS + "drawable")
-            if ref is None:
-                if len(layer):
-                    unknowns.append("<%s> in %s is an inline drawable, whose size cannot be judged here" % (tag, label))
-                else:
-                    fails.append(("<%s> in %s has no drawable" % (tag, label), fix))
-            elif not (ref.startswith(("@color/", "@android:color/", "#"))):
-                count += self._check_layer(ref, 108, fails, unknowns, fix)
-        return count
 
     def icon_sizes(self):
         fix = 'set android:icon="@mipmap/ic_launcher" on <application> and add the icon with Image Asset Studio'
@@ -1107,53 +887,33 @@ class AndroidNative:
                     declared.add(name)
         return declared, removed
 
-    def maybe(self):
-        return None
-
     def fix_permission(self, perm):
         return "add <uses-permission> for %s to AndroidManifest.xml" % show("android.permission." + perm)
-
-
-def detect_android_native(root, skipped):
-    found = {}
-    for rel, text in scan_code(root, (".kt", ".java"), skipped):
-        for a, b in re.findall(ANDROID_API, text):
-            found.setdefault(a or b, rel)
-    return [(perm, "declare", rel) for perm, rel in sorted(found.items())]
 
 
 # Expo config -------------------------------------------------------------
 
 
 class ExpoConfig:
-    def __init__(self, project, config_path):
+    def __init__(self, project, config):
         self.project = project
-        self.config = None
+        self.config = config
         self.why = None
         self.disabled = set()
-        if config_path:
-            self.config = load_expo_flag(config_path)
+        if config is not None:
             return
         for name in ("app.config.js", "app.config.ts"):
             if os.path.lexists(os.path.join(project, name)):
-                self.why = ("%s is dynamic; run `npx expo config --json`, save the output, and pass it with "
-                            "--expo-config <file>" % name)
+                self.why = "%s is dynamic; run `npx expo config --json`, save the output, and pass it with --resolved <file>" % name
                 return
-        for name in ("app.json", "app.config.json"):
-            path = os.path.join(project, name)
-            if os.path.lexists(path):
-                try:
-                    data = load_json(path)
-                except Unknown as e:
-                    self.why = str(e)
-                    return
-                if not isinstance(data, dict):
-                    self.why = "%s is not a JSON object" % name
-                    return
-                inner = data.get("expo")
-                self.config = inner if isinstance(inner, dict) else data
-                return
-        self.config = {}
+        path = os.path.join(project, "app.json" if os.path.lexists(os.path.join(project, "app.json")) else "app.config.json")
+        try:
+            data = load_json(path) if os.path.lexists(path) else {}
+            if not isinstance(data, dict):
+                raise Unknown("%s is not a JSON object" % show(_rel(path)))
+            self.config = data["expo"] if isinstance(data.get("expo"), dict) else data
+        except Unknown as e:
+            self.why = str(e)
 
     def cfg(self):
         if self.why:
@@ -1171,8 +931,7 @@ class ExpoConfig:
             if isinstance(item, str):
                 plugins.setdefault(item, {})
             elif isinstance(item, list) and item and isinstance(item[0], str):
-                options = item[1] if len(item) > 1 and isinstance(item[1], dict) else {}
-                plugins[item[0]] = options
+                plugins[item[0]] = item[1] if len(item) > 1 and isinstance(item[1], dict) else {}
         return plugins
 
     def maybe(self):
@@ -1186,23 +945,34 @@ class ExpoConfig:
 
     def image_path(self, value, what):
         """Return an absolute path for a config image, or raise for remote and missing files."""
-        if not isinstance(value, str):
-            raise Fail("%s is not a file path" % what, "set it to a local PNG path in the app config")
-        if re.match(r"https?://", value):
-            raise Unknown("%s is a remote URL (%s), so its size cannot be read" % (what, show(value)))
+        if not isinstance(value, str) or re.match(r"https?://", value):
+            raise Unknown("%s is a remote URL or not a path (%s), so its size cannot be read" % (what, show(value)))
         path = os.path.normpath(os.path.join(self.project, value))
         contain(path)
         if not os.path.exists(path):
             raise Fail("%s points at %s, which is missing" % (what, show(value)), "add the file or fix the path in the app config")
         return path
 
+    def _image_sizes(self, layers, fails, unknowns):
+        """Yield (what, value, width, height) for each layer with a readable header; the rest go on the lists."""
+        for what, value in layers:
+            if not value:
+                continue
+            try:
+                width, height, _ = image_info(self.image_path(value, what))
+            except Fail as e:
+                fails.append((e.reason, e.fix))
+            except Unknown as e:
+                unknowns.append(str(e))
+            else:
+                yield what, value, width, height
+
     def app_name(self):
-        name = self.cfg().get("name")
-        return valid_name(name if name is not None else "", "the Expo config (name)", "set expo.name in the app config")
+        return valid_name(self.cfg().get("name", ""), "the Expo config (name)", "set expo.name in the app config")
 
     def web_name(self):
-        name = self.section("web").get("name") or self.cfg().get("name")
-        return valid_name(name if name is not None else "", "the Expo config", "set expo.name or expo.web.name in the app config")
+        name = self.section("web").get("name") or self.cfg().get("name", "")
+        return valid_name(name, "the Expo config", "set expo.name or expo.web.name in the app config")
 
     def bundle_id(self):
         value = self.section("ios").get("bundleIdentifier")
@@ -1214,40 +984,22 @@ class ExpoConfig:
 
     def _ios_icons(self):
         icon = self.section("ios").get("icon")
-        top = self.cfg().get("icon")
-        if isinstance(icon, str) and icon.endswith(".icon"):
-            raise Unknown("ios.icon is an Icon Composer file (%s); its sizes and alpha are rendered at build time, "
-                          "so check the build" % show(icon))
-        if isinstance(icon, dict):
-            return [("ios.icon.light", icon.get("light") or top), ("ios.icon.dark", icon.get("dark")), ("ios.icon.tinted", icon.get("tinted"))]
-        return [("ios.icon" if icon else "icon", icon or top)]
+        if isinstance(icon, dict) or (isinstance(icon, str) and icon.endswith(".icon")):
+            raise Unknown("ios.icon is an Icon Composer file or a set of appearance variants; check the built app")
+        return "ios.icon" if icon else "icon", icon or self.cfg().get("icon")
 
     def icon_sizes_ios(self):
-        icons = self._ios_icons()
+        what, value = self._ios_icons()
         fix = "set icon in the app config to a 1024x1024 PNG"
-        if not icons[0][1]:
+        if not value:
             raise Fail("no icon in the app config", fix)
-        fails = []
-        unknowns = []
-        done = []
-        for what, value in icons:
-            if not value:
-                continue
-            try:
-                width, height, _ = image_info(self.image_path(value, what))
-            except Fail as e:
-                fails.append((e.reason, e.fix))
-                continue
-            except Unknown as e:
-                unknowns.append(str(e))
-                continue
-            if (width, height) != (1024, 1024):
-                fails.append(("%s %s is %dx%d, expected 1024x1024" % (what, show(value), width, height), fix))
-            done.append(show(value))
-        return verdict(fails, unknowns, "%s is 1024x1024" % ", ".join(done))
+        width, height, _ = image_info(self.image_path(value, what))
+        if (width, height) != (1024, 1024):
+            raise Fail("%s %s is %dx%d, expected 1024x1024" % (what, show(value), width, height), fix)
+        return "%s is 1024x1024" % show(value)
 
     def icon_alpha_ios(self):
-        what, value = self._ios_icons()[0]
+        what, value = self._ios_icons()
         if not value:
             raise Unknown("no icon in the app config; see icon-sizes")
         try:
@@ -1263,32 +1015,18 @@ class ExpoConfig:
     def icon_sizes_android(self):
         android = self.section("android")
         adaptive = android.get("adaptiveIcon") if isinstance(android.get("adaptiveIcon"), dict) else {}
-        foreground = adaptive.get("foregroundImage")
+        layers = []
+        if adaptive.get("foregroundImage"):
+            layers = [("android.adaptiveIcon." + k, adaptive.get(k)) for k in ("foregroundImage", "backgroundImage", "monochromeImage")]
+        if android.get("icon") or (not layers and self.cfg().get("icon")):
+            layers.append(("android.icon", android.get("icon") or self.cfg().get("icon")))
+        if not layers:
+            raise Fail("no icon in the app config", "set android.adaptiveIcon.foregroundImage to a PNG of at least 512x512")
         fails = []
         unknowns = []
         sizes = {}
-        layers = []
-        if foreground:
-            layers = [("android.adaptiveIcon." + k, adaptive.get(k)) for k in ("foregroundImage", "backgroundImage", "monochromeImage")]
-        fallback = android.get("icon") or self.cfg().get("icon")
-        if fallback and not foreground:
-            layers = [("android.icon" if android.get("icon") else "icon", fallback)]
-        elif android.get("icon"):
-            layers.append(("android.icon", android.get("icon")))
-        if not layers:
-            raise Fail("no icon in the app config", "set android.adaptiveIcon.foregroundImage to a PNG of at least 512x512")
         done = []
-        for what, value in layers:
-            if not value:
-                continue
-            try:
-                width, height, _ = image_info(self.image_path(value, what))
-            except Fail as e:
-                fails.append((e.reason, e.fix))
-                continue
-            except Unknown as e:
-                unknowns.append(str(e))
-                continue
+        for what, value, width, height in self._image_sizes(layers, fails, unknowns):
             sizes[what] = (width, height)
             done.append("%s %dx%d" % (show(value), width, height))
             if width != height or (width < 512 and not what.endswith("monochromeImage")):
@@ -1316,9 +1054,7 @@ class ExpoConfig:
                 strings[key] = value if isinstance(value, str) else ""
         for module, options in self.plugins().items():
             for option, keys in EXPO_OPTIONS.get(module, {}).items():
-                if option not in options:
-                    continue
-                for key in keys:
+                for key in keys if option in options else ():
                     if options[option] is False:
                         strings.pop(key, None)
                         self.disabled.add(key)
@@ -1328,17 +1064,10 @@ class ExpoConfig:
         return strings, set()
 
     def fix_for(self, key):
-        hint = "ios.infoPlist.%s" % key
-        for module, options in EXPO_OPTIONS.items():
-            for option, keys in options.items():
-                if key in keys:
-                    return self._reason(key), "set a specific reason in the %s option of the %s plugin, or %s" % (option, module, hint)
-        return self._reason(key), "set a specific reason in %s" % show(hint)
-
-    def _reason(self, key):
+        reason = "without a string Expo writes a generic default that its docs say to tailor"
         if key in self.disabled:
-            return "a plugin option of false removes it"
-        return "without a string Expo writes a generic default that its docs say to tailor"
+            reason = "a plugin option of false removes it"
+        return reason, "set a specific reason in the module's plugin option, or in %s" % show("ios.infoPlist." + key)
 
     def declared(self):
         android = self.section("android")
@@ -1359,16 +1088,6 @@ class ExpoConfig:
 
 def _short_perms(value):
     return [p.replace("android.permission.", "") for p in value if isinstance(p, str)] if isinstance(value, list) else []
-
-
-def load_expo_flag(path):
-    try:
-        data = json.loads(read_bytes(path, contained=False).decode("utf-8-sig"))
-    except (Unknown, ValueError, RecursionError) as e:
-        raise UsageError("--expo-config %s could not be read as JSON (%s)" % (show(path), clean(e) or type(e).__name__))
-    if not isinstance(data, dict):
-        raise UsageError("--expo-config %s is not a JSON object" % show(path))
-    return data["expo"] if isinstance(data.get("expo"), dict) else data
 
 
 # Web ---------------------------------------------------------------------
@@ -1403,6 +1122,7 @@ class Web:
         self.framework = framework
         self.expo = expo
         self.base = os.path.join(project, "web") if framework == "flutter" else project
+        self.configured_in_code = framework in ("vite", "nextjs")
         self._head = None
         self._head_read = False
         self.app_dir = os.path.join(project, "app")
@@ -1410,16 +1130,14 @@ class Web:
             self.app_dir = os.path.join(project, "src", "app")
 
     def head(self):
-        if self._head_read:
-            return self._head
-        for rel in (("index.html",), ("public", "index.html")):
-            path = os.path.join(self.base, *rel)
-            if os.path.lexists(path):
-                reader = HeadReader()
-                reader.feed(read_text(path))
-                self._head = reader
-                break
-        self._head_read = True
+        if not self._head_read:
+            for rel in (("index.html",), ("public", "index.html")):
+                path = os.path.join(self.base, *rel)
+                if os.path.lexists(path):
+                    self._head = HeadReader()
+                    self._head.feed(read_text(path))
+                    break
+            self._head_read = True
         return self._head
 
     def manifest(self):
@@ -1455,16 +1173,6 @@ class Web:
             raise Unknown("%s points outside the project" % show(ref))
         return None
 
-    def _layout(self):
-        for ext in ("tsx", "jsx", "ts", "js"):
-            path = os.path.join(self.app_dir, "layout." + ext)
-            if os.path.lexists(path):
-                return read_bytes(path, limit=MAX_SCAN_BYTES).decode("utf-8", "replace")
-        return None
-
-    def _pages_router(self):
-        return any(os.path.isdir(os.path.join(self.project, *p)) for p in (("pages",), ("src", "pages")))
-
     def app_name(self):
         if self.expo:
             return self.expo.web_name()
@@ -1479,47 +1187,9 @@ class Web:
             if PLACEHOLDER.search(head.title):
                 raise Unknown("<title> holds a build placeholder (%s)" % show(head.title))
             return valid_name(head.title, "index.html <title>", fix)
-        if self.framework == "nextjs":
-            return self._next_name()
-        if self.framework == "vite" and self._vite_inline_manifest():
-            raise Unknown("the only name is inside the inline manifest in vite.config; add <title> to index.html")
+        if self.configured_in_code:
+            raise Unknown("no name in a web manifest or <title>, and a JS or TS config may set it")
         raise Fail("no name in a web manifest or <title>", fix)
-
-    def _next_name(self):
-        fix = "set metadata.title in the root layout, or name in app/manifest.json"
-        for ext in ("ts", "js"):
-            if os.path.lexists(os.path.join(self.app_dir, "manifest." + ext)):
-                raise Unknown("app/manifest.%s builds the name at runtime" % ext)
-        layout = self._layout()
-        if layout is None:
-            if self._pages_router():
-                raise Unknown("the pages router sets the title at runtime")
-            raise Fail("no root layout or manifest name", fix)
-        layout = strip_comments(layout)
-        code = mask_strings(layout)
-        if "generateMetadata" in code:
-            raise Unknown("generateMetadata builds the title at runtime")
-        assigns = list(re.finditer(r"\bmetadata\b[^={;]{0,200}=(?!=)", code))
-        if not assigns:
-            if re.search(r"\bmetadata\b", code):
-                raise Unknown("metadata in the root layout is not an object literal")
-            raise Fail("the root layout sets no metadata.title", fix)
-        if len(assigns) > 1:
-            raise Unknown("metadata in the root layout is assigned more than once")
-        brace = _skip_space_or_end(code, assigns[0].end())
-        if code[brace:brace + 1] != "{":
-            raise Unknown("metadata in the root layout is not an object literal")
-        title = _object_key(layout, brace, "title")
-        if title is None:
-            raise Fail("metadata in the root layout has no title", fix)
-        return valid_name(title, "metadata.title in the root layout", fix)
-
-    def _vite_inline_manifest(self):
-        for ext in ("ts", "js", "mjs", "mts"):
-            path = os.path.join(self.project, "vite.config." + ext)
-            if os.path.lexists(path) and "manifest" in read_text(path):
-                return True
-        return False
 
     def icon_sizes(self):
         if self.expo:
@@ -1546,7 +1216,9 @@ class Web:
         for ref, sizes, base, source in declared:
             self._check_declared(ref, sizes, base, source, fails, unknowns, fix)
         if not declared and not unknowns:
-            fails.append(("no icon declared in a web manifest, index.html, or app/", fix))
+            if self.configured_in_code:
+                raise Unknown("no icon declared in a web manifest, index.html, or app/, and a JS or TS config may set one")
+            fails.append(("no icon declared in a web manifest or index.html", fix))
         return verdict(fails, unknowns, "%d declared icon(s) exist with matching sizes" % len(declared))
 
     def _next_icons(self, declared, unknowns):
@@ -1557,24 +1229,10 @@ class Web:
                     unknowns.append("%s generates its icon at runtime" % show("app/" + name))
                 else:
                     declared.append((name, None, self.app_dir, "app/"))
-        public = os.path.join(self.project, "public")
-        if self._pages_router() and os.path.isdir(public):
-            for name in sorted(os.listdir(public)):
-                if os.path.splitext(name)[0] == "favicon":
-                    declared.append((name, None, public, "public/"))
-        layout = self._layout()
-        if not declared and not unknowns and layout and re.search(r"\bicons:", layout):
-            unknowns.append("metadata.icons in the root layout is read at runtime")
 
     def _check_declared(self, ref, sizes, base, source, fails, unknowns, fix):
-        if re.match(r"(https?:)?//", ref):
-            unknowns.append("icon %s is remote" % show(ref))
-            return
-        if ref.startswith("data:"):
-            unknowns.append("an icon in %s is an inline data: URL, which is not checked" % source)
-            return
-        if PLACEHOLDER.search(ref):
-            unknowns.append("icon %s holds a build placeholder" % show(ref))
+        if re.match(r"(https?:)?//|data:", ref) or PLACEHOLDER.search(ref):
+            unknowns.append("icon %s in %s is remote, inline, or a build placeholder, so it is not checked" % (show(ref), source))
             return
         try:
             path = self._find(ref, base)
@@ -1589,171 +1247,54 @@ class Web:
             unknowns.append(str(e))
             return
         if isinstance(sizes, str) and sizes.strip().lower() != "any":
-            listed = sizes.lower().split()
-            if "%dx%d" % (width, height) not in listed:
+            if "%dx%d" % (width, height) not in sizes.lower().split():
                 fails.append(("%s is %dx%d but %s declares %s" % (show(ref), width, height, source, show(sizes)),
                               "export the file at the declared size or correct the declaration"))
-
-
-def _skip_string(text, i):
-    quote = text[i]
-    i += 1
-    while i < len(text) and text[i] != quote:
-        i += 2 if text[i] == "\\" else 1
-    if i >= len(text):
-        raise Unknown("a string in the root layout is not closed")
-    return i + 1
-
-
-def _object_key(text, start, key):
-    """Walk the whole object at text[start]: key's literal value, or None if absent.
-    A spread anywhere or a repeated key may change the value, so either is Unknown."""
-    depth = 0
-    spread = False
-    values = []
-    key_at = re.compile(r"\b%s\s*([:,}(])" % key)
-    i = start
-    while i < len(text):
-        c = text[i]
-        if c in "\"'`":
-            end = _skip_string(text, i)
-            if depth == 1 and text[i + 1:end - 1] == key:
-                after = _skip_space_or_end(text, end)
-                if text[after:after + 1] == ":":
-                    values.append(_skip_space_or_end(text, after + 1))
-            i = end
-            continue
-        if c in "{[(":
-            depth += 1
-        elif c in "}])":
-            depth -= 1
-            if depth == 0:
-                if spread:
-                    raise Unknown("metadata in the root layout spreads another object")
-                if len(values) > 1:
-                    raise Unknown("metadata sets %s more than once" % key)
-                return _object_value(text, values[0], key) if values else None
-        elif depth == 1:
-            if text.startswith("...", i):
-                spread = True
-                i += 3
-                continue
-            m = key_at.match(text, i)
-            if m and not re.match(r"[\w.$]", text[i - 1]):
-                if m.group(1) != ":":
-                    raise Unknown("metadata.%s in the root layout is not a literal" % key)
-                values.append(_skip_space_or_end(text, m.end()))
-                i = m.end()
-                continue
-        i += 1
-    raise Unknown("metadata in the root layout is not closed")
-
-
-def _object_value(text, i, key):
-    c = text[i:i + 1]
-    if c == "{" and key == "title":
-        value = _object_key(text, i, "default")
-        if value is None:
-            raise Unknown("metadata.title has no default")
-        return value
-    if c and c in "\"'`":
-        end = _skip_string(text, i)
-        value = text[i + 1:end - 1]
-        follow = text[_skip_space_or_end(text, end):_skip_space_or_end(text, end) + 1]
-        if follow in (",", "}") and not (c == "`" and "${" in value):
-            return value
-    raise Unknown("metadata.%s in the root layout is not a literal" % key)
-
-
-def _skip_space_or_end(text, i):
-    while i < len(text) and text[i] in " \t\r\n":
-        i += 1
-    return i
 
 
 # State -------------------------------------------------------------------
 
 
-def parse_scalar(raw):
-    raw = raw.strip()
-    if raw[:1] == '"':
-        m = re.match(r'"((?:[^"\\]|\\.)*)"', raw)
+def _state_scalar(value):
+    if value.startswith(('"', "'")):
+        m = re.fullmatch(r"""(?:"([^"\\]*)"|'([^']*)')(?:\s+#.*)?""", value)
         if not m:
-            raise Unknown("unterminated quote in .app-creators/state.md")
-        return re.sub(r"\\(.)", r"\1", m.group(1))
-    if raw[:1] == "'":
-        m = re.match(r"'((?:[^']|'')*)'", raw)
-        if not m:
-            raise Unknown("unterminated quote in .app-creators/state.md")
-        return m.group(1).replace("''", "'")
-    if raw[:1] in ("|", ">"):
-        raise Unknown(".app-creators/state.md uses a block scalar for this value")
-    value = re.split(r"(?:^|\s)#", raw, maxsplit=1)[0].strip()
+            raise Unknown(".app-creators/state.md holds a quoted value that is not a simple string")
+        return m.group(1) or m.group(2) or ""
+    value = re.split(r"(?:^|\s)#", value, maxsplit=1)[0].strip()
     return "" if value in ("~", "null", "Null", "NULL") else value
 
 
-def parse_flow(text):
-    """Parse a one-level or nested YAML flow map into dicts of strings."""
-    value, end = _flow_map(text, 0)
-    rest = text[end:].strip()
-    if rest and not rest.startswith("#"):
-        raise ValueError("text after flow map")
-    return value
-
-
-def _flow_map(text, i):
-    if text[i] != "{":
-        raise ValueError("expected {")
-    i += 1
-    result = {}
-    while True:
-        i = _skip_space(text, i)
-        if text[i] == "}":
-            return result, i + 1
-        key, i = _flow_token(text, i, ":")
-        i = _skip_space(text, i)
-        if text[i] != ":":
-            raise ValueError("expected :")
-        i = _skip_space(text, i + 1)
-        if text[i] == "{":
-            value, i = _flow_map(text, i)
-        else:
-            value, i = _flow_token(text, i, ",}")
-        result[key] = value
-        i = _skip_space(text, i)
-        if text[i] == ",":
-            i += 1
-        elif text[i] != "}":
-            raise ValueError("expected , or }")
-
-
-def _flow_token(text, i, stops):
-    if text[i] in "\"'":
-        quote = text[i]
-        end = i + 1
-        while True:
-            if text[end] == "\\" and quote == '"':
-                end += 2
-            elif text[end] == quote:
-                if quote == "'" and text[end + 1:end + 2] == "'":
-                    end += 2
-                else:
-                    break
-            else:
-                end += 1
-        return parse_scalar(text[i:end + 1]), end + 1
-    end = i
-    while text[end] not in stops:
-        if ":" in stops and text[end] in ",}":
-            raise ValueError("bare token")
-        end += 1
-    return parse_scalar(text[i:end]), end
-
-
-def _skip_space(text, i):
-    while text[i] in " \t\n":
-        i += 1
-    return i
+def _state_value(lines, keys):
+    """Walk block-form keys. An absent key or an empty map is an empty value; any other flow map or block scalar is Unknown."""
+    depth = 0
+    parent = -1
+    child = None
+    for line in lines:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        indent = len(line) - len(line.lstrip(" "))
+        if indent <= parent:
+            return ""
+        child = indent if child is None else child
+        key, colon, rest = stripped.partition(":")
+        if indent != child or not colon or (rest and not rest[0].isspace()) or key.strip().strip("\"'") != keys[depth]:
+            continue
+        value = rest.strip()
+        if re.fullmatch(r"\{\s*\}(?:\s+#.*)?", value):
+            return ""
+        if value[:1] in ("{", "|", ">"):
+            raise Unknown(".app-creators/state.md has a flow map or block scalar on this path, which is not read")
+        scalar = _state_scalar(value)
+        if depth == len(keys) - 1:
+            return scalar
+        if scalar:
+            return ""
+        depth += 1
+        parent = indent
+        child = None
+    return ""
 
 
 def privacy_url(project):
@@ -1764,70 +1305,10 @@ def privacy_url(project):
     lines = read_text(path).splitlines()
     if not lines or lines[0].strip() != "---":
         raise Unknown("%s has no frontmatter" % label)
-    try:
-        end = next(i for i, line in enumerate(lines[1:], 1) if line.strip() == "---")
-    except StopIteration:
-        raise Unknown("%s has no closing frontmatter line" % label)
-    body = lines[1:end]
-    try:
-        return _lookup(body, ["provided", "publish-readiness", "privacy_policy_url"])
-    except (ValueError, IndexError):
-        raise Unknown("%s has a flow map that cannot be read" % label)
-
-
-def _lookup(lines, path):
-    """Walk an indentation-based YAML block along path; missing keys give an empty string."""
-    indent = 0
-    i = 0
-    for depth, want in enumerate(path):
-        hit = None
-        while i < len(lines):
-            line = lines[i]
-            stripped = line.strip()
-            if not stripped or stripped.startswith("#"):
-                i += 1
-                continue
-            this = len(line) - len(line.lstrip(" "))
-            if this < indent:
-                return ""
-            m = re.match(r"""\s*(?:"([^"]+)"|'([^']+)'|([^\s:#](?:[^:#]*[^\s:#])?))\s*:(?:\s+(.*)|\s*)$""", line)
-            if this == indent and m and (m.group(1) or m.group(2) or m.group(3)) == want:
-                hit = m.group(4) or ""
-                i += 1
-                break
-            i += 1
-        if hit is None:
-            return ""
-        hit = hit.strip()
-        if hit.startswith("{"):
-            parts = [hit]
-            open_braces = hit.count("{") - hit.count("}")
-            while open_braces > 0 and i < len(lines):
-                parts.append(lines[i].strip())
-                open_braces += lines[i].count("{") - lines[i].count("}")
-                i += 1
-            value = parse_flow(" ".join(parts))
-            for key in path[depth + 1:]:
-                value = value.get(key, "") if isinstance(value, dict) else ""
-            return value if isinstance(value, str) else ""
-        if depth == len(path) - 1:
-            return parse_scalar(hit)
-        if parse_scalar(hit):
-            return ""
-        indent = _next_indent(lines, i, indent)
-        if indent is None:
-            return ""
-    return ""
-
-
-def _next_indent(lines, i, parent):
-    while i < len(lines):
-        stripped = lines[i].strip()
-        if stripped and not stripped.startswith("#"):
-            this = len(lines[i]) - len(lines[i].lstrip(" "))
-            return this if this > parent else None
-        i += 1
-    return None
+    for end, line in enumerate(lines[1:], 1):
+        if line.strip() == "---":
+            return _state_value(lines[1:end], ("provided", "publish-readiness", "privacy_policy_url"))
+    raise Unknown("%s has no closing frontmatter line" % label)
 
 
 def check_privacy(project, platform, collects):
@@ -1857,81 +1338,45 @@ def check_privacy(project, platform, collects):
 
 def _package_deps(project):
     data = read_json_quietly(os.path.join(project, "package.json"))
-    if not isinstance(data, dict):
-        return {}, {}
-    deps = data.get("dependencies")
-    dev = data.get("devDependencies")
-    return (deps if isinstance(deps, dict) else {}), (dev if isinstance(dev, dict) else {})
-
-
-def _json_has_expo(path):
-    data = read_json_quietly(path)
-    return isinstance(data, dict) and "expo" in data
+    deps = {}
+    for key in ("devDependencies", "dependencies"):
+        section = data.get(key) if isinstance(data, dict) else None
+        deps.update(section if isinstance(section, dict) else {})
+    return deps
 
 
 def _is_flutter(project):
     try:
-        text = read_text(os.path.join(project, "pubspec.yaml"))
+        return re.search(r"(?m)^[ \t]+sdk:[ \t]*flutter\b", read_text(os.path.join(project, "pubspec.yaml"))) is not None
     except Unknown:
         return False
-    in_deps = False
-    for line in text.splitlines():
-        if re.match(r"dependencies\s*:", line):
-            in_deps = True
-        elif line[:1].strip() and not line.startswith("#"):
-            in_deps = False
-        elif in_deps and re.match(r"\s+flutter\s*:", line):
-            return True
-    return False
 
 
 def _is_android_app(project):
-    catalog = ""
-    try:
-        catalog = read_text(os.path.join(project, "gradle", "libs.versions.toml"))
-    except Unknown:
-        pass
-    app_plugins = set(re.sub(r"[-_.]", ".", key) for key in re.findall(
-        r"^[ \t]*([\w.-]+)[ \t]*=.*com\.android\.application", catalog, re.M))
     for folder in (project, os.path.join(project, "app")):
-        for name in ("build.gradle", "build.gradle.kts"):
-            try:
-                text = read_text(os.path.join(folder, name))
-            except Unknown:
-                continue
-            if "com.android.application" in text:
+        if os.path.lexists(os.path.join(folder, "src", "main", "AndroidManifest.xml")):
+            if any(os.path.lexists(os.path.join(folder, name)) for name in GRADLE_FILES):
                 return True
-            for alias in re.findall(r"alias\(\s*libs\.plugins\.([\w.]+)\s*\)", text):
-                if re.sub(r"[-_.]", ".", alias) in app_plugins:
-                    return True
     return False
 
 
 def detect_framework(project):
-    deps, dev = _package_deps(project)
+    deps = _package_deps(project)
     has = lambda name: os.path.exists(os.path.join(project, name))
-    if _json_has_expo(os.path.join(project, "app.json")) or _json_has_expo(os.path.join(project, "app.config.json")) or "expo" in deps:
+    configs = [read_json_quietly(os.path.join(project, name)) for name in ("app.json", "app.config.json")]
+    if "expo" in deps or any(isinstance(data, dict) and "expo" in data for data in configs):
         return "expo"
     if _is_flutter(project):
         return "flutter"
-    entries = os.listdir(project)
-    if any(e.endswith((".xcodeproj", ".xcworkspace")) and os.path.isdir(os.path.join(project, e)) for e in entries):
+    if any(e.endswith((".xcodeproj", ".xcworkspace")) and os.path.isdir(os.path.join(project, e)) for e in os.listdir(project)):
         return "xcode"
-    if has("Package.swift"):
-        try:
-            if "executableTarget" in read_text(os.path.join(project, "Package.swift")):
-                return "xcode"
-        except Unknown:
-            pass
     if _is_android_app(project):
         return "kotlin"
     if any(has("next.config." + e) for e in ("js", "mjs", "ts")) or "next" in deps:
         return "nextjs"
-    if any(has("vite.config." + e) for e in ("js", "ts", "mjs", "mts")) or "vite" in deps or "vite" in dev:
+    if any(has("vite.config." + e) for e in ("js", "ts", "mjs", "mts")) or "vite" in deps:
         return "vite"
-    if has("index.html"):
-        return "static"
-    return "unknown"
+    return "static" if has("index.html") else "unknown"
 
 
 def expo_platforms(project, expo):
@@ -1939,23 +1384,13 @@ def expo_platforms(project, expo):
     platforms = config.get("platforms")
     if isinstance(platforms, list):
         return set(p for p in platforms if isinstance(p, str))
-    deps, _ = _package_deps(project)
-    return {"ios", "android", "web"} if "react-dom" in deps else {"ios", "android"}
+    return {"ios", "android", "web"} if "react-dom" in _package_deps(project) else {"ios", "android"}
 
 
 def check_route(project, framework, platform, expo):
-    if platform == "ios":
-        if framework == "kotlin":
-            raise UsageError("kotlin has no ios route; a Kotlin Android project goes to publish-android")
-        if framework in ("vite", "nextjs", "static"):
-            raise UsageError("%s has no ios route; a web project goes to publish-web" % framework)
-    if platform == "android":
-        if framework == "xcode":
-            raise UsageError("xcode has no android route; an Xcode project goes to publish-ios")
-        if framework in ("vite", "nextjs", "static"):
-            raise UsageError("%s has no android route; a web project goes to publish-web" % framework)
-    if platform == "web" and framework in ("kotlin", "xcode"):
-        raise UsageError("%s has no web route" % framework)
+    only = {"kotlin": "android", "xcode": "ios", "vite": "web", "nextjs": "web", "static": "web"}.get(framework)
+    if only and only != platform:
+        raise UsageError("%s has no %s route; it goes to publish-%s" % (framework, platform, only))
     if framework == "flutter" and not os.path.isdir(os.path.join(project, platform)):
         raise UsageError("this flutter project has no %s/ directory, so it has no %s route" % (platform, platform))
     if framework == "expo" and platform not in expo_platforms(project, expo):
@@ -1970,16 +1405,15 @@ def native_wins(project, folder):
     if folder == "ios":
         real = any(d.endswith(".xcodeproj") for d in os.listdir(root))
     else:
-        real = any(os.path.lexists(os.path.join(root, "app", n)) for n in ("build.gradle", "build.gradle.kts"))
+        real = any(os.path.lexists(os.path.join(root, "app", name)) for name in GRADLE_FILES)
     if not real:
         return False
     name = ".easignore" if os.path.lexists(os.path.join(project, ".easignore")) else ".gitignore"
     path = os.path.join(project, name)
     if not os.path.lexists(path):
         return True
-    lines = read_text(path).splitlines()
     forms = {folder, folder + "/", folder + "/*", folder + "/**"}
-    return not any(line.strip().lstrip("/") in forms for line in lines)
+    return not any(line.strip().lstrip("/") in forms for line in read_text(path).splitlines())
 
 
 # Runner ------------------------------------------------------------------
@@ -2000,12 +1434,9 @@ def run(cid, fn):
 
 
 def _one_line(text):
-    text = re.sub(r"\s+", " ", clean_keep_space(text)).strip()
+    text = "".join(" " if c in "\t\r\n" else c for c in str(text) if c in "\t\r\n" or unicodedata.category(c) not in UNSAFE_CATEGORIES)
+    text = re.sub(r"\s+", " ", text).strip()
     return text if len(text) <= MAX_LINE else text[:MAX_LINE] + "...[truncated]"
-
-
-def clean_keep_space(text):
-    return "".join(" " if c in "\t\r\n" else c for c in str(text) if c in "\t\r\n" or unicodedata.category(c) not in UNSAFE_CATEGORIES)
 
 
 def _route_unknown(cids, reason):
@@ -2014,63 +1445,61 @@ def _route_unknown(cids, reason):
     return [(cid, fn) for cid in cids]
 
 
-def ios_checks(project, framework, expo):
+def ios_checks(project, framework, expo, resolved):
     try:
-        wins = framework != "expo" or native_wins(project, "ios")
+        if framework == "expo" and not native_wins(project, "ios"):
+            source = expo
+            name, ident, sizes, alpha = expo.app_name, expo.bundle_id, expo.icon_sizes_ios, expo.icon_alpha_ios
+        else:
+            source = Apple(xcode_settings(resolved.get("xcode"), framework))
+            name, ident, sizes, alpha = source.app_name, source.bundle_id, source.icon_sizes, source.icon_alpha
     except Unknown as e:
         return _route_unknown(("app-name", "bundle-id", "icon-sizes", "icon-alpha", "permission-strings"), str(e))
-    if not wins:
-        source = expo
-        name, ident, sizes, alpha = expo.app_name, expo.bundle_id, expo.icon_sizes_ios, expo.icon_alpha_ios
-    else:
-        root = project if framework == "xcode" else os.path.join(project, "ios")
-        source = Apple(root)
-        name, ident, sizes, alpha = source.app_name, source.bundle_id, source.icon_sizes, source.icon_alpha
 
     def strings():
         values, unresolved = source.strings()
         skipped = []
-        required = _ios_required(project, framework, skipped)
-        return check_strings(values, unresolved, required, source.fix_for, skipped, source.maybe())
+        return check_strings(values, unresolved, _ios_required(project, framework, skipped), source.fix_for, skipped,
+                             expo.maybe() if source is expo else None)
 
     return [("app-name", name), ("bundle-id", ident), ("icon-sizes", sizes), ("icon-alpha", alpha), ("permission-strings", strings)]
 
 
 def _ios_required(project, framework, skipped):
-    if framework == "xcode":
-        return detect_keys(project, (".swift", ".m", ".mm"), APPLE_APIS, skipped)
-    if framework == "flutter":
-        return detect_keys(project, (".dart",), DART_APIS, skipped)
-    return [(keys, rel) for keys, _, rel in detect_expo(project, skipped)]
+    if framework == "expo":
+        found = detect(project, EXPO_EXTENSIONS, EXPO_APIS, skipped)
+    else:
+        apis, extensions = (APPLE_APIS, (".swift", ".m", ".mm")) if framework == "xcode" else (DART_APIS, (".dart",))
+        found = detect(project, extensions, [(p, None, keys, ()) for p, keys in apis], skipped)
+    return [(row[2], rel, certain) for row, rel, certain in found]
 
 
-def android_checks(project, framework, expo):
+def android_checks(project, framework, expo, resolved):
     try:
-        wins = framework != "expo" or native_wins(project, "android")
+        if framework == "expo" and not native_wins(project, "android"):
+            source = expo
+            name, ident, sizes = expo.app_name, expo.package, expo.icon_sizes_android
+        else:
+            source = AndroidNative(project if framework == "kotlin" else os.path.join(project, "android"), resolved.get("android"))
+            name, ident, sizes = source.app_name, source.package, source.icon_sizes
     except Unknown as e:
         return _route_unknown(("app-name", "package", "icon-sizes", "permissions-declared"), str(e))
-    if not wins:
-        source = expo
-        name, ident, sizes = expo.app_name, expo.package, expo.icon_sizes_android
-    else:
-        root = project if framework == "kotlin" else os.path.join(project, "android")
-        source = AndroidNative(root)
-        name, ident, sizes = source.app_name, source.package, source.icon_sizes
 
     def permissions():
         declared, blocked = source.declared()
         skipped = []
         if framework == "expo":
-            required = [(perm, how, rel) for _, perms, rel in detect_expo(project, skipped) for perm, how in perms]
+            found = detect(project, EXPO_EXTENSIONS, EXPO_APIS, skipped)
+            required = [(perm, how, rel, certain) for row, rel, certain in found for perm, how in row[3]]
         else:
-            scan_root = project if framework == "kotlin" else os.path.join(project, "android")
-            required = detect_android_native(scan_root, skipped)
-        return check_android_permissions(declared, blocked, required, source.fix_permission, skipped, source.maybe())
+            required = detect_android_native(source.root, skipped)
+        return check_android_permissions(declared, blocked, required, source.fix_permission, skipped,
+                                         expo.maybe() if source is expo else None)
 
     return [("app-name", name), ("package", ident), ("icon-sizes", sizes), ("permissions-declared", permissions)]
 
 
-def web_checks(project, framework, expo):
+def web_checks(project, framework, expo, resolved):
     web = Web(project, framework, expo if framework == "expo" else None)
     return [("app-name", web.app_name), ("icon-sizes", web.icon_sizes)]
 
@@ -2091,10 +1520,10 @@ def main(argv):
         signal.setitimer(signal.ITIMER_REAL, RUN_LIMIT_SECONDS)
     for stream in (sys.stdout, sys.stderr):
         stream.reconfigure(errors="backslashreplace")
-    parser = argparse.ArgumentParser(prog="check-readiness.py")
+    parser = argparse.ArgumentParser(prog="check-readiness.py", allow_abbrev=False)
     parser.add_argument("project")
     parser.add_argument("--platform", required=True, choices=["ios", "android", "web"])
-    parser.add_argument("--expo-config")
+    parser.add_argument("--resolved", action="append", default=[])
     parser.add_argument("--collects-data", choices=["yes", "no"])
     args = parser.parse_args(argv)
     project = os.path.abspath(args.project)
@@ -2103,14 +1532,15 @@ def main(argv):
     try:
         if not os.path.isdir(project):
             raise UsageError("project directory not found: %s" % show(args.project))
+        resolved = load_resolved(args.resolved)
         framework = detect_framework(project)
         if framework == "unknown":
             raise UsageError("no supported framework found in %s; expected Expo, Flutter, Xcode, Kotlin, Next.js, Vite, "
                              "or a static site" % show(args.project))
-        expo = ExpoConfig(project, args.expo_config) if framework == "expo" else None
+        expo = ExpoConfig(project, resolved.get("expo")) if framework == "expo" else None
         check_route(project, framework, args.platform, expo)
         table = {"ios": ios_checks, "android": android_checks, "web": web_checks}[args.platform]
-        checks = table(project, framework, expo)
+        checks = table(project, framework, expo, resolved)
     except UsageError as e:
         print("error: %s" % _one_line(e), file=sys.stderr)
         return 2
