@@ -4,4 +4,4 @@ set -euo pipefail
 case_dir="$(cd "$(dirname "$0")" && pwd)"
 . "$case_dir/../lib/scaffold.sh"
 
-scaffold_expo_assessed
+scaffold_expo_assessed unknown

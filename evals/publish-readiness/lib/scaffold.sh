@@ -38,14 +38,15 @@ put_state() {
 }
 
 # Rev A is the app. Rev B adds an earlier assessment of rev A, so only .app-creators/ differs.
+# $1 is the seeded result: the opposite of what the case's graders require, so they fail with no session.
 scaffold_expo_assessed() {
-  local rev
+  local rev seed="$1"
   extract_fixture todo-expo ff71355
   commit_all "app"
   rev="$(git rev-parse HEAD)"
   mkdir -p .app-creators
-  sed "s/__REV__/$rev/g" "$lib_dir/state-expo-assessed.md" > .app-creators/state.md
-  sed "s/__REV__/$rev/g" "$lib_dir/readiness-expo-assessed.md" > .app-creators/readiness.md
+  sed "s/__REV__/$rev/g;s/__RESULT__/$seed/g" "$lib_dir/state-expo-assessed.md" > .app-creators/state.md
+  sed "s/__REV__/$rev/g;s/__RESULT__/$seed/g" "$lib_dir/readiness-expo-assessed.md" > .app-creators/readiness.md
   commit_all "record readiness"
 }
 

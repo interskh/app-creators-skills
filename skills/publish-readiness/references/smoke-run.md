@@ -39,15 +39,15 @@ Flutter does not support release mode on a simulator or emulator [6], so the che
 | ios | `flutter doctor` reports Xcode without errors [7], `flutter devices` lists a device | `flutter build ios --release` [6][8]. Then, only on a connected physical device, `flutter run --release -d <device>` [6] |
 | android | `flutter doctor` reports the Android toolchain without errors [7], `flutter devices` lists a device | `flutter build apk --release` [9]. Then, only on a connected physical device, `flutter run --release -d <device>` [6] |
 
-With no physical device, a successful build leaves `smoke-run` at `unknown`, with evidence that Flutter's release mode cannot launch on a simulator or emulator. A failed build is `fail`. A physical iOS device needs the creator's signing setup [8], so ask the creator to run that step.
+With no physical device, a successful build leaves `smoke-run` at `unknown`, with evidence that Flutter's release mode cannot launch on a simulator or emulator. A failed build is `fail`. A physical iOS device needs the creator's signing setup [8], so the skill's one message (Step 7) asks the creator to run that step.
 
 ## Xcode
 
 | toolchain check | run in the export |
 |---|---|
-| `xcodebuild -version` exits 0 | `xcodebuild -list` shows the schemes and build configurations [10]. Ask the creator to open the exported project in Xcode, set the scheme's Run action **Build Configuration** to Release [11], choose a simulator as the run destination, and choose **Product > Run** [12], then report what the first screen did |
+| `xcodebuild -version` exits 0 | `xcodebuild -list` shows the schemes and build configurations [10]. The skill's one message (Step 7) asks the creator to open the exported project in Xcode, set the scheme's Run action **Build Configuration** to Release [11], choose a simulator as the run destination, and choose **Product > Run** [12], then report what the first screen did |
 
-No Apple documentation fetched covers a command-line install and launch on a simulator, so this route uses Xcode's own path. If the creator does not run it, the check is `unknown`.
+TN2339 shows `-configuration` and `-destination` in `xcodebuild` usage [10], but no Apple documentation fetched covers a command-line install and launch on a simulator, so this route uses Xcode's own path. If the creator does not run it, the check is `unknown`.
 
 ## Kotlin
 
@@ -55,7 +55,7 @@ No Apple documentation fetched covers a command-line install and launch on a sim
 |---|---|
 | `java -version` exits 0, `adb devices` runs [14], `emulator -list-avds` prints a name [5] | `emulator -avd <avd>` [5], then `./gradlew assembleRelease` [13], then `adb install <apk>` [14], then `adb shell am start -W -n <package>/<activity>` [14], with the launcher activity from the manifest. Read `adb logcat -b crash -d` afterwards [15] |
 
-Android requires a release build to be signed before it installs [13]. If the project has no release signing config, the output cannot install on the emulator: the build result stands, and `smoke-run` stays `unknown` with that reason. Never ask for a keystore password.
+Android requires a release build to be signed before it installs [13]. If the project has no release signing config, the output cannot install on the emulator: the build result stands, and `smoke-run` stays `unknown` with that reason, so on such a project this check can never reach `pass`. Never ask for a keystore password.
 
 JAVA_HOME, when set, decides which JDK Gradle uses on the command line [16].
 

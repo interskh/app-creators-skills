@@ -4,7 +4,7 @@ The keys for `age_rating.answers` in `.app-creators/readiness.md`. Bracketed num
 
 Applies to `ios` and `android`. Web has no age rating.
 
-Ask in one message, in plain words, and offer the shortcut: "If none of these is in the app, say none." On "none", write `NONE` or `false` for every question of that platform. On a rerun, ask only for ids with no answer.
+Ask in one message, in plain words, and offer the shortcut: "If none of these is in the app, say none." On "none", write each question's none value (`NONE`, `false`, or `none`) for that platform, except `play_category` and `play_target_age`: their answers are a few words and age groups, so they are always asked. On a rerun, ask only for ids with no answer.
 
 ## App Store
 

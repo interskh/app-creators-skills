@@ -1,7 +1,7 @@
 schema_version: "1.1"
 name: publish-readiness-expo-dirty-zh
 description: >
-  Level-2 eval for publish-readiness with a Chinese prompt. Workspace: as expo-rerun, plus an uncommitted change to App.tsx.
+  Level-2 eval for publish-readiness with a Chinese prompt. Workspace: todo-expo with an earlier report committed at pass, plus an uncommitted change to App.tsx.
   Same graders as publish-readiness-expo-dirty-en.
 tags: [publish-readiness, level-2]
 runs: 1
@@ -22,26 +22,26 @@ graders:
   - name: ran-check-script
     type: tool_used
     tool: Bash
-    input_match: 'check-readiness\.py'
+    input_match: 'check-readiness\.py[^\n]*--platform\b'
   - name: ios-unknown-in-readiness
     type: regex
     target: { source: file, path: .app-creators/readiness.md }
-    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?(?:platforms:[ \t]*(?:#[^\n]*)?\r?\n(?:[ \t]+[^\n]*\r?\n|[ \t]*\r?\n)*?([ \t]+)ios:[ \t]*(?:\{[^}\n]*?\bresult:[ \t]*["'']?unknown\b|(?:#[^\n]*)?\r?\n(?=(\1[ \t]+)\S)(?:\2[^\n]*\r?\n|[ \t]*\r?\n)*?\2result:[ \t]*["'']?unknown\b)|platforms:[ \t]*\{[^\n]*?\bios:[ \t]*\{[^}\n]*?\bresult:[ \t]*["'']?unknown\b)'
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---)[^\n]*\n)*?(?:platforms:[ \t]*(?:#[^\r\n]*)?\r?\n(?:(?:[ \t][^\r\n]*)?\r?\n)*?([ \t]+)ios:[ \t]*(?:\{[ \t]*result:[ \t]*["'']?unknown\b|(?:#[^\r\n]*)?\r?\n\1[ \t]+result:[ \t]*["'']?unknown\b)|platforms:[ \t]*\{[^\r\n]*?\bios:[ \t]*\{[ \t]*result:[ \t]*["'']?unknown\b)'
     flags: m
   - name: ios-unknown-in-state
     type: regex
     target: { source: file, path: .app-creators/state.md }
-    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?(?:readiness:[ \t]*(?:#[^\n]*)?\r?\n(?:[ \t]+[^\n]*\r?\n|[ \t]*\r?\n)*?([ \t]+)ios:[ \t]*(?:\{[^}\n]*?\bresult:[ \t]*["'']?unknown\b|(?:#[^\n]*)?\r?\n(?=(\1[ \t]+)\S)(?:\2[^\n]*\r?\n|[ \t]*\r?\n)*?\2result:[ \t]*["'']?unknown\b)|readiness:[ \t]*\{[^\n]*?\bios:[ \t]*\{[^}\n]*?\bresult:[ \t]*["'']?unknown\b)'
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---)[^\n]*\n)*?(?:readiness:[ \t]*(?:#[^\r\n]*)?\r?\n(?:(?:[ \t][^\r\n]*)?\r?\n)*?([ \t]+)ios:[ \t]*(?:\{[ \t]*result:[ \t]*["'']?unknown\b|(?:#[^\r\n]*)?\r?\n\1[ \t]+result:[ \t]*["'']?unknown\b)|readiness:[ \t]*\{[^\r\n]*?\bios:[ \t]*\{[ \t]*result:[ \t]*["'']?unknown\b)'
     flags: m
   - name: android-unknown-in-readiness
     type: regex
     target: { source: file, path: .app-creators/readiness.md }
-    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?(?:platforms:[ \t]*(?:#[^\n]*)?\r?\n(?:[ \t]+[^\n]*\r?\n|[ \t]*\r?\n)*?([ \t]+)android:[ \t]*(?:\{[^}\n]*?\bresult:[ \t]*["'']?unknown\b|(?:#[^\n]*)?\r?\n(?=(\1[ \t]+)\S)(?:\2[^\n]*\r?\n|[ \t]*\r?\n)*?\2result:[ \t]*["'']?unknown\b)|platforms:[ \t]*\{[^\n]*?\bandroid:[ \t]*\{[^}\n]*?\bresult:[ \t]*["'']?unknown\b)'
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---)[^\n]*\n)*?(?:platforms:[ \t]*(?:#[^\r\n]*)?\r?\n(?:(?:[ \t][^\r\n]*)?\r?\n)*?([ \t]+)android:[ \t]*(?:\{[ \t]*result:[ \t]*["'']?unknown\b|(?:#[^\r\n]*)?\r?\n\1[ \t]+result:[ \t]*["'']?unknown\b)|platforms:[ \t]*\{[^\r\n]*?\bandroid:[ \t]*\{[ \t]*result:[ \t]*["'']?unknown\b)'
     flags: m
   - name: android-unknown-in-state
     type: regex
     target: { source: file, path: .app-creators/state.md }
-    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?(?:readiness:[ \t]*(?:#[^\n]*)?\r?\n(?:[ \t]+[^\n]*\r?\n|[ \t]*\r?\n)*?([ \t]+)android:[ \t]*(?:\{[^}\n]*?\bresult:[ \t]*["'']?unknown\b|(?:#[^\n]*)?\r?\n(?=(\1[ \t]+)\S)(?:\2[^\n]*\r?\n|[ \t]*\r?\n)*?\2result:[ \t]*["'']?unknown\b)|readiness:[ \t]*\{[^\n]*?\bandroid:[ \t]*\{[^}\n]*?\bresult:[ \t]*["'']?unknown\b)'
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---)[^\n]*\n)*?(?:readiness:[ \t]*(?:#[^\r\n]*)?\r?\n(?:(?:[ \t][^\r\n]*)?\r?\n)*?([ \t]+)android:[ \t]*(?:\{[ \t]*result:[ \t]*["'']?unknown\b|(?:#[^\r\n]*)?\r?\n\1[ \t]+result:[ \t]*["'']?unknown\b)|readiness:[ \t]*\{[^\r\n]*?\bandroid:[ \t]*\{[ \t]*result:[ \t]*["'']?unknown\b)'
     flags: m
   - name: asked-creator-to-commit
     type: llm

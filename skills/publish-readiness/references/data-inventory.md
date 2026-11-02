@@ -24,7 +24,7 @@ Web has no store form. An item scoped to `web` decides `--collects-data` for `ch
 2. Mark each dependency that does analytics, ads, crash reporting, auth, payments, push, a backend client, or maps.
 3. Search the code for network calls: `fetch(`, `axios`, `XMLHttpRequest`, `sendBeacon`, `WebSocket`, `http.`, `dio`, `URLSession`, `Alamofire`, `Retrofit`, `OkHttp`, `HttpURLConnection`.
 4. Search for what those calls send: login and profile fields, form values, location, contacts, photos, device ids, purchase records.
-5. Read the permission lines from `check-readiness.py`. A permission shows access, not collection. Local use with no network path adds no item.
+5. Read the declared permissions and the permission APIs the code calls. A permission shows access, not collection. Local use with no network path adds no item.
 
 For an SDK, read what its vendor publishes: its `PrivacyInfo.xcprivacy` with `NSPrivacyCollectedDataTypes` [4][5], and its data safety guidance, linked from Google Play SDK Index [6]. Apple notes that an app's own manifest need not cover what linked SDKs collect [5], and a privacy report from Xcode summarizes them [5]. Google notes the form must reflect third-party code, and that the developer alone answers for it [2].
 
@@ -45,7 +45,9 @@ Never invent what an SDK does. If the vendor publishes nothing and the code does
 
 Record `unknown` honestly, and ask the creator to settle those fields in the inventory review, because the store forms are later filled from this list and never from a new interview. If the creator cannot say, the field stays `unknown` and the list can still be confirmed.
 
-On a rerun, match items by `data_type` and `evidence`. Keep a matching confirmed item verbatim. Ask only about an item that is new or whose `evidence` or `platforms` changed. Say which items disappeared from the scan, and remove one only after the creator agrees.
+While `confirmed` is `false`, list each unconfirmed item in the notes below the frontmatter, one line per item, by `data_type` and `evidence`, under the line `Unconfirmed inventory items:`. A session can end before the creator answers, and the notes are what tell a later run which items they already confirmed. With `confirmed: false` and no such list, treat every item as unconfirmed. Remove the list when the creator confirms.
+
+On a rerun, match items by `data_type` and `evidence`. Keep a matching confirmed item verbatim. An item not on the list was confirmed earlier. Ask only about an item that is on the list, is new, or whose `evidence` or `platforms` changed. Say which items disappeared from the scan, and remove one only after the creator agrees.
 
 ## Plain types and their form entries
 

@@ -4,7 +4,7 @@ revision: "__REV__"
 date: 2026-11-02
 platforms:
   ios:
-    result: pass
+    result: __RESULT__
     checks:
       - { id: app-name, result: pass, evidence: "Todo from the Expo config", fix: "" }
       - { id: bundle-id, result: pass, evidence: "io.github.interskh.todo from ios.bundleIdentifier", fix: "" }
@@ -16,7 +16,7 @@ platforms:
       - { id: age-rating, result: pass, evidence: "all questions answered", fix: "" }
       - { id: smoke-run, result: unknown, evidence: "xcodebuild is absent", fix: "" }
   android:
-    result: pass
+    result: __RESULT__
     checks:
       - { id: app-name, result: pass, evidence: "Todo from the Expo config", fix: "" }
       - { id: package, result: pass, evidence: "io.github.interskh.todo from android.package", fix: "" }

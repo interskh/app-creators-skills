@@ -26,12 +26,12 @@ graders:
   - name: web-pass-in-readiness
     type: regex
     target: { source: file, path: .app-creators/readiness.md }
-    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?(?:platforms:[ \t]*(?:#[^\n]*)?\r?\n(?:[ \t]+[^\n]*\r?\n|[ \t]*\r?\n)*?([ \t]+)web:[ \t]*(?:\{[^}\n]*?\bresult:[ \t]*["'']?pass\b|(?:#[^\n]*)?\r?\n(?=(\1[ \t]+)\S)(?:\2[^\n]*\r?\n|[ \t]*\r?\n)*?\2result:[ \t]*["'']?pass\b)|platforms:[ \t]*\{[^\n]*?\bweb:[ \t]*\{[^}\n]*?\bresult:[ \t]*["'']?pass\b)'
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---)[^\n]*\n)*?(?:platforms:[ \t]*(?:#[^\r\n]*)?\r?\n(?:(?:[ \t][^\r\n]*)?\r?\n)*?([ \t]+)web:[ \t]*(?:\{[ \t]*result:[ \t]*["'']?pass\b|(?:#[^\r\n]*)?\r?\n\1[ \t]+result:[ \t]*["'']?pass\b)|platforms:[ \t]*\{[^\r\n]*?\bweb:[ \t]*\{[ \t]*result:[ \t]*["'']?pass\b)'
     flags: m
   - name: web-pass-in-state
     type: regex
     target: { source: file, path: .app-creators/state.md }
-    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?(?:readiness:[ \t]*(?:#[^\n]*)?\r?\n(?:[ \t]+[^\n]*\r?\n|[ \t]*\r?\n)*?([ \t]+)web:[ \t]*(?:\{[^}\n]*?\bresult:[ \t]*["'']?pass\b|(?:#[^\n]*)?\r?\n(?=(\1[ \t]+)\S)(?:\2[^\n]*\r?\n|[ \t]*\r?\n)*?\2result:[ \t]*["'']?pass\b)|readiness:[ \t]*\{[^\n]*?\bweb:[ \t]*\{[^}\n]*?\bresult:[ \t]*["'']?pass\b)'
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---)[^\n]*\n)*?(?:readiness:[ \t]*(?:#[^\r\n]*)?\r?\n(?:(?:[ \t][^\r\n]*)?\r?\n)*?([ \t]+)web:[ \t]*(?:\{[ \t]*result:[ \t]*["'']?pass\b|(?:#[^\r\n]*)?\r?\n\1[ \t]+result:[ \t]*["'']?pass\b)|readiness:[ \t]*\{[^\r\n]*?\bweb:[ \t]*\{[ \t]*result:[ \t]*["'']?pass\b)'
     flags: m
   - name: names-publish-web-next
     type: llm

@@ -1,7 +1,7 @@
 schema_version: "1.1"
 name: publish-readiness-expo-rerun-en
 description: >
-  Level-2 eval for publish-readiness with an English prompt. Workspace: clean todo-expo with an earlier assessment committed, so only .app-creators/ differs from the recorded revision.
+  Level-2 eval for publish-readiness with an English prompt. Workspace: clean todo-expo with an earlier report committed at unknown, holding a confirmed inventory and age rating answers, so only .app-creators/ differs from the recorded revision.
   Same graders as publish-readiness-expo-rerun-zh.
 tags: [publish-readiness, level-2]
 runs: 1
@@ -22,41 +22,41 @@ graders:
   - name: ran-check-script
     type: tool_used
     tool: Bash
-    input_match: 'check-readiness\.py'
+    input_match: 'check-readiness\.py[^\n]*--platform\b'
   - name: ios-pass-in-readiness
     type: regex
     target: { source: file, path: .app-creators/readiness.md }
-    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?(?:platforms:[ \t]*(?:#[^\n]*)?\r?\n(?:[ \t]+[^\n]*\r?\n|[ \t]*\r?\n)*?([ \t]+)ios:[ \t]*(?:\{[^}\n]*?\bresult:[ \t]*["'']?pass\b|(?:#[^\n]*)?\r?\n(?=(\1[ \t]+)\S)(?:\2[^\n]*\r?\n|[ \t]*\r?\n)*?\2result:[ \t]*["'']?pass\b)|platforms:[ \t]*\{[^\n]*?\bios:[ \t]*\{[^}\n]*?\bresult:[ \t]*["'']?pass\b)'
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---)[^\n]*\n)*?(?:platforms:[ \t]*(?:#[^\r\n]*)?\r?\n(?:(?:[ \t][^\r\n]*)?\r?\n)*?([ \t]+)ios:[ \t]*(?:\{[ \t]*result:[ \t]*["'']?pass\b|(?:#[^\r\n]*)?\r?\n\1[ \t]+result:[ \t]*["'']?pass\b)|platforms:[ \t]*\{[^\r\n]*?\bios:[ \t]*\{[ \t]*result:[ \t]*["'']?pass\b)'
     flags: m
   - name: ios-pass-in-state
     type: regex
     target: { source: file, path: .app-creators/state.md }
-    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?(?:readiness:[ \t]*(?:#[^\n]*)?\r?\n(?:[ \t]+[^\n]*\r?\n|[ \t]*\r?\n)*?([ \t]+)ios:[ \t]*(?:\{[^}\n]*?\bresult:[ \t]*["'']?pass\b|(?:#[^\n]*)?\r?\n(?=(\1[ \t]+)\S)(?:\2[^\n]*\r?\n|[ \t]*\r?\n)*?\2result:[ \t]*["'']?pass\b)|readiness:[ \t]*\{[^\n]*?\bios:[ \t]*\{[^}\n]*?\bresult:[ \t]*["'']?pass\b)'
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---)[^\n]*\n)*?(?:readiness:[ \t]*(?:#[^\r\n]*)?\r?\n(?:(?:[ \t][^\r\n]*)?\r?\n)*?([ \t]+)ios:[ \t]*(?:\{[ \t]*result:[ \t]*["'']?pass\b|(?:#[^\r\n]*)?\r?\n\1[ \t]+result:[ \t]*["'']?pass\b)|readiness:[ \t]*\{[^\r\n]*?\bios:[ \t]*\{[ \t]*result:[ \t]*["'']?pass\b)'
     flags: m
   - name: android-pass-in-readiness
     type: regex
     target: { source: file, path: .app-creators/readiness.md }
-    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?(?:platforms:[ \t]*(?:#[^\n]*)?\r?\n(?:[ \t]+[^\n]*\r?\n|[ \t]*\r?\n)*?([ \t]+)android:[ \t]*(?:\{[^}\n]*?\bresult:[ \t]*["'']?pass\b|(?:#[^\n]*)?\r?\n(?=(\1[ \t]+)\S)(?:\2[^\n]*\r?\n|[ \t]*\r?\n)*?\2result:[ \t]*["'']?pass\b)|platforms:[ \t]*\{[^\n]*?\bandroid:[ \t]*\{[^}\n]*?\bresult:[ \t]*["'']?pass\b)'
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---)[^\n]*\n)*?(?:platforms:[ \t]*(?:#[^\r\n]*)?\r?\n(?:(?:[ \t][^\r\n]*)?\r?\n)*?([ \t]+)android:[ \t]*(?:\{[ \t]*result:[ \t]*["'']?pass\b|(?:#[^\r\n]*)?\r?\n\1[ \t]+result:[ \t]*["'']?pass\b)|platforms:[ \t]*\{[^\r\n]*?\bandroid:[ \t]*\{[ \t]*result:[ \t]*["'']?pass\b)'
     flags: m
   - name: android-pass-in-state
     type: regex
     target: { source: file, path: .app-creators/state.md }
-    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?(?:readiness:[ \t]*(?:#[^\n]*)?\r?\n(?:[ \t]+[^\n]*\r?\n|[ \t]*\r?\n)*?([ \t]+)android:[ \t]*(?:\{[^}\n]*?\bresult:[ \t]*["'']?pass\b|(?:#[^\n]*)?\r?\n(?=(\1[ \t]+)\S)(?:\2[^\n]*\r?\n|[ \t]*\r?\n)*?\2result:[ \t]*["'']?pass\b)|readiness:[ \t]*\{[^\n]*?\bandroid:[ \t]*\{[^}\n]*?\bresult:[ \t]*["'']?pass\b)'
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---)[^\n]*\n)*?(?:readiness:[ \t]*(?:#[^\r\n]*)?\r?\n(?:(?:[ \t][^\r\n]*)?\r?\n)*?([ \t]+)android:[ \t]*(?:\{[ \t]*result:[ \t]*["'']?pass\b|(?:#[^\r\n]*)?\r?\n\1[ \t]+result:[ \t]*["'']?pass\b)|readiness:[ \t]*\{[^\r\n]*?\bandroid:[ \t]*\{[ \t]*result:[ \t]*["'']?pass\b)'
     flags: m
   - name: inventory-confirmation-kept
     type: regex
     target: { source: file, path: .app-creators/readiness.md }
-    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?data_inventory:(?:[ \t]*(?:#[^\n]*)?\r?\n(?:[ \t]+[^\n]*\r?\n|[ \t]*\r?\n)*?[ \t]+[^\n]*?|[ \t]*\{[^\n]*?)\bconfirmed:[ \t]*["'']?true\b'
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---)[^\n]*\n)*?data_inventory:(?:[ \t]*(?:#[^\r\n]*)?\r?\n(?:(?:[ \t][^\r\n]*)?\r?\n)*?[ \t]+|[ \t]*\{[^\r\n]*?\b)confirmed:[ \t]*["'']?true\b'
     flags: m
   - name: apple-answer-kept
     type: regex
     target: { source: file, path: .app-creators/readiness.md }
-    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?age_rating:(?:[ \t]*(?:#[^\n]*)?\r?\n(?:[ \t]+[^\n]*\r?\n|[ \t]*\r?\n)*?[ \t]+[^\n]*?|[ \t]*\{[^\n]*?)\bprofanityOrCrudeHumor:[ \t]*["'']?NONE\b'
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---)[^\n]*\n)*?age_rating:(?:[ \t]*(?:#[^\r\n]*)?\r?\n(?:(?:[ \t][^\r\n]*)?\r?\n)*?[ \t][^\r\n]*?\b|[ \t]*\{[^\r\n]*?\b)profanityOrCrudeHumor:[ \t]*["'']?NONE\b'
     flags: m
   - name: play-answer-kept
     type: regex
     target: { source: file, path: .app-creators/readiness.md }
-    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---[ \t]*\r?$)[^\n]*\r?\n)*?age_rating:(?:[ \t]*(?:#[^\n]*)?\r?\n(?:[ \t]+[^\n]*\r?\n|[ \t]*\r?\n)*?[ \t]+[^\n]*?|[ \t]*\{[^\n]*?)\bplay_gambling:[ \t]*["'']?none\b'
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---)[^\n]*\n)*?age_rating:(?:[ \t]*(?:#[^\r\n]*)?\r?\n(?:(?:[ \t][^\r\n]*)?\r?\n)*?[ \t][^\r\n]*?\b|[ \t]*\{[^\r\n]*?\b)play_gambling:[ \t]*["'']?none\b'
     flags: m
   - name: did-not-re-ask-confirmed-answers
     type: llm

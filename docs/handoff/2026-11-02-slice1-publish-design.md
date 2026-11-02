@@ -165,3 +165,51 @@ Finished by a third doer after two earlier doers stalled on multi-line Bash call
 
 **Touches**
 - `skills/publish-readiness/scripts/check-readiness.py`, `tests/check-readiness.test.sh`, `skills/publish-readiness/references/checks.md`. Output wording changed: values are now quoted, which any eval grader matching old lines must follow.
+
+## Slice D / gate fix round 1: skill and evals
+
+Outcomes, by finding number:
+1. Regex graders rewritten: each loop consumes one whole line in one way, and `result` is read as the platform's first key, which SKILL en and zh now require in both files. 178 Node runs in flow, block, CRLF, and flow-parent form, slowest 0.21 ms. Negatives are built from a real seeded report by one edit: platform result flipped with a nested check carrying the value; the gate's example `{checks: [{id: smoke-run, result: unknown}], result: pass}`; a sibling platform carrying it; value under `targets:`; value only below the frontmatter; value inside another key; answer changed, dropped, or under another parent; 400 whitespace lines plus an 8000-character line.
+2. Scaffold takes a seed result. `expo-rerun` seeds `unknown`, `expo-dirty` seeds `pass`; `web-nodata` and `expo-gaps` already seed `unknown` or nothing. Scaffold alone: every result grader fails in all four cases. The three `*-kept` graders match by design; README says so, and "This proves" is rewritten.
+3. `ran-check-script` requires `check-readiness\.py[^\n]*--platform\b`. `ls`, `cat`, and `sed` of the file do not match; a call that holds the path in a variable set earlier in the same command matches.
+4. Step 10 names `publish-web` only for `vite`, `nextjs`, `static`. `expo+web` and `flutter+web` added to `verified-runs.md` and the README table.
+5. Step 2 command prints the file path, en and zh.
+6. Inventory scan is now Step 3 and the checks Step 4, so the web flag is known on the first run. Write-before-ask is unchanged. All step references updated, en and zh.
+7. `age-rating.md`: the "none" shortcut excludes `play_category` and `play_target_age`.
+8. `publish-web` en and zh name a non-current `fail`. The gate is unchanged. No version bump: 0.1.2 is still unreleased in this branch.
+9. `vite+web` is `open`. All three rows name what no eval exercises: applying answers, an agreed fix, the rerun after a commit. `expo+*` rows cite the 2026-11-02 rerun.
+10. Notes below the frontmatter hold `Unconfirmed inventory items:`; a rerun reads them. No list with `confirmed: false` means all are unconfirmed. `data-inventory.md`, SKILL en and zh. No schema change.
+11. The Xcode and physical-iOS smoke asks are in `## What you must provide` and Step 7, en and zh.
+12. SEC-2 line added at the step that reads the script's output, en and zh.
+13. Corrections below.
+
+Handoff corrections to the T3 entry:
+- TN2339 does show `-configuration` and `-destination` in `xcodebuild` usage. It does not cover install and launch on a simulator. The human step stands for that reason. `smoke-run.md` now says this.
+- Kotlin's smoke run can never reach `pass` on a project with no release signing. `smoke-run.md` now says this.
+- The `xcodebuild -version` and `java -version` Troubleshooting rows rested only on this machine, so they are removed, en and zh, with the Flutter iOS setup source they alone used. The `git` exit 72 row now states its basis: the 2026-11-02 eval runs.
+
+Script changes (quoted values, native alpha `UNKNOWN`, `com.example`, one-line gaps): grep of SKILL en and zh, references, README, `llms.txt`, and evals found no stale claim. Expo icon alpha stays `FAIL`, so `expo-gaps` is still right.
+
+Evals, `--model sonnet --no-publish`:
+- `publish-readiness-*`: `evals/results/2026-11-02T20-12-49-227Z`, all 8 cases 1.00, $1.66.
+- `vite-*`: `evals/results/2026-11-02T20-12-55-930Z`, 0.80 and 0.80, $0.25; only `ran-verify-script` fails, the known ceiling, because the case grants no Bash.
+- `app-creators-*`: not run, skill unchanged.
+
+Regex mutations: 9/9 caught (generated from a copy of `regexes.json`, restored and compared).
+
+Decisions:
+- `expo-dirty` seeds `pass` and `expo-rerun` seeds `unknown`: each seed is the opposite of what that case's graders require.
+- Reordered Steps 3 and 4 rather than state a rerun: one run of the script on every path, fewer ways to forget it.
+
+Rejected:
+- Parsing YAML in the graders: the eval format has only regex file graders.
+- A `confirmed` flag per item for finding 10: a schema change, which the finding rules out.
+
+Assumptions:
+- The eval runner evaluates `regex` graders with the JavaScript engine. Check: the original finding reproduced in Node, and the graders passed under the runner.
+
+Deferred:
+- CI skips fixture assertions until Kyle pushes the fixtures branch.
+- Applying answers, an agreed fix, and the rerun after a commit stay unexercised: an eval has no second turn. Level 3 stays `open` until a run does them.
+
+Touches: `skills/publish-readiness/` (SKILL en and zh, `age-rating.md`, `data-inventory.md`, `smoke-run.md`, `verified-runs.md`), `skills/publish-web/SKILL.md`, `SKILL.zh.md`, `README.md`, `evals/publish-readiness/`.

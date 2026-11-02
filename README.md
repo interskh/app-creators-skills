@@ -108,13 +108,15 @@ about another.
 | skill | route | status |
 |---|---|---|
 | `app-creators` | all frameworks | unverified, no run recorded |
-| `publish-readiness` | expo+app-store | unverified, level 3 open: smoke run needs a full Xcode |
-| `publish-readiness` | expo+google-play | unverified, level 3 open: smoke run needs a JDK |
-| `publish-readiness` | vite+web | unverified, level 3 pass on the to-do fixture, nothing deployed |
+| `publish-readiness` | expo+app-store | unverified, level 3 open: smoke run needs a full Xcode; answers, fixes, and rerun not exercised |
+| `publish-readiness` | expo+google-play | unverified, level 3 open: smoke run needs a JDK; answers, fixes, and rerun not exercised |
+| `publish-readiness` | vite+web | unverified, level 3 open: answers, fixes, and rerun not exercised |
 | `publish-readiness` | flutter+app-store | unverified, level 3 open: no fixture yet, smoke run needs a full Xcode |
 | `publish-readiness` | flutter+google-play | unverified, level 3 open: no fixture yet, smoke run needs a JDK |
 | `publish-readiness` | xcode+app-store | unverified, level 3 open: no fixture yet, smoke run needs a full Xcode |
 | `publish-readiness` | kotlin+google-play | unverified, level 3 open: no fixture yet, smoke run needs a JDK |
+| `publish-readiness` | expo+web | unverified, level 3 open: not run; no shipped skill publishes this route to the web |
+| `publish-readiness` | flutter+web | unverified, level 3 open: no fixture yet; no shipped skill publishes this route to the web |
 | `publish-readiness` | nextjs+web | unverified, level 3 open: no fixture |
 | `publish-readiness` | static+web | unverified, level 3 open: no fixture |
 | `publish-web` | vite+vercel | unverified, no run recorded |

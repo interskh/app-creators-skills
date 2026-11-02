@@ -31,8 +31,8 @@ targets:
     package: ""
 readiness:
   web: { result: unknown, revision: "", date: "" }
-  ios: { result: pass, revision: "__REV__", date: 2026-11-02 }
-  android: { result: pass, revision: "__REV__", date: 2026-11-02 }
+  ios: { result: __RESULT__, revision: "__REV__", date: 2026-11-02 }
+  android: { result: __RESULT__, revision: "__REV__", date: 2026-11-02 }
 accounts:
   apple_developer: ""
   google_play: ""
@@ -53,7 +53,7 @@ provided:
     support_email_env: ""
 history:
   - { skill: app-creators, version: "0.1.1", date: 2026-11-02, result: ok }
-  - { skill: publish-readiness, version: "0.1.0", date: 2026-11-02, result: pass }
+  - { skill: publish-readiness, version: "0.1.0", date: 2026-11-02, result: __RESULT__ }
 ---
 
 Eval fixture state: written by hand, as `publish-readiness` would leave it.
