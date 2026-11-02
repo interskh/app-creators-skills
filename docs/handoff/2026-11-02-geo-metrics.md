@@ -128,3 +128,7 @@ Suite, fresh reviewer, and Codex all ran on ec37121. The suite passed. Round 1 f
 - `scripts/metrics.sh` now fails on a damaged table instead of losing or duplicating a row, and rejects impossible and future dates.
 
 **Gate cap reached:** two of two fix cycles are used.
+
+**Verdict:** reviewer PASS at 7d7f79d, Codex re-check one MINOR since fixed, suite green, publish-web eval 0.8 on both cases (the ceiling without Bash), privacy scan clean. Repo topics and description applied after the gate.
+
+implement-loop: run shipped 7d7f79d; remaining: []
