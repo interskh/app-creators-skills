@@ -12,16 +12,17 @@ Chinese ships with each skill rather than as a pass at the end.
 
 **Requirements:** docs/specs/2026-10-26-skill-conventions-design.md (spec slices A, B, C)
 
-- [ ] `p0` **Repo scaffold** `🟢 S` — Spec slice A.1. Add `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` (one entry, source `./`, both named `app-creators`), README install section for Claude Code and Codex. `claude plugin validate .` passes.
-- [ ] `p0` **Skill template and new-skill script** `🟡 M` — Spec slice A.2 and §3.2. `templates/skill/` with `SKILL.md`, `SKILL.zh.md`, `references/verified-runs.md` in the fixed section order; `scripts/new-skill.sh <name>` copies and renames it. `docs/SKILL-CONVENTIONS.md` is the human-readable copy of §3.2 and §3.4.
-- [ ] `p0` **Skill lint script** `🟡 M` — Spec slice A.3 and §3.4 level 1, §4.5 exit contract. `scripts/lint-skills.sh` plus GitHub Actions workflow on push and PR. Passes on the template.
-- [ ] `p0` **Exemplar: publish-web** `🔴 L` — Spec slice B. **Requirements:** `docs/specs/2026-10-26-skill-conventions-design.md`
-  - [ ] `p0` **publish-web SKILL.md and scripts** `🟡 M` — Default Vercel, alternative Cloudflare Pages. `scripts/check-pwa.sh`, `references/vercel.md`, `references/cloudflare-pages.md`, `references/pwa-checklist.md`. Under 300 lines. Lint passes.
-  - [ ] `p0` **publish-web zh** `🟡 M` — `SKILL.zh.md` in the `zh-rewrite` register. Heading parity lint passes.
-  - [ ] `p0` **Fixture, eval, level 3 run** `🟡 M` — `todo-vite/` to-do app fixture in the fixtures repo (Kyle creates the repo first), one eval case under `evals/publish-web/`, level 3 run by the doer reaches a live Vercel URL that passes `check-pwa.sh`.
+- [x] `p0` **Repo scaffold** `🟢 S` — Spec slice A.1. Add `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` (one entry, source `./`, both named `app-creators`), README install section for Claude Code and Codex. `claude plugin validate .` passes.
+- [x] `p0` **Skill template and new-skill script** `🟡 M` — Spec slice A.2 and §3.2. `templates/skill/` with `SKILL.md`, `SKILL.zh.md`, `references/verified-runs.md` in the fixed section order; `scripts/new-skill.sh <name>` copies and renames it. `docs/SKILL-CONVENTIONS.md` is the human-readable copy of §3.2 and §3.4.
+- [x] `p0` **Skill lint script** `🟡 M` — Spec slice A.3 and §3.4 level 1, §4.5 exit contract. `scripts/lint-skills.sh` plus GitHub Actions workflow on push and PR. Passes on the template.
+- [x] `p0` **Exemplar: publish-web** `🔴 L` — Spec slice B. **Requirements:** `docs/specs/2026-10-26-skill-conventions-design.md`
+  - [x] `p0` **publish-web SKILL.md and scripts** `🟡 M` — Default Vercel, alternative Cloudflare Pages. `scripts/check-pwa.sh`, `references/vercel.md`, `references/cloudflare-pages.md`, `references/pwa-checklist.md`. Under 300 lines. Lint passes.
+  - [x] `p0` **publish-web zh** `🟡 M` — `SKILL.zh.md` in the `zh-rewrite` register. Heading parity lint passes.
+  - [x] `p0` **Fixture and eval** `🟡 M` — `todo-vite/` to-do app fixture in the fixtures repo (Kyle creates the repo first), one eval case under `evals/publish-web/`.
+  - Kyle: create a fixture-only Vercel account and log the CLI into it, then the level 3 run reaches a live Vercel URL that passes `check-pwa.sh`.
   - Kyle: level 4 run of `publish-web` on a real app, recorded in `references/verified-runs.md`.
-- [ ] `p0` **State schema doc** `🟢 S` — Spec slice C.1. `docs/STATE.md` publishes §4.1 as the normative `state.md` schema with per-field notes.
-- [ ] `p0` **Entry skill: app-creators** `🟡 M` — Spec slice C.2 and C.3. Detection table (file → framework), two questions (outcome: publish, get users, make money; wanted destinations), write `.app-creators/state.md`, routing table (goal × target → skill). `SKILL.zh.md` included. Eval case on the fixture expects `framework.kind: vite` and next skill `publish-web`.
+- [x] `p0` **State schema doc** `🟢 S` — Spec slice C.1. `docs/STATE.md` publishes §4.1 as the normative `state.md` schema with per-field notes.
+- [x] `p0` **Entry skill: app-creators** `🟡 M` — Spec slice C.2 and C.3. Detection table (file → framework), two questions (outcome: publish, get users, make money; wanted destinations), write `.app-creators/state.md`, routing table (goal × target → skill). `SKILL.zh.md` included. Eval case on the fixture expects `framework.kind: vite` and next skill `publish-web`.
 - [ ] `p0` **GitHub GEO pass** `🟢 S` — README rewritten for agent crawlers: one paragraph per skill (what, when, install), repo topics, `llms.txt` at repo root, list of awesome-lists to PR with the PR text drafted. Done early so indexing starts while skills are written.
 - [ ] `p1` **Metrics script** `🟢 S` — `scripts/metrics.sh` pulls GitHub stars, clones, and traffic via `gh api`, and records marketplace install counts where an API exists (manual field otherwise). Appends a dated row to `docs/metrics.md`.
 
