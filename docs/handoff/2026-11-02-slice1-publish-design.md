@@ -289,3 +289,24 @@ Touches: `skills/publish-readiness/` (SKILL en and zh, `age-rating.md`, `data-in
 - CI skips fixture assertions until Kyle pushes the fixtures branch, as in round 1.
 
 **Touches**: `evals/publish-readiness/` (all `case.yaml`, `README.md`), `skills/publish-readiness/SKILL.md`, `SKILL.zh.md`.
+
+## Slice D / whole-run gate result
+
+Cap spent: two fix rounds. Suite at f016003 passes: 77/77, 106/106, 48/48, 475/475, lint clean. Same reviewer, blocker-only at f016003: no blockers, all round 2 findings fixed. Coordinator security findings: both confirmed and fixed in round 1 (SEC-1, SEC-2, above), with regression tests and the project-data line in both SKILL files; round 2 added the read budget and the run limit.
+
+Codex third pass at f016003 returned 3 MAJOR and 2 MINOR. All five are concrete and reproduced, none is fixed, and none meets the blocker bar: each needs an unusual input, and none crosses a security boundary. No third round, per the cap. These defects remain open:
+
+**Deferred**
+- False PASS `permission-strings`: `const r =  /[/*]/; launchCameraAsync(); /* n */` (two spaces before the regex). The camera call is stripped as a comment. The reviewer found the same with an arrow function, `s => /[/*]/.test(s)`. `references/checks.md` states the one-space limit. `check-readiness.py:284`.
+- False PASS `app-name`: `{ title: "Todo", [runtimeKey]: "" }`. A computed key that could override the title should give `UNKNOWN`. `check-readiness.py:1626`.
+- False UNKNOWN `app-name`: `{ title: "Todo", description: title }`. A value reference is read as a second key. Introduced by round 2. `check-readiness.py:1641`.
+- Eval graders only: a multi-line quoted `evidence` holding `  ios: { result: pass }` at the platform indentation satisfies the block anchor. Needs a hand-written report; the script prints one line per check.
+- Eval graders only: `result: pass-pending` satisfies the pass grader, because the match ends on a word boundary. Same pattern on the other result graders.
+- Eval graders only: a comment between `ios:` and `result`, or a BOM, gives a visible false fail. A one-line flow parent holding `'` or an unbalanced bracket does the same.
+- A release source-set manifest that removes a permission is not modelled. Second-turn eval coverage is not built. `check-pwa` failed once (47/48, connection refused) under reviewer load; 8/8 repeats and the suite at f016003 pass, and the file has no diff in this slice.
+
+**Process**
+- Two doers (a1f564b, ac51dc6) stalled on multi-line Bash calls that never started. A third fresh doer (acbd3cd) finished with one-line Bash calls. Recovery used no fix cycle. No collision was observed.
+- T2 doer a1f564b called the advisor once before it was told not to. No other agent used it.
+
+implement-loop: slice D shipped f016003; remaining: [E, F, G, H, I, J]
