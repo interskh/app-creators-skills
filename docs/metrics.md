@@ -6,7 +6,7 @@ One row per date, written by `scripts/metrics.sh`. Aggregate counts only.
 - clones_14d, unique_cloners_14d, views_14d, unique_visitors_14d: GitHub's rolling 14-day totals on the date. Rows overlap, so do not sum them across rows. Unique counts are per window, so they cannot be added or de-duplicated either.
 - Run the script at least every 14 days. GitHub keeps only 14 days of traffic, so a longer gap loses traffic for good.
 - plugin_installs: entered by hand. Claude Code plugin marketplaces document no install-count API.
-- skills_sh_installs: entered by hand. skills.sh documents an install-count API (https://www.skills.sh/docs/api), but it needs a Vercel OIDC token that a local maintainer script does not have.
+- skills_sh_installs: entered by hand. skills.sh documents an install-count API (https://www.skills.sh/docs/api), but it needs a short-lived Vercel OIDC token from a linked Vercel project (vercel link, then vercel env pull). This script does not automate that.
 - site_visits: entered by hand. The website is not live.
 - `-` means not recorded. It is not zero.
 

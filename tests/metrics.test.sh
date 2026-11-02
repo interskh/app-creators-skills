@@ -152,10 +152,10 @@ newrepo
 run GH_HOST=ghe.example.com --
 check "GH_HOST set still records github.com data" '[ "$code" -eq 0 ] && grep -q "^api --hostname github.com " "$log"'
 set +e
-out="$(env PATH="$fakebin:$PATH" METRICS_DATE=2026-11-05 FAKE_GH_LOG="$log" "$work/scripts/metrics.sh" 2>&1)"
+out="$(env PATH="$fakebin:$PATH" FAKE_GH_LOG="$log" "$work/scripts/metrics.sh" 2>&1)"
 code=$?
 set -e
-check "direct ./scripts/metrics.sh invocation" '[ "$code" -eq 0 ] && grep -q "^| 2026-11-05 " "$f"'
+check "direct ./scripts/metrics.sh invocation" '[ "$code" -eq 0 ] && grep -q "^| $(date -u +%Y-%m-%d) " "$f"'
 
 # rows go into the metrics table only, even with another table below it
 newrepo
@@ -203,6 +203,23 @@ expect_fail "invalid flag on a fresh repo creates nothing" 2 "non-negative integ
 for bd in 11/01/2026 2026-13-01 2026-00-10 2026-11-32 2026-11-00 2026-1-1 "2026-11-01 "; do
   expect_fail "bad METRICS_DATE '$bd'" 1 "valid YYYY-MM-DD" METRICS_DATE="$bd" --
 done
+for bd in 2026-11-31 2027-02-31 2026-02-29 2025-04-31 2026-06-31 1900-02-29 2100-02-29 2026-09-31; do
+  expect_fail "impossible calendar date '$bd'" 1 "valid YYYY-MM-DD" METRICS_DATE="$bd" --
+done
+for gd in 2024-02-29 2000-02-29 2026-10-31 2026-04-30; do
+  newrepo
+  run METRICS_DATE="$gd" --
+  check "real calendar date $gd accepted" '[ "$code" -eq 0 ] && grep -q "^| $gd " "$f"'
+done
+newrepo
+run --
+expect_fail "future date refused" 1 "later than today" METRICS_DATE=2099-01-01 --
+newrepo
+expect_fail "future date refused on a fresh repo" 1 "later than today" METRICS_DATE=2099-01-01 --
+newrepo
+run --
+run METRICS_DATE=2026-11-02 --
+check "past dates still work after future-date refusals" '[ "$code" -eq 0 ] && [ "$(row_count)" -eq 2 ]'
 expect_fail "usage hides the test hook" 2 "usage:" -- --bogus
 check "usage omits METRICS_DATE" '! printf "%s" "$out" | grep -q METRICS_DATE'
 expect_fail "auth exit code 4 on clones" 1 "not logged in" FAKE_FAIL_CLONES=auth --
@@ -248,6 +265,18 @@ newrepo
 run --
 printf '%s\n' "| 2026-11-01 | 1 | 1 | 1 | 1 | 1 | 1 | - | - | - |" >> "$f"
 expect_fail "duplicate rows for the date" 1 "more than one row" --
+
+newrepo
+mkdir -p "$work/docs"
+printf '%s\n' "# Metrics" "" "$hdr" > "$f"
+expect_fail "header is the last line" 1 "damaged metrics table" --
+printf '%s\n' "# Metrics" "" "$hdr" "| 2026-11-01 | 1 | 1 | 1 | 1 | 1 | 1 | - | - | - |" > "$f"
+expect_fail "separator row missing, data row follows" 1 "damaged metrics table" --
+expect_fail "separator row missing, other date" 1 "damaged metrics table" METRICS_DATE=2026-11-02 --
+printf '%s\n' "# Metrics" "" "$hdr" "|---|---|" > "$f"
+expect_fail "separator row altered" 1 "damaged metrics table" --
+printf '%s' "$hdr" > "$f"
+expect_fail "header only, no trailing newline" 1 "damaged metrics table" --
 
 echo "metrics tests: $pass/$total passed"
 if [ "$pass" -ne "$total" ]; then

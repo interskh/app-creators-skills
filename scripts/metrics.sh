@@ -8,6 +8,7 @@ out="$root/docs/metrics.md"
 COLUMNS_ROW='| date | stars | forks | clones_14d | unique_cloners_14d | views_14d | unique_visitors_14d | plugin_installs | skills_sh_installs | site_visits |'
 INT_RE='^(0|[1-9][0-9]*)$'
 DATE_RE='^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$'
+SEP_ROW='|---|---|---|---|---|---|---|---|---|---|'
 
 usage() {
   echo "usage: scripts/metrics.sh [--plugin-installs N] [--skills-sh-installs N] [--site-visits N]" >&2
@@ -38,6 +39,16 @@ done
 
 date_utc="${METRICS_DATE:-$(date -u +%Y-%m-%d)}"
 [[ "$date_utc" =~ $DATE_RE ]] || die "METRICS_DATE must be a valid YYYY-MM-DD date, got '$date_utc'"
+
+dy=$((10#${date_utc:0:4})) dm=$((10#${date_utc:5:2})) dd=$((10#${date_utc:8:2}))
+case "$dm" in
+  4|6|9|11) dim=30 ;;
+  2) if [ $((dy % 4)) -eq 0 ] && { [ $((dy % 100)) -ne 0 ] || [ $((dy % 400)) -eq 0 ]; }; then dim=29; else dim=28; fi ;;
+  *) dim=31 ;;
+esac
+[ "$dd" -le "$dim" ] || die "METRICS_DATE must be a valid YYYY-MM-DD date, got '$date_utc' (no such day)"
+today="$(date -u +%Y-%m-%d)"
+[[ ! "$date_utc" > "$today" ]] || die "$date_utc is later than today ($today, UTC); refusing to write a future row"
 
 command -v gh >/dev/null 2>&1 || die "gh is not installed; install it from https://cli.github.com and run 'gh auth login'"
 
@@ -84,10 +95,10 @@ views="$pa" uviews="$pb"
 
 if [ -f "$out" ]; then
   grep -qxF "$COLUMNS_ROW" "$out" || die "$out has no table header matching the expected columns; refusing to edit it"
-  scan="$(awk -F'|' -v hdr="$COLUMNS_ROW" -v d="$date_utc" '
+  scan="$(awk -F'|' -v hdr="$COLUMNS_ROW" -v sep="$SEP_ROW" -v d="$date_utc" '
     function trim(v) { gsub(/^[ \t]+|[ \t]+$/, "", v); return v }
     $0 == hdr && !seen { st = 1; seen = 1; next }
-    st == 1 { st = 2; next }
+    st == 1 { st = ($0 == sep) ? 2 : 9; next }
     st == 2 && /^\|/ {
       k = trim($2)
       if (k ~ /^[0-9][0-9][0-9][0-9]-/ && k > latest) latest = k
@@ -95,11 +106,12 @@ if [ -f "$out" ]; then
       next
     }
     st == 2 { st = 3 }
-    END { printf "%s|%d|%s|%s|%s|%s\n", latest, n, nf, pp, ps, pv }
+    END { printf "%d|%s|%d|%s|%s|%s|%s\n", st, latest, n, nf, pp, ps, pv }
   ' "$out")"
-  IFS='|' read -r latest nmatch nf pp ps pv <<EOF
+  IFS="|" read -r tstate latest nmatch nf pp ps pv <<EOF
 $scan
 EOF
+  [ "$tstate" = 2 ] || [ "$tstate" = 3 ] || die "$out has a damaged metrics table (missing or altered separator row, or no room for rows); refusing to edit it"
   [ "$nmatch" -le 1 ] || die "$out has more than one row for $date_utc"
   if [ -n "$latest" ] && [[ "$date_utc" < "$latest" ]]; then
     die "$date_utc is earlier than the latest row ($latest) in $out; refusing to overwrite history"
@@ -121,11 +133,11 @@ mkdir -p "$(dirname "$out")"
 tmpfile="$(mktemp "$(dirname "$out")/.metrics.XXXXXX")"
 
 if [ -f "$out" ]; then
-  awk -F'|' -v hdr="$COLUMNS_ROW" -v d="$date_utc" -v row="$row" '
+  awk -F'|' -v hdr="$COLUMNS_ROW" -v sep="$SEP_ROW" -v d="$date_utc" -v row="$row" '
     function trim(v) { gsub(/^[ \t]+|[ \t]+$/, "", v); return v }
     function flush() { if (!done) { print row; done = 1 } }
     $0 == hdr && !seen { st = 1; seen = 1; print; next }
-    st == 1 { st = 2; print; next }
+    st == 1 { st = ($0 == sep) ? 2 : 9; print; next }
     st == 2 && /^\|/ {
       if (trim($2) == d) { print row; done = 1 } else print
       next
@@ -144,12 +156,12 @@ else
     echo "- clones_14d, unique_cloners_14d, views_14d, unique_visitors_14d: GitHub's rolling 14-day totals on the date. Rows overlap, so do not sum them across rows. Unique counts are per window, so they cannot be added or de-duplicated either."
     echo "- Run the script at least every 14 days. GitHub keeps only 14 days of traffic, so a longer gap loses traffic for good."
     echo "- plugin_installs: entered by hand. Claude Code plugin marketplaces document no install-count API."
-    echo "- skills_sh_installs: entered by hand. skills.sh documents an install-count API (https://www.skills.sh/docs/api), but it needs a Vercel OIDC token that a local maintainer script does not have."
+    echo "- skills_sh_installs: entered by hand. skills.sh documents an install-count API (https://www.skills.sh/docs/api), but it needs a short-lived Vercel OIDC token from a linked Vercel project (vercel link, then vercel env pull). This script does not automate that."
     echo "- site_visits: entered by hand. The website is not live."
     echo "- \`-\` means not recorded. It is not zero."
     echo
     echo "$COLUMNS_ROW"
-    echo '|---|---|---|---|---|---|---|---|---|---|'
+    echo "$SEP_ROW"
     echo "$row"
   } > "$tmpfile"
 fi
