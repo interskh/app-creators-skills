@@ -1,0 +1,25 @@
+# App Creators skills
+
+> Open-source agent skills for creators who built an app with AI and now need to publish it. Pre-release: two skills ship, app-creators and publish-web, and neither is verified on a real account. App Store, Google Play, user acquisition, and monetization skills are planned and have not shipped.
+
+Claude Code install: `claude plugin marketplace add interskh/app-creators-skills`, then `claude plugin install app-creators@app-creators`. Codex install: `npx skills add interskh/app-creators-skills -a codex`. Other skills.sh agents: `npx skills add interskh/app-creators-skills`. Install both skills, because publish-web reads the state file that app-creators writes.
+
+## Skills
+
+- [app-creators](https://raw.githubusercontent.com/interskh/app-creators-skills/main/skills/app-creators/SKILL.md): Detects the project's framework and destinations, writes .app-creators/state.md, and names the next skill. Triggers: start, where do I begin, set up app creators, what's next, ship my app.
+- [app-creators, Chinese](https://raw.githubusercontent.com/interskh/app-creators-skills/main/skills/app-creators/SKILL.zh.md): Chinese version of app-creators. Triggers: 开始, 从哪开始, 下一步, 发布我的应用.
+- [publish-web](https://raw.githubusercontent.com/interskh/app-creators-skills/main/skills/publish-web/SKILL.md): Deploys a Next.js, Vite, or static web app to Vercel or Cloudflare Pages with a custom domain and PWA install support. Triggers: publish, deploy, go live, put it online, PWA, custom domain.
+- [publish-web, Chinese](https://raw.githubusercontent.com/interskh/app-creators-skills/main/skills/publish-web/SKILL.zh.md): Chinese version of publish-web. Triggers: 发布网站, 部署, 上线, 网页版.
+
+## Docs
+
+- [README and install](https://raw.githubusercontent.com/interskh/app-creators-skills/main/README.md): Install commands per agent and one paragraph per skill.
+- [State file schema](https://raw.githubusercontent.com/interskh/app-creators-skills/main/docs/STATE.md): The .app-creators/state.md fields every skill reads and writes.
+- [Skill conventions](https://raw.githubusercontent.com/interskh/app-creators-skills/main/docs/SKILL-CONVENTIONS.md): The SKILL.md contract, section order, and verification ladder.
+
+## Optional
+
+- [Vercel reference](https://raw.githubusercontent.com/interskh/app-creators-skills/main/skills/publish-web/references/vercel.md): Vercel detail for publish-web.
+- [Cloudflare Pages reference](https://raw.githubusercontent.com/interskh/app-creators-skills/main/skills/publish-web/references/cloudflare-pages.md): Cloudflare Pages detail for publish-web.
+- [PWA checklist](https://raw.githubusercontent.com/interskh/app-creators-skills/main/skills/publish-web/references/pwa-checklist.md): What a web app needs to be installable.
+- [Roadmap](https://raw.githubusercontent.com/interskh/app-creators-skills/main/docs/ROADMAP.md): Planned skills and their status.

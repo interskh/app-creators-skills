@@ -3,12 +3,12 @@
   "owner": {
     "name": "App Creators contributors"
   },
-  "description": "App Creators skills for publishing, user acquisition, and monetization of AI-built apps.",
+  "description": "App Creators skills for publishing AI-built apps. Pre-release; web publishing ships today.",
   "plugins": [
     {
       "name": "app-creators",
       "source": "./",
-      "description": "Skills that help a creator publish an AI-built app, get users, and make money from it."
+      "description": "Skills that help a creator publish an AI-built web app to Vercel or Cloudflare Pages. Pre-release; App Store, Google Play, user acquisition, and monetization skills are planned."
     }
   ]
 }

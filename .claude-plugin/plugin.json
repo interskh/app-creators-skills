@@ -2,7 +2,7 @@
   "name": "app-creators",
   "displayName": "App Creators",
   "version": "0.1.0",
-  "description": "Skills that help a creator publish an AI-built app, get users, and make money from it.",
+  "description": "Skills that help a creator publish an AI-built web app to Vercel or Cloudflare Pages. Pre-release; App Store, Google Play, user acquisition, and monetization skills are planned.",
   "author": {
     "name": "App Creators contributors"
   },
@@ -10,11 +10,10 @@
   "repository": "https://github.com/interskh/app-creators-skills",
   "keywords": [
     "publish",
-    "app-store",
-    "google-play",
     "pwa",
-    "monetization",
-    "user-acquisition",
+    "deploy",
+    "vercel",
+    "cloudflare-pages",
     "skills"
   ]
 }
