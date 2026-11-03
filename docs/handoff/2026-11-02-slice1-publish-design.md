@@ -855,3 +855,70 @@ The reviewer spot-checked about 27 facts against live pages across two passes, w
 - Codex's first re-review failed on service capacity, and the same-model retry succeeded.
 
 implement-loop: slice F deferred: gate blocked at the fix cap with four open findings at 71ea216; the go-ahead rule holds by the reviewer's reading; remaining: [G, H, I, J]
+
+## Slice F follow-up
+
+Four findings left open at the gate cap, plus two spec corrections. `publish-ios` moves to 0.1.1, because steps changed (conventions spec §3.4). The `verified-runs.md` row stays 0.1.0, because that run exercised 0.1.0.
+
+**Decisions**
+- Held App Privacy: a conditional `Held App Privacy:` line in the block template, not a clause in Step 15's action. The spec now says each later go-ahead names a held change, and one template line does that everywhere. The line is dropped when nothing is held, so `Action:` and existing graders are unchanged.
+- The same finding also adds a held change to Verify's "what stays open", so a session with no later go-ahead still raises it.
+- In-review stop: one paragraph after the gate table, covering the workflow check and a readiness `fail` at either place, including Step 5. State here means `targets.ios.status: review`, the latest `history` row, or the notes, because a live app keeps `live` while a newer version is in review.
+- The warning is dropped only when the setting, read from the store in this session for this submission, shows manual. "Could publish" would be false then. A setting in the notes does not count, because a withdraw and resubmit can change it.
+- Invalid Binary: Step 13 writes `Invalid Binary: <version> (<build number>)` in the notes, and Step 8 and `expo.md` skip that build. A rule with no record would still stall in a later session. Step 9's proof routes the same way.
+- New build number, sourced as far as it goes: Apple says resolve and redeliver, the build string identifies a build uniquely, and its reuse note covers only a failed upload. No page read says outright that the number must change.
+- Notify Testers: Apple's pages do not settle it. The Invite external testers page says "External testers will then receive a notification", under a section about builds added to a group. The Add testers page allows individual external testers on a build. Nothing joins the two, so `testflight.md` says the skill does not know.
+- The Step 11 action now names groups and a count of individual external testers: a count, so no tester's personal data enters the block. Apple lets that section hold internal testers too, and the ask says so.
+- The tester check says what it can't prove: Status shows Invited, Accepted, or Installed, and no page ties a status to this notification, so a tester who already accepted may need asking directly.
+- Spec §4.1 keeps the inventory bound to the build and quotes Apple's rule in plain words. Checked against the Manage app privacy page, fetched today.
+- Eval seed history rows move to 0.1.1, for consistent version mentions. No grader reads them.
+
+**Rejected**
+- A new Step or a separate release-time privacy prompt: the brief says no new steps, and the block already holds what a yes refers to.
+- Putting the held change in `Action:`: it would blur "one action", and the yes does not publish it.
+- Repeating the warning in the workflow check and in the gate row: two copies drift, and one paragraph covers both.
+- Following `release.md`'s removal route from the in-review stop: the brief says take no other action.
+- Calling "every group" Apple's statement: the page never says it. It stays marked as our reading.
+- An eval case for finding 3: it needs two case directories, a new seed, and README text, which is not a few lines. It stays unevaluated.
+
+**Assumptions**
+- Apple's pages name `Status` values for testers under Testers, All. Whether individual testers appear there the same way is not stated. Check in App Store Connect with a fixture account.
+- A version in review can be seen from state only if a run recorded it. With no record and no word from the creator, the stop has no warning, as the brief scopes it.
+
+**Deferred**
+- The `autoIncrement` same-commit rebuild stays open until a level 3 run confirms it. Expo's page says buildNumber is incremented automatically, and no build ran here.
+- Adding a tester directly to a build has no Step 11 block. The skill never offers that path, so no yes is at stake from this skill. A creator who does it reaches that person outside the skill.
+- No eval reaches the in-review stop, the held line, Invalid Binary, or Step 11: the README's "cannot prove" list already names them.
+- `upload-check` en and zh did not run in this round's eval, and the ceiling skipped two graders on `unconfirmed-inventory-zh`.
+
+**Touches**
+- `skills/publish-ios/SKILL.md`, `SKILL.zh.md`: go-ahead block template (shared by every go-ahead), gates, Steps 8, 9, 11, 13, 15, Verify, Troubleshooting, Update state, version.
+- `skills/publish-ios/references/`: `app-privacy.md`, `testflight.md`, `expo.md`.
+- `evals/publish-ios/lib/scaffold.sh`: seed version only.
+- `docs/specs/2026-11-02-slice1-publish-design.md`: §3.5, §4.1.
+
+**Evidence**
+- Lint 5 skills clean. Lint tests 109/109. `SKILL.md` 265 lines.
+- Eval `evals/results/2026-11-03T05-29-41-878Z`, $4.05, partial: the $4 ceiling stopped it after 10 of 12 cases. The run had no `--model`, so agents ran on the default model, which costs more than the sonnet runs earlier. Not rerun, per the brief.
+- Scores: 8 cases at 1.00. Submit go-ahead en 0.88: `earlier-yes-counted-for-nothing`, votes FAIL PASS FAIL, and the report records votes only, with no reasons. Unconfirmed inventory zh 0.60: both llm graders skipped by the ceiling, not failed.
+- The `testflight.md` tester-check wording was tightened after the eval ran. No eval case reaches it.
+- Mutation battery: not applicable. The change is skill prose, and no focused test reads these lines.
+
+**Recheck round**
+- Recheck eval on the text before this round: 12 cases complete, 11 at 1.00, `expo-submit-goahead-en` 0.88.
+- A held line now names only a version: the publish block takes its version and build from this session's reading, and the line moves to the replacing version when the held one will never go on sale. Rejected: keeping a build number and updating it on each rebuild, because every path that changes the build would have to remember it.
+- The publish block carries no `Held App Privacy:` line. The Invalid Binary branch records a build only when the reading ties the status to it, or the creator names it.
+- Spec §3.5 now lists the external TestFlight actions.
+- Lint 5 skills clean and lint tests rerun after this round. The coordinator runs the next eval.
+
+### Slice F follow-up / final evidence
+
+Final text, Sonnet, as the README command runs it: `publish-ios-*` 11 of 12 at 1.00 for $2.34. `expo-unconfirmed-inventory-zh` scored 0.60 on that run and then 1.00 on 3 of 3 reruns ($0.63), so 3 of 4 passed. The gate wording in both files did not change in this follow-up.
+
+The failing run is a real behavior, not a ceiling or a grader fault. In a session with no shell, the agent proposed removing an inventory item and asked a privacy question, which the Step 12 gate forbids. Deferred: the gate's "Under this skill" wording can lose to `publish-readiness`'s own instructions once that skill is loaded. Rate one in four on this case.
+
+Suite on the final text: lint tests 109/109, metrics 106/106, check-pwa 48/48, check-readiness 596/596, check-listing 226/226, lint 5 skills clean, plugin validate passes with warnings.
+
+Not rechecked: the second fix round had no reviewer or Codex read, by the one-recheck bound. No eval reaches its paths, so its evidence is lint and reading.
+
+implement-loop: slice F follow-up shipped; remaining: [G, H, I, J]

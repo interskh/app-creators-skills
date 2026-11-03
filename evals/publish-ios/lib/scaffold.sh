@@ -135,13 +135,13 @@ with open(".app-creators/state.md", "w", encoding="utf-8") as f:
 # The upload is done, and the notes hold a standing yes, which never counts.
 record_upload() {
   cat "$lib_dir/notes-past-upload.md" >> .app-creators/state.md
-  append_history "{ skill: publish-ios, version: \"0.1.0\", date: 2026-11-03, result: \"Ready to Submit: app_store $asc_app_id 1.0.0 (7)\" }"
+  append_history "{ skill: publish-ios, version: \"0.1.1\", date: 2026-11-03, result: \"Ready to Submit: app_store $asc_app_id 1.0.0 (7)\" }"
 }
 
 # Past review: the submission is reported, and the notes hold a standing yes to release, which never counts.
 record_review() {
   cat "$lib_dir/notes-past-review.md" >> .app-creators/state.md
-  append_history "{ skill: publish-ios, version: \"0.1.0\", date: 2026-11-03, result: \"Waiting for Review: app_store $asc_app_id 1.0.0 (7)\" }"
+  append_history "{ skill: publish-ios, version: \"0.1.1\", date: 2026-11-03, result: \"Waiting for Review: app_store $asc_app_id 1.0.0 (7)\" }"
 }
 
 scaffold_expo_first_run() {
@@ -159,7 +159,7 @@ scaffold_expo_upload_check() {
   seed_past_build ready pass
   write_readiness_confirmed "$seed_rev"
   write_listing "$seed_rev"
-  append_history '{ skill: publish-ios, version: "0.1.0", date: 2026-11-03, result: "stopped: Step 9" }'
+  append_history '{ skill: publish-ios, version: "0.1.1", date: 2026-11-03, result: "stopped: Step 9" }'
   commit_all "record readiness, listing, and the build"
 }
 

@@ -55,6 +55,8 @@
 | 第 13 步 | listing 的 `revision` 不是当前的 | 随 go-ahead block 完整展示文案和截图，每个语言的每个字段都要有，并问它们是否还和应用相符。 |
 | 第 13 步 | 没装 `store-review` | 说“提交前审查已跳过：`store-review` 暂未提供”，然后继续到 go-ahead。 |
 
+**停下时有版本在审核中。** workflow 检查或 readiness 的 `fail` 让这次运行停下，而 state（`targets.ios.status: review`、最新的 `history` 行或备注）或创作者说明有版本正在等待审核或审核中时，停下的消息里还要直白地说：审核一通过，这个版本就可能发布，不会再问他；除非本次会话针对这次提交从商店读到的 App Store Version Release 设置显示 "Manually release this version"。备注里的设置或之前会话读到的设置都不算。没有这样的读取时，还要在这条消息里问。不做其他任何动作。
+
 **最小检查**，用于 `unknown` 或过期的情况，它不算审查。路线解析出的配置里有应用名、bundle id 和版本号；配置指向的图标文件存在；`provided.publish-readiness.privacy_policy_url` 已设置。命令见路线文件。每项结果都要报告；缺了哪项，需要它的那一步就停下。
 
 **限制关口。** 本 skill 不带 `check-listing.py`，自己也不存任何限制：限制会变，归 `store-listing` 管。运行 `store-listing` 的检查步骤，它会跑自己的 `check-listing.py`。那个 skill 没装时按不通过处理：停下，给出安装命令。它不需要账号，这次停下只多花一条命令。会话没有 shell 时，请创作者在自己的终端里运行，并报告输出，这一步等这次读取。`FAIL` 或退出码 2 就停在这里。`UNKNOWN` 不停，只有一种例外：必填的截图行 `path` 为空，这时通过 `store-listing` 请创作者补截图。
@@ -79,6 +81,7 @@ Build revision: <commit>
 Assessed revision: <readiness revision, or none>
 Readiness: <pass | unknown | stale>. <when unknown or stale: "publish-readiness did not assess this build. Minimal checks only: <each check and its result>.">
 Listing: <current at <commit> | not current: shown in full below. Does it still match the app?>
+Held App Privacy: <only when the notes hold a held line with no `published`; otherwise, and on the App Privacy publish block itself, drop this line. Each data type and change, then: "Not published by this yes. Until a yes to its own block once version <held version> is on sale, the live page keeps its current answers and omits any added data.">
 Reply "yes" to do this for exactly this release. Anything else stops here.
 ```
 
@@ -124,25 +127,25 @@ Reply "yes" to do this for exactly this release. Anything else stops here.
    预期：路线的检查通过，或者创作者选了路线里不用 key 的走法。
 
 8. **effective** 构建。默认和备选：路线文件。
-   先查：按路线的方式查这个 revision 有没有已完成或进行中的构建。有就复用。旧构建不算。代码树干净的证明必须按路线文件说的方式存在。
+   先查：按路线的方式查这个 revision 有没有已完成或进行中的构建。有就复用。旧构建不算；返回 Invalid Binary 的构建永远不算，即使 commit 没变。代码树干净的证明必须按路线文件说的方式存在。
    执行：代码树干净时，运行路线的构建命令。构建一开始就把构建 revision 写进备注。
    证据：构建服务显示已完成，并且路线的读取方式能给出完整的发布身份，或者路线说明的、这个构建此时能有的那部分身份。这不是商店状态。失败时，给出第一条错误，再看“排查”。
 
 9. **effective** 上传。默认和备选：路线文件。之后怎么走见 `references/testflight.md`。
    先查：在商店里查这个版本号和 build number 的构建；还没有 build number 的构建，按路线说的查。已经列出就跳过上传。
    执行：读取结果回来之后，才给路线的上传命令，指定这个构建。请创作者读取的那条消息里绝不放这条命令，当作“下一步”预告也不行。
-   证据：这个构建列在 TestFlight 里，状态来自 `references/statuses.md`，且不是 Invalid Binary。上传命令跑完不算。还在 Processing 时，说明情况后停下；重跑会从这里继续。遇到 Missing Compliance，按 `references/export-compliance.md` 处理。按 `references/statuses.md` 记 `targets.ios.status`；有在售版本时保持 `live`。
+   证据：这个构建列在 TestFlight 里，状态来自 `references/statuses.md`，且不是 Invalid Binary；遇到 Invalid Binary，按第 13 步说的记下来，回到第 8 步。上传命令跑完不算。还在 Processing 时，说明情况后停下；重跑会从这里继续。遇到 Missing Compliance，按 `references/export-compliance.md` 处理。按 `references/statuses.md` 记 `targets.ios.status`；有在售版本时保持 `live`。
 
 10. **effective** TestFlight 内部测试（创作者要求才做）。默认：路线的 group 选项。备选：App Store Connect，见 `references/testflight.md`。
     先查：问创作者这个构建是否已经在内部组里。执行之后，问这个构建的状态。
     证据：这个身份的状态是 Testing 或 Ready to Test。内部测试只到创作者自己的团队，不经过任何审核人员，不算 go-ahead。
 
 11. **go-ahead** 外部 TestFlight（创作者要求才做）。下面每个动作都会触达审核人员或团队之外的人，所以各自单独出 block、各有证据，对一个动作说的 yes 不覆盖下一个。默认：App Store Connect，见 `references/testflight.md`。备选：无；`references/expo.md` 禁止用自动化。
-    先查：问这个构建的状态和所有包含它的组，这些组各自还有哪些可测试的构建，以及每个组的 Testers 和 Public Link 部分显示什么。只有证据已经满足的动作才跳过。
+    先查：问这个构建的状态和所有包含它的组，这些组各自还有哪些可测试的构建，每个组的 Testers 和 Public Link 部分显示什么，以及这个构建的 Individual Testers 部分列了多少外部测试人员；这部分也可能有内部测试人员。只有证据已经满足的动作才跳过。
     执行：只为要做的那一个动作出 block，动作按下面的原文写。得到 yes 之后，由创作者点击。然后问证据要求的读取结果。
     - "add this build to external TestFlight and submit it for TestFlight App Review"，不勾选 "Automatically notify testers"。证据：这个身份的状态是 Waiting for Review 或 In Beta Review。
     - "start external TestFlight testing of this build in group <group>"，用于 App Store Connect 显示 Start Testing 的情况，这时测试人员之前没有审核。证据：这个身份在这个组里的状态是 Ready to Test 或 Testing。
-    - "notify the testers of every group holding this build: <each group>"。证据：这个身份的状态是 Testing。
+    - "notify the external testers of this build: groups <each group>, individual external testers <number>"。证据：这个身份的状态是 Testing。有 individual external testers 时，还要做那个文件里的检查：这个 skill 不知道通知是否会到达他们。
     - "invite <number> testers by email to group <group>, which holds builds <every testable build in it>"。证据：这个组的 Testers 部分显示了他们。
     - "create a public TestFlight link for group <group>, which holds builds <every testable build in it>"，动作里写明对所有人开放还是按条件筛选，以及人数上限（如果有）。证据：这个组显示了这条 Public Link。
 
@@ -161,8 +164,8 @@ Reply "yes" to do this for exactly this release. Anything else stops here.
 13. **go-ahead** 提交审核。默认：创作者在 App Store Connect 里操作。备选：无；原因见 `references/release.md`，没有工具做这件事。
     先查：请创作者念回这个版本的 app status、Build 部分的 build number，以及 App Store Version Release 设置。只说“每一部分都保存了”不算这次读取。
     - Waiting for Review、In Review、Accepted、Waiting for Export Compliance、Pending Developer Release、Processing for Distribution、Pending Apple Release 或 Ready for Distribution，并且是这个身份的构建：已提交。记下来，并把读到的设置写进备注。如果设置是自动或定时发布，而状态还没到 Processing for Distribution 或 Ready for Distribution，就直白地告诉创作者：审核一通过，这个版本就会发布，不会再问他，然后先按 `references/release.md` 处理，再往下走。否则到第 14 步。
-    - 这些状态之一，但是另一个构建：停下，说出两个构建，并说明这里的 yes 到不了这个构建。如果是 Ready for Distribution，在售的就是那个构建，这次发布要换新的版本号：回到第 4 步。
-    - Invalid Binary：Apple 要求换一个构建，这个构建走不下去。停下，不出 block：从第 8 步做新构建。
+    - 这些状态之一，但是另一个构建：停下，说出两个构建，并说明这里的 yes 到不了这个构建。如果是 Ready for Distribution，在售的就是那个构建，这次发布要换新的版本号：按 `references/app-privacy.md` 把留着的 App Privacy 改动转到新版本，然后回到第 4 步。
+    - Invalid Binary：Apple 要求换一个构建，这个状态所属的构建走不下去。停下，不出 block。读取结果没有把状态对应到某一个构建时，问创作者是哪个构建，他说明之前什么都不记。在备注里写 `Invalid Binary: <version> (<build number>)`：这个构建永远不算可复用，即使 commit 没变。恢复要做一个带新 build number 的新构建，从第 8 步开始。
     - Prepare for Submission、Ready for Review、Rejected、Metadata Rejected 或 Developer Rejected：未提交。到这里才运行第 12 步和第 13 步的关口。Build 部分是另一个构建，或者设置不是 "Manually release this version" 时，请创作者改好并保存，再念回一次，然后才能出 block。
     然后比较 revision：构建的 revision 不是当前的，就从第 8 步重新构建。创作者拒绝重新构建时，把就绪结果当作过期，并在 block 里说明。
     执行：出 block，动作写 "submit for App Review, App Store Version Release set to Manually release this version"。得到 yes 之后，给出 `references/release.md` 里的路径。如果你操作的是创作者已登录的浏览器会话，就由你点击；否则由创作者点击。
@@ -174,11 +177,11 @@ Reply "yes" to do this for exactly this release. Anything else stops here.
 15. **go-ahead** 向公众发布。默认：从 Pending Developer Release 手动发布。备选：版本更新用分阶段发布，见 `references/release.md`。
     先查：问这个版本的 app status 和 Build 部分的 build number。版本更新时，还要问 Phased Release for Automatic Updates 部分显示什么。
     - Ready for Distribution，并且是这个身份的构建：复用这一步。读备注：有留给这个版本、还没发布的 App Privacy 改动，现在按 `references/app-privacy.md` 出它的 block。
-    - Ready for Distribution，但是另一个构建：在售的是那个构建，这个构建从未发布。停下并说明。这次发布要换新的版本号：回到第 4 步。
+    - Ready for Distribution，但是另一个构建：在售的是那个构建，这个构建从未发布。停下并说明。这次发布要换新的版本号：按 `references/app-privacy.md` 把留着的 App Privacy 改动转到新版本，然后回到第 4 步。
     - Pending Developer Release，并且是这个身份的构建：往下走。
     - Pending Developer Release，但是另一个构建：停下，说出两个构建，并说明这里的 yes 发布的会是另一个构建。
     - 其他状态都不往下走。
-    执行：出 block，动作写 "release this version to the App Store"，或 "release this version in phases over 7 days"。动作必须和 Phased Release 部分显示的一致：不一致就请创作者改好并保存，再念回一次，然后才能出 block。构建之后代码树变过的话，就绪结果写过期。得到 yes 之后，给出 `references/release.md` 里的路径。
+    执行：出 block，动作写 "release this version to the App Store"，或 "release this version in phases over 7 days"。动作必须和 Phased Release 部分显示的一致：不一致就请创作者改好并保存，再念回一次，然后才能出 block。构建之后代码树变过的话，就绪结果写过期。它的 `Held App Privacy:` 行要写明留给这个版本的改动。得到 yes 之后，给出 `references/release.md` 里的路径。
     证据：创作者报告这个身份的状态是 Ready for Distribution；分阶段发布时，状态后面还要带 "Phased Release"。对分阶段说了 yes 却没有这个后缀时，告诉创作者商店没有显示分阶段发布。记 `targets.ios.status: live`。最多可能要 24 小时才显示出来。然后按上面的检查，读备注里留着的 App Privacy 改动。
 
 16. **go-ahead** 更改分阶段发布（创作者要求才做）：暂停、恢复，或发布给所有用户。每一项都会改变谁能收到更新。默认：App Store Connect，见 `references/release.md`。备选：无。
@@ -194,7 +197,7 @@ Reply "yes" to do this for exactly this release. Anything else stops here.
 - 每个 go-ahead 动作，都有本次会话里、在它的 block 之后、针对这个身份的 yes。
 - `.app-creators/state.md` 里没有密码、验证码或密钥，`git status` 显示没有 key 文件被暂存。`provided.publish-ios` 只有环境变量名。
 - 备注里有这个构建的构建 revision 和代码树干净的记录。
-- 说明还有什么没完成：第一个还没做的 human-only 步骤，还没读取的商店状态，以及 `metadata.verified` 仍是 `unverified`。除非商店在本次会话里这样显示，绝不说应用已通过审核或已上线。
+- 说明还有什么没完成：第一个还没做的 human-only 步骤，还没读取的商店状态，还没发布的留存 App Privacy 改动，以及 `metadata.verified` 仍是 `unverified`。除非商店在本次会话里这样显示，绝不说应用已通过审核或已上线。
 
 ## 排查
 
@@ -202,7 +205,7 @@ Reply "yes" to do this for exactly this release. Anything else stops here.
 |---|---|---|
 | `git` 退出码 72：“couldn't create cache file ... xcrun_db” | 2026-11-02 的 eval 运行里出现过：macOS 上 agent 在沙箱里运行，`/usr/bin/git` 是 Xcode 的转发程序，写不了缓存 | 有真正的 git 可执行文件就用它，例如 `/opt/homebrew/bin/git`。没有就按“当前”那条规则：告诉创作者 git 跑不起来，步骤需要时再请创作者提供命令输出 |
 | 构建显示 Missing Compliance | 没有回答出口合规问题。Apple 的页面 | 按 `references/export-compliance.md` 处理。不要只为这个重新构建 |
-| 版本显示 Invalid Binary | Apple 的页面：构建不符合二进制要求 | 上传新构建，或者选一个符合要求的。读 `references/expo.md` 里工具链那一行 |
+| 版本显示 Invalid Binary | Apple 的页面：构建不符合二进制要求 | 上传带新 build number 的新构建，或者选一个符合要求的。读 `references/expo.md` 里工具链那一行 |
 | 签署最新协议之前不能创建应用 | Apple 的页面：Account Holder 必须先签署最新协议 | 请 Account Holder 在 Business 下签署。这是 human-only 步骤 |
 | 构建停在 Processing 超过 24 小时 | Apple 的页面：可能有问题 | 按 `references/statuses.md` 提交 Feedback Assistant 工单或联系 Apple |
 | 构建上传显示 Failed | Apple 的页面 | 读这个构建上的错误。下次上传可以重用同一个 build number |
@@ -217,8 +220,8 @@ Reply "yes" to do this for exactly this release. Anything else stops here.
 - `accounts.apple_developer`：`has`、`missing` 或 `pending`，来自第 1 步。这是创作者提供的；不问过绝不覆盖。
 - `tools.*`：路线选了工具才写。
 - `provided.publish-ios.*`：只写环境变量名，按路线文件列的。
-- `history`：追加 `{ skill: publish-ios, version: "0.1.0", date: <YYYY-MM-DD>, result: "<outcome>: app_store <asc_app_id> <version> (<build number>)" }`，outcome 写 Apple 的状态文字，例如 `"Waiting for Review: app_store 1234567890 1.0.0 (7)"`。身份还没有就停下时，写 `"stopped: <step>"`。绝不修改已有的行。
-- 自由文字写在 frontmatter 下方的备注里：构建 revision、代码树干净的记录、语言对应关系、提交之后读到的发布设置、留着的 App Privacy 改动，以及这次运行停下的原因。
+- `history`：追加 `{ skill: publish-ios, version: "0.1.1", date: <YYYY-MM-DD>, result: "<outcome>: app_store <asc_app_id> <version> (<build number>)" }`，outcome 写 Apple 的状态文字，例如 `"Waiting for Review: app_store 1234567890 1.0.0 (7)"`。身份还没有就停下时，写 `"stopped: <step>"`。绝不修改已有的行。
+- 自由文字写在 frontmatter 下方的备注里：构建 revision、代码树干净的记录、语言对应关系、提交之后读到的发布设置、留着的 App Privacy 改动、Invalid Binary 的构建，以及这次运行停下的原因。
 
 请创作者 commit `.app-creators/`：里面没有 secret，下次运行要读。
 

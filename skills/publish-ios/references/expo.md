@@ -101,8 +101,9 @@ Check: `eas submit:status --platform ios --json --non-interactive` succeeds. It 
 Check first:
 
 1. `git status --porcelain -- . ':(exclude).app-creators'` prints nothing. If it prints anything, ask for a commit. The default workflow uploads uncommitted and untracked files, and the service records only the commit [18], so the record alone does not prove the tree. **This clean check at build time, written in the notes, is what makes a record's commit the build's revision.**
-2. Read the newest `Build ...` line in the notes. If its commit matches the current tree, confirm it with the filter above. Reuse it.
-3. `eas build:list --platform ios --distribution store --git-commit-hash <HEAD> --json` [1]. A build `in-queue` or `in-progress` is this build: wait, and do not start another. A finished one with no clean record in the notes is not proved: build again.
+2. A build that matches an `Invalid Binary` line in the notes, or that the store shows as Invalid Binary, is never reused, whatever its commit, and the checks below skip it. Apple says to resolve the issues and redeliver [30], the build string identifies a build uniquely [21], and its note on reusing a number covers only a failed upload [31]. So recovery needs a new build number: run the build below, and confirm from the record, or for a local build from Step 9's reading, that the number is new. On the `remote` source `autoIncrement` sets it [4]. If it is not new, stop and show both.
+3. Read the newest `Build ...` line in the notes. If its commit matches the current tree, confirm it with the filter above. Reuse it.
+4. `eas build:list --platform ios --distribution store --git-commit-hash <HEAD> --json` [1]. A build `in-queue` or `in-progress` is this build: wait, and do not start another. A finished one with no clean record in the notes is not proved: build again.
 
 Run: default `eas build`:
 
@@ -203,3 +204,5 @@ All fetched with curl and read 2026-11-03. Expo pages carry `modificationDate: N
 27. Schema for Expo Metadata, Expo: https://docs.expo.dev/eas/metadata/schema/
 28. Troubleshoot build errors and crashes, Expo: https://docs.expo.dev/build-reference/troubleshooting/
 29. Syntax for Expo Workflows, Expo: https://docs.expo.dev/eas/workflows/syntax/
+30. App build statuses, Apple: https://developer.apple.com/help/app-store-connect/reference/app-uploads/app-build-statuses
+31. Build upload statuses, Apple: https://developer.apple.com/help/app-store-connect/reference/app-uploads/build-upload-statuses

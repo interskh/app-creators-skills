@@ -13,7 +13,7 @@ license: MIT
 metadata:
   stage: publish
   platform: ios
-  version: "0.1.0"
+  version: "0.1.1"
   verified: "unverified"
   verified_version: ""
   zh: SKILL.zh.md
@@ -78,6 +78,8 @@ Run every command from the project root.
 | Step 13 | listing `revision` not current | Show the listing and screenshots in full with the go-ahead block, every field of every locale, and ask whether they still match the app. |
 | Step 13 | `store-review` not installed | Say "the pre-submit review was skipped: `store-review` has not shipped", and continue to the go-ahead. |
 
+**A stop with a version in review.** When the workflow check or a readiness `fail` stops the run, and state (`targets.ios.status: review`, the latest `history` row, or the notes) or the creator shows a version waiting for or in App Review, the stop message also says in plain words that approval could publish that version with no further yes, unless its App Store Version Release setting, read from the store in this session for this submission, shows "Manually release this version". A setting in the notes or from an earlier session does not count. With no such reading, also ask for it in that message. Take no other action.
+
 **Minimal checks** for `unknown` or stale, which are not a review. The route's resolved config names the app, the bundle id, and the version. The icon file it names exists. `provided.publish-readiness.privacy_policy_url` is set. The route file gives the commands. Report each result; a missing item stops the step that needs it.
 
 **The limit gate.** This skill ships no `check-listing.py` and holds no limits of its own: they change, and `store-listing` owns them. Run `store-listing`'s check step, which runs its `check-listing.py`. If that skill is absent, the gate fails closed: stop and give the install command. It needs no account, so the stop costs one command. A session with no shell asks the creator to run it in their terminal and report the output, and the step waits for that reading. A `FAIL` or an exit 2 stops here. `UNKNOWN` does not, except a required screenshot row with an empty `path`: then ask for the capture through `store-listing`.
@@ -102,6 +104,7 @@ Build revision: <commit>
 Assessed revision: <readiness revision, or none>
 Readiness: <pass | unknown | stale>. <when unknown or stale: "publish-readiness did not assess this build. Minimal checks only: <each check and its result>.">
 Listing: <current at <commit> | not current: shown in full below. Does it still match the app?>
+Held App Privacy: <only when the notes hold a held line with no `published`; otherwise, and on the App Privacy publish block itself, drop this line. Each data type and change, then: "Not published by this yes. Until a yes to its own block once version <held version> is on sale, the live page keeps its current answers and omits any added data.">
 Reply "yes" to do this for exactly this release. Anything else stops here.
 ```
 
@@ -147,25 +150,25 @@ Every step below is marked **human-only**, **effective**, or **go-ahead**, excep
    Expect: the route's check passes, or the creator chooses the route's path with no key.
 
 8. **effective** Build. Default and alternative: the route file.
-   Check first: the route's lookup for a build of this revision that is finished or in progress. Reuse it. An older build does not count. Proof of a clean tree must exist as the route describes.
+   Check first: the route's lookup for a build of this revision that is finished or in progress. Reuse it. An older build does not count, and a build that came back Invalid Binary never counts, even with the commit unchanged. Proof of a clean tree must exist as the route describes.
    Run: the route's build command, with the tree clean. Record the build revision in the notes right after it starts.
    Proof: the build service says finished, and the route's read gives the full release identity, or as much of it as the route says that build has. This is not a store state. If it fails, show the first error and use Troubleshooting.
 
 9. **effective** Upload. Default and alternative: the route file. `references/testflight.md` says what follows.
    Check first: read the store for a build with this version and build number, or what the route says for a build with no number yet. If listed, skip the upload.
    Run: only after the reading came back, the route's upload command, for this exact build. Never put this command in the message that asks for the reading, not even as what comes next.
-   Proof: the build is listed in TestFlight with a status from `references/statuses.md`, and not Invalid Binary. A finished upload command is not that. If still Processing, say so and stop; a rerun resumes here. On Missing Compliance, follow `references/export-compliance.md`. Record `targets.ios.status` per `references/statuses.md`; with a version on sale it stays `live`.
+   Proof: the build is listed in TestFlight with a status from `references/statuses.md`, and not Invalid Binary, which is recorded as Step 13 says and goes back to Step 8. A finished upload command is not that. If still Processing, say so and stop; a rerun resumes here. On Missing Compliance, follow `references/export-compliance.md`. Record `targets.ios.status` per `references/statuses.md`; with a version on sale it stays `live`.
 
 10. **effective** TestFlight internal testing (only if the creator asks). Default: the route's group option. Alternative: App Store Connect, per `references/testflight.md`.
     Check first: ask the creator whether this build is already in the internal group. Run, then ask for the build's status.
     Proof: Testing, or Ready to Test, for this identity. Internal testing reaches only the creator's own team and no reviewer. It is not a go-ahead.
 
 11. **go-ahead** External TestFlight (only if the creator asks). Each action below reaches a reviewer or someone outside the team, so each is its own block and its own proof, and a yes to one does not cover the next. Default: App Store Connect, per `references/testflight.md`. Alternative: none; `references/expo.md` forbids the automation.
-    Check first: ask for this build's status and every group that holds it, which testable builds each of those groups holds, and what each group's Testers and Public Link sections show. Only an action whose own proof already holds is skipped.
+    Check first: ask for this build's status and every group that holds it, which testable builds each of those groups holds, what each group's Testers and Public Link sections show, and how many external testers the build's Individual Testers section lists; it may hold internal testers too. Only an action whose own proof already holds is skipped.
     Run: the block for the one action asked for, in its words below. After the yes, the creator clicks. Then ask for the reading its proof names.
     - "add this build to external TestFlight and submit it for TestFlight App Review", with "Automatically notify testers" left off. Proof: Waiting for Review or In Beta Review for this identity.
     - "start external TestFlight testing of this build in group <group>", when App Store Connect offers Start Testing, so no review comes before the testers. Proof: Ready to Test or Testing for this identity, in that group.
-    - "notify the testers of every group holding this build: <each group>". Proof: Testing for this identity.
+    - "notify the external testers of this build: groups <each group>, individual external testers <number>". Proof: Testing for this identity. With individual external testers, also the check in that file: the skill does not know whether the notification reaches them.
     - "invite <number> testers by email to group <group>, which holds builds <every testable build in it>". Proof: the group's Testers section shows them.
     - "create a public TestFlight link for group <group>, which holds builds <every testable build in it>", with open to anyone or filtered, and any tester limit, in the action. Proof: the group shows that Public Link.
 
@@ -184,8 +187,8 @@ Every step below is marked **human-only**, **effective**, or **go-ahead**, excep
 13. **go-ahead** Submit for review. Default: the creator, in App Store Connect. Alternative: none; `references/release.md` says why no tool does it.
     Check first: ask the creator to read back this version's app status, the build number in its Build section, and its App Store Version Release setting. A report that every section is saved is not this reading.
     - Waiting for Review, In Review, Accepted, Waiting for Export Compliance, Pending Developer Release, Processing for Distribution, Pending Apple Release, or Ready for Distribution, with this identity's build: submitted. Record it, and write the setting you read in the notes. If the setting is automatic or scheduled and the status is not yet Processing for Distribution or Ready for Distribution, say in plain words that approval would publish this version with no further yes, and follow `references/release.md` before going on. Otherwise go to Step 14.
-    - One of those statuses with a different build: stop, name both builds, and say that a yes here would not reach this build. At Ready for Distribution that other build is on sale, so this release needs a new version number: back to Step 4.
-    - Invalid Binary: Apple asks for another build, so this one cannot go. Stop with no block: a new build, from Step 8.
+    - One of those statuses with a different build: stop, name both builds, and say that a yes here would not reach this build. At Ready for Distribution that other build is on sale, so this release needs a new version number: carry any held App Privacy change forward per `references/app-privacy.md`, and back to Step 4.
+    - Invalid Binary: Apple asks for another build, so the build this status belongs to cannot go. Stop with no block. If the reading does not tie the status to one build, ask the creator which build, and record none until they say. Write `Invalid Binary: <version> (<build number>)` in the notes: that build never counts as reusable, even with the commit unchanged. Recovery is a new build with a new build number, from Step 8.
     - Prepare for Submission, Ready for Review, Rejected, Metadata Rejected, or Developer Rejected: not submitted. Only now run the Step 12 gates and the Step 13 gates. On a different build in the Build section, or a setting other than "Manually release this version", ask the creator to change it and Save, then read it back again, before any block.
     Then compare revisions: if the build's revision is not current, rebuild from Step 8. If the creator refuses a rebuild, treat readiness as stale and say so in the block.
     Run: the block, with the action "submit for App Review, App Store Version Release set to Manually release this version". After the yes, give the path in `references/release.md`. If you operate a browser session the creator signed into, click it; otherwise they click.
@@ -197,11 +200,11 @@ Every step below is marked **human-only**, **effective**, or **go-ahead**, excep
 15. **go-ahead** Release to the public. Default: manual release from Pending Developer Release. Alternative: phased release for a version update, per `references/release.md`.
     Check first: ask for this version's app status and the build number in its Build section. On a version update, also ask what its Phased Release for Automatic Updates section shows.
     - Ready for Distribution with this identity's build reuses the step. Read the notes: an App Privacy change held for this version and not yet published gets its block now, per `references/app-privacy.md`.
-    - Ready for Distribution with a different build: that build is on sale, and this one was never released. Stop and say so. This release needs a new version number: back to Step 4.
+    - Ready for Distribution with a different build: that build is on sale, and this one was never released. Stop and say so. This release needs a new version number: carry any held App Privacy change forward per `references/app-privacy.md`, and back to Step 4.
     - Pending Developer Release with this identity's build proceeds.
     - Pending Developer Release with a different build: stop, name both builds, and say that a yes here would release the other build.
     - Any other status does not proceed.
-    Run: the block, with the action "release this version to the App Store", or "release this version in phases over 7 days". The action must match what the Phased Release section shows: if it does not, ask the creator to change it and Save, then read it back again, before any block. If the tree moved since the build, readiness reads stale. After the yes, the path in `references/release.md`.
+    Run: the block, with the action "release this version to the App Store", or "release this version in phases over 7 days". The action must match what the Phased Release section shows: if it does not, ask the creator to change it and Save, then read it back again, before any block. If the tree moved since the build, readiness reads stale. Its `Held App Privacy:` line names any change held for this version. After the yes, the path in `references/release.md`.
     Proof: the creator reports Ready for Distribution for this identity, and for a release in phases, with "Phased Release" appended to that status. With no suffix after a yes to phases, tell the creator the store does not show a phased release. Record `targets.ios.status: live`. It can take up to 24 hours to appear. Then read the notes for a held App Privacy change, as in the check above.
 
 16. **go-ahead** Change a phased release (only if the creator asks): pause, resume, or release to all users. Each one changes who gets the update. Default: App Store Connect, per `references/release.md`. Alternative: none.
@@ -217,7 +220,7 @@ Then do Verify and Update state.
 - Every go-ahead action has a yes after its block, in this session, for this identity.
 - `.app-creators/state.md` has no password, code, or key, and `git status` shows no key file staged. `provided.publish-ios` holds env var names only.
 - The notes hold the build revision and the clean-tree record for this build.
-- Say what stays open: the first human-only step not done, a store state not yet read, and that `metadata.verified` stays `unverified`. Never say the app is approved or live unless the store said so in this session.
+- Say what stays open: the first human-only step not done, a store state not yet read, a held App Privacy change not yet published, and that `metadata.verified` stays `unverified`. Never say the app is approved or live unless the store said so in this session.
 
 ## Troubleshooting
 
@@ -225,7 +228,7 @@ Then do Verify and Update state.
 |---|---|---|
 | `git` exits 72: "couldn't create cache file ... xcrun_db" | Seen in the 2026-11-02 eval runs: a sandboxed agent on macOS, where `/usr/bin/git` is an Xcode shim that cannot write its cache | Use a real git binary if one exists, such as `/opt/homebrew/bin/git`. If none exists, follow the Current rule: tell the creator git could not run, and ask for the commands' output when a step needs it |
 | The build shows Missing Compliance | No export compliance answer. Apple's page | Follow `references/export-compliance.md`. Do not rebuild only for this |
-| The version shows Invalid Binary | Apple's page: the build does not meet the binary requirements | Upload a new build, or select one that meets them. Read the toolchain line in `references/expo.md` |
+| The version shows Invalid Binary | Apple's page: the build does not meet the binary requirements | Upload a new build with a new build number, or select one that meets them. Read the toolchain line in `references/expo.md` |
 | App creation is refused until an agreement is signed | Apple's page: the Account Holder must sign the latest agreement first | Ask the Account Holder to sign it under Business. This is a human-only step |
 | The build stays Processing for more than 24 hours | Apple's page: there may be an issue | Submit a Feedback Assistant ticket or contact Apple, per `references/statuses.md` |
 | A build upload shows Failed | Apple's page | Read the errors on the build. The same build number can be reused for the next upload |
@@ -240,8 +243,8 @@ Read the whole frontmatter, change only these fields, and write the whole frontm
 - `accounts.apple_developer`: `has`, `missing`, or `pending`, from Step 1. Provided by the creator; never overwrite it without asking.
 - `tools.*`: only if the route chose one.
 - `provided.publish-ios.*`: env var names only, as the route file lists them.
-- `history`: append `{ skill: publish-ios, version: "0.1.0", date: <YYYY-MM-DD>, result: "<outcome>: app_store <asc_app_id> <version> (<build number>)" }`, with Apple's status text as the outcome, for example `"Waiting for Review: app_store 1234567890 1.0.0 (7)"`. For a stop before an identity exists, use `"stopped: <step>"`. Never edit a row.
-- Free text goes in the notes below the frontmatter: the build revision, its clean-tree record, the locale mapping, a release setting read after submission, a held App Privacy change, and why the run stopped.
+- `history`: append `{ skill: publish-ios, version: "0.1.1", date: <YYYY-MM-DD>, result: "<outcome>: app_store <asc_app_id> <version> (<build number>)" }`, with Apple's status text as the outcome, for example `"Waiting for Review: app_store 1234567890 1.0.0 (7)"`. For a stop before an identity exists, use `"stopped: <step>"`. Never edit a row.
+- Free text goes in the notes below the frontmatter: the build revision, its clean-tree record, the locale mapping, a release setting read after submission, a held App Privacy change, an Invalid Binary build, and why the run stopped.
 
 Tell the creator to commit `.app-creators/`; it holds no secrets, and the next run reads it.
 

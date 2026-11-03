@@ -161,10 +161,13 @@ Three classes of step, and each step in a publish skill names its class:
   access to the store, the check is asking the creator to look and report; it
   is never skipped.
 - **Go-ahead:** the effective steps that reach the public or a reviewer.
-  They are submit for review, promote to production, and rollout
-  percentage changes. The skill shows what it is about to submit and needs
-  the creator's explicit yes in the same session. Rejected: a standing yes
-  in state, because a stale yes would submit a changed app.
+  They are submit for review, promote to production, rollout percentage
+  changes, changes to a live app outside a new version, messages to App
+  Review, and the external TestFlight actions: submit for TestFlight App Review,
+  Start Testing, Notify Testers, invite by email, and public link. The skill
+  shows what it is about to do and needs the creator's explicit yes in the same
+  session. Rejected: a standing yes in state, because a stale yes would submit a
+  changed app.
 
 Secrets stay out of the repo and out of `state.md`. State records env var
 names under `provided.<skill>`, such as the App Store Connect key path
@@ -270,10 +273,16 @@ than the smoke run, per §3.4. Anything else is `unknown`. The publish skills ma
 scoped to that platform, and each form's answers come from this list, never from a
 new interview.
 
-A privacy disclosure must describe the build being submitted. The inventory's
-confirmation therefore binds to `revision`. When the revision is not current,
-the inventory scan runs again before submission, and the creator confirms only
-the items it added or changed.
+The inventory describes the build being submitted, so its confirmation binds
+to `revision`. When the revision is not current, the inventory scan runs again
+before submission, and the creator confirms only the items it added or changed.
+
+The published form changes when the store's own rule allows. On the App Store,
+while an app is available, the responses reflect the data collected only from
+the version on sale, and Publish changes the product page. A change the build
+needs therefore waits until the version carrying it is on sale, and moves to the
+replacing version if that version will never go on sale. A held change is named
+in each later go-ahead until it is published.
 
 ### 4.2 `.app-creators/listing.md`
 
