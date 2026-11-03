@@ -383,3 +383,17 @@ Every PASS now needs an authoritative input. Script at 1558 lines, tests at 1855
 - A tracked `ios/` also listed in `.gitignore`, unverified.
 - Expo's third name fallback, the folder name when `package.json` has no `name`: the fix list says `FAIL` when neither file has one, so this `FAIL` can be stricter than Expo.
 - A `package.json` holding an `expo` object still classifies as an Expo config under E2's rule.
+
+## Slice D follow-up / gate fix round 2
+
+**Decisions**
+- A debuggable built manifest decides nothing: `package`, `permissions-declared`, a literal label, and a missing label or icon are `UNKNOWN`. A reference in it decides nothing either, so label and icon read `src/main` as with no built manifest.
+- A non-string `package.json` name is the no-name case, because Expo then uses the folder name. An empty string stays `FAIL`, because `pkgName` keeps it.
+- `<base>` is recorded and never resolved. A rooted reference is still read.
+
+**Rejected**
+- Exempting `$FLUTTER_BASE_HREF` from the `<base>` rule: that adds interpretation. Consequence: Flutter's default web template gives `UNKNOWN` on `icon-sizes`, so it does not reach `PASS` on that line. No false `PASS`.
+
+**Deferred**
+- `pubspec.yaml` mentioning `flutter` in prose with a root `index.html` exits 2: no `PASS`, it needs an unusual repository, and any fix would add interpretation.
+- A `<title>` inside `<body>` prints `FAIL`: rare, and not run in a browser.

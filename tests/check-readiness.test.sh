@@ -241,7 +241,7 @@ put "$t/pubspec.yaml" 'name: todo\ndependencies:\n  flutter:\n    sdk: flutter\n
 put "$t/lib/main.dart" "import 'package:image_picker/image_picker.dart';\nfinal f = ImagePicker().pickImage(source: ImageSource.camera);\n"
 apple_tree "$t/ios"
 android_tree "$t/android"
-put "$t/web/index.html" '<!doctype html><html><head><base href="$FLUTTER_BASE_HREF"><title>Todo</title><link rel="icon" type="image/png" href="favicon.png"><link rel="manifest" href="manifest.json"></head></html>\n'
+put "$t/web/index.html" '<!doctype html><html><head><title>Todo</title><link rel="icon" type="image/png" href="favicon.png"><link rel="manifest" href="manifest.json"></head></html>\n'
 put "$t/web/manifest.json" '{"name":"Todo","icons":[{"src":"icons/Icon-192.png","sizes":"192x192","type":"image/png"}]}\n'
 png "$t/web/favicon.png" 16 16 6
 png "$t/web/icons/Icon-192.png" 192 192 6
@@ -433,6 +433,15 @@ variant kotlin debuggable
 built io.github.test.todo 'android:debuggable="true"'
 run_check "$dir" --platform android --resolved "$tmp/built.xml"
 expect "a debuggable artifact leaves package UNKNOWN" 0 '^UNKNOWN package: .*debuggable' '!^(PASS|FAIL) package: '
+built_app io.github.test.todo '<application android:debuggable="true" android:label="Debug Only" android:icon="@ref/0x1" />'
+run_check "$dir" --platform android --resolved "$tmp/built.xml"
+expect "a debuggable manifest decides no label and no permissions" 0 '^UNKNOWN app-name: .*not the release truth' '^UNKNOWN permissions-declared: .*not the release truth' '!^(PASS|FAIL) (app-name|permissions-declared|package)' '!Debug Only'
+built_app io.github.test.todo '<application android:debuggable="true" />' ''
+run_check "$dir" --platform android --resolved "$tmp/built.xml"
+expect "a debuggable manifest with no label or icon confirms nothing" 0 '^UNKNOWN app-name: .*not the release truth' '^UNKNOWN icon-sizes: .*not the release truth' '^UNKNOWN permissions-declared: .*not the release truth' '!^(PASS|FAIL) (app-name|icon-sizes|permissions-declared)'
+built io.github.test.todo 'android:debuggable="true"'
+run_check "$dir" --platform android --resolved "$tmp/built.xml"
+expect "a debuggable manifest holding references leaves label and icon to src/main" 0 '^PASS app-name: "Todo"' '^PASS icon-sizes: ' '^UNKNOWN permissions-declared: .*not the release truth'
 built io.github.test.todo 'android:debuggable="false"'
 run_check "$dir" --platform android --resolved "$tmp/built.xml"
 expect "debuggable=false is a release artifact" 0 '^PASS package: '
@@ -553,7 +562,6 @@ seed expo "option false" permission-strings ios 'sub app.json "\"Todo reads one 
 seed expo "missing bundle id" bundle-id ios 'sub app.json "\"bundleIdentifier\":\"io.github.test.todo\"" "\"supportsTablet\":true"' 'no bundle id'
 seed expo "bad bundle id" bundle-id ios 'sub app.json "\"bundleIdentifier\":\"io.github.test.todo\"" "\"bundleIdentifier\":\"io_github.todo\""' '"io_github\.todo" must be'
 seed expo "empty name" app-name ios 'sub app.json "\"name\":\"Todo\"" "\"name\":\"\""' 'name is empty'
-seed expo "no name" app-name ios 'sub app.json "\"name\":\"Todo\"," ""; sub package.json "\"name\":\"todo\"," ""' 'name is empty'
 seed expo "empty privacy" privacy-policy-url ios 'state . "\"\""' 'App Store Connect requires'
 seed expo "foreground gone" icon-sizes android 'rm assets/fg.png' 'foregroundImage points at "\./assets/fg\.png", which is missing'
 seed expo "foreground small" icon-sizes android 'png assets/fg.png 256 256 6; png assets/bg.png 256 256 2' 'fg\.png" is 256x256'
@@ -820,7 +828,6 @@ seed kotlin "wrong VP8 size" icon-sizes android "webp $km/res/mipmap-mdpi/ic_lau
 seed kotlin "wrong VP8X size" icon-sizes android "webp $km/res/mipmap-xhdpi/ic_launcher.webp VP8X 48 48" 'mipmap-xhdpi/ic_launcher.webp" is 48x48, expected 96x96'
 seed kotlin "wrong PNG size" icon-sizes android "rm $km/res/mipmap-hdpi/ic_launcher.webp; png $km/res/mipmap-hdpi/ic_launcher.png 48 48 6" 'mipmap-hdpi/ic_launcher.png" is 48x48, expected 72x72'
 seed kotlin "adaptive foreground gone" icon-sizes android "rm $km/res/drawable/ic_launcher_foreground.xml" '"@drawable/ic_launcher_foreground" has no file'
-seed kotlin "adaptive no foreground" icon-sizes android "sub $km/res/mipmap-anydpi-v26/ic_launcher.xml '<foreground android:drawable=\"@drawable/ic_launcher_foreground\" />' ''" 'has no <foreground>'
 seed kotlin "adaptive vector not 108dp" icon-sizes android "sub $km/res/drawable/ic_launcher_foreground.xml 'android:width=\"108dp\"' 'android:width=\"96dp\"'" 'android:width "96dp", expected 108dp'
 seed kotlin "permission undeclared" permissions-declared android "built_permissions" '"CAMERA", which is not declared'
 seed kotlin "second permission undeclared" permissions-declared android "put $km/java/io/test/L.java 'class L { String a = android.Manifest.permission.ACCESS_FINE_LOCATION; }\n'" '"ACCESS_FINE_LOCATION", which is not declared'
@@ -1914,6 +1921,26 @@ expect "the first title wins" 1 '^PASS app-name: "First" from index.html' '!Seco
 head_is '<head><title>Todo</title></head><body><link rel="icon" href="favicon.png"></body>\n'
 expect "a link in the body is not read" 1 '^FAIL icon-sizes: no icon declared'
 
+variant static base-href
+put "$dir/index.html" '<head><base href="/assets/"><title>Demo</title><link rel="icon" href="i.svg"></head>\n'
+put "$dir/assets/i.svg" '<svg/>\n'
+run_check "$dir" --platform web
+expect "beside a <base>: a relative icon is UNKNOWN, and the title decides" 0 '^PASS app-name: "Demo" from index.html' '^UNKNOWN icon-sizes: "i.svg" is relative beside a <base>' '!^FAIL ' '!^PASS icon-sizes: '
+put "$dir/site.json" '{"name":"Linked"}\n'
+put "$dir/index.html" '<head><base href="/assets/"><link rel="manifest" href="site.json"><link rel="icon" sizes="32x32" href="/favicon.png"></head>\n'
+run_check "$dir" --platform web
+expect "beside a <base> with no title: app-name is UNKNOWN, and a relative manifest link too" 0 '^UNKNOWN app-name: index.html has a <base> and no <title>' '^UNKNOWN icon-sizes: "site.json" is relative beside a <base>' '!Linked' '!^(PASS|FAIL) (app-name|icon-sizes)'
+put "$dir/index.html" '<head><base href="/assets/"><title>Demo</title><link rel="manifest" href="/site.json"><link rel="icon" sizes="32x32" href="/favicon.png"></head>\n'
+run_check "$dir" --platform web
+expect "beside a <base>: the title decides over a rooted manifest, and a rooted icon is read" 0 '^PASS app-name: "Demo" from index.html' '^PASS icon-sizes: ' '!Linked'
+put "$dir/index.html" '<head><title>Demo</title><link rel="icon" sizes="32x32" href="favicon.png"></head><body><base href="/assets/"></body>\n'
+run_check "$dir" --platform web
+expect "a <base> after the head does not count" 0 '^PASS icon-sizes: '
+variant flutter base-template
+sub "$dir/web/index.html" '<title>Todo</title>' '<base href="$FLUTTER_BASE_HREF"><title>Template</title>'
+run_check "$dir" --platform web
+expect "flutter web template: <base> makes relative links UNKNOWN, and the title decides" 0 '^PASS app-name: "Template" from index.html' '^UNKNOWN icon-sizes: .*relative beside a <base>' '!^FAIL '
+
 # ---- A declared web icon must be an image ---------------------------------------
 
 variant static icon-not-image
@@ -1982,7 +2009,18 @@ run_check "$dir" --platform android
 expect "no config name on android: package.json name" 0 '^PASS app-name: "todo" from package.json name'
 put "$dir/package.json" '{"dependencies":{"expo":"~58.0.0","react-dom":"19.0.0"}}\n'
 run_check "$dir" --platform ios
-expect "no name in either file fails" 1 '^FAIL app-name: the app name is empty in the Expo config or package.json'
+expect "no name in either file is UNKNOWN: Expo then uses the folder name" 0 '^UNKNOWN app-name: no name in the Expo config or package.json' '!^(PASS|FAIL) app-name: '
+sub "$dir/app.json" '"web":{' '"web":{"name":"Web Todo",'
+run_check "$dir" --platform web
+expect "a valid web.name stays PASS with no name in either file" 0 '^PASS app-name: "Web Todo" from the Expo config \(web.name\)'
+put "$dir/package.json" '{"name":"","dependencies":{"expo":"~58.0.0","react-dom":"19.0.0"}}\n'
+run_check "$dir" --platform ios
+expect "an empty package.json name fails, as ?? keeps it" 1 '^FAIL app-name: the app name is empty in package.json name'
+sub "$dir/app.json" '"plugins":[' '"plugins":["./plugins/x.js",'
+run_check "$dir" --platform web
+expect "web.name beside a local plugin is UNKNOWN" 0 '^UNKNOWN app-name: the local config plugin'
+sub "$dir/app.json" '"plugins":["./plugins/x.js",' '"plugins":['
+sub "$dir/app.json" '"web":{"name":"Web Todo",' '"web":{'
 put "$dir/package.json" '{"name": '
 run_check "$dir" --platform ios
 expect "a malformed package.json is UNKNOWN for the fallback name" 0 '^UNKNOWN app-name: "package.json" is not valid JSON'
@@ -2142,8 +2180,10 @@ put "$tmp/empty-package.xml" '<manifest package=""><application/></manifest>\n'
 two "--resolved manifest with an empty package is not a built manifest" 'is not a built manifest' "$tmp/kotlin" --platform android --resolved "$tmp/empty-package.xml"
 
 adaptive='<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">'
-android_icon_is "$adaptive<foreground android:drawable=\"@drawable/fg\" /></adaptive-icon>\n"
-expect "an adaptive icon with no background fails" 1 '^FAIL icon-sizes: .*has no <background>'
+android_icon_is "$adaptive<foreground android:drawable=\"#ffffff\" /></adaptive-icon>\n"
+expect "an adaptive icon with no background is UNKNOWN" 0 '^UNKNOWN icon-sizes: .*has no <background>' '!^(PASS|FAIL) icon-sizes: '
+android_icon_is "$adaptive<background android:drawable=\"@color/white\" /></adaptive-icon>\n"
+expect "an adaptive icon with no foreground is UNKNOWN" 0 '^UNKNOWN icon-sizes: .*has no <foreground>' '!^(PASS|FAIL) icon-sizes: '
 android_icon_is "$adaptive<background android:drawable=\"@color/white\" /><foreground android:drawable=\"#ffffff\" /></adaptive-icon>\n"
 expect "a colour foreground is UNKNOWN" 0 '^UNKNOWN icon-sizes: icon reference "#ffffff" is not a @mipmap or @drawable file' '!^PASS icon-sizes: '
 android_icon_is "$adaptive<background android:drawable=\"@color/white\" /><foreground android:drawable=\"@color/white\" /></adaptive-icon>\n"

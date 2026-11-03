@@ -783,6 +783,7 @@ class AndroidNative:
         self.module = os.path.join(root, "app") if os.path.isdir(os.path.join(root, "app")) else root
         self.main = os.path.join(self.module, "src", "main")
         self._manifest = None
+        self.debug = built is not None and self._built_attr("debuggable") not in (None, "false")
 
     def manifest(self):
         path = os.path.join(self.main, "AndroidManifest.xml")
@@ -799,6 +800,7 @@ class AndroidNative:
     def _source_attr(self, attr, fix):
         """A value src/main lacks can come from another manifest, so only a built manifest confirms it is missing."""
         if self.built is not None and self._built_attr(attr) is None:
+            self._no_debug()
             raise Fail("android:%s is missing on <application> in the built manifest" % attr, fix)
         node = self.manifest().find("application")
         value = node.get(ANDROID_NS + attr) if node is not None else None
@@ -806,6 +808,10 @@ class AndroidNative:
             raise Unknown("android:%s is missing from src/main, and a library or build variant manifest can supply it; "
                           "pass a built manifest with --resolved <file> to confirm" % attr)
         return value
+
+    def _no_debug(self):
+        if self.debug:
+            raise Unknown("the resolved manifest is from a debuggable build, which is not the release truth; use a release build")
 
     def maybe(self):
         return None if self.built is not None else "no built manifest shows it, and a library can supply it"
@@ -815,6 +821,7 @@ class AndroidNative:
         if self.built is not None:
             built = self._built_attr("label")
             if built is not None and not built.startswith("@") and "${" not in built:
+                self._no_debug()
                 return valid_name(built, "the built manifest (android:label)", fix)
         label = self._source_attr("label", fix)
         if label.startswith("@string/"):
@@ -837,10 +844,7 @@ class AndroidNative:
         if self.built is None:
             raise Unknown("the application id comes from Gradle, which this script does not read; build a release from the "
                           "current commit, read its manifest with apkanalyzer or bundletool, and pass --resolved <file>")
-        application = self.built.find("application")
-        debuggable = application.get(ANDROID_NS + "debuggable") if application is not None else None
-        if debuggable not in (None, "false"):
-            raise Unknown("the resolved manifest is from a debuggable build, whose id may carry a suffix; use a release build")
+        self._no_debug()
         fix = 'set applicationId in the app module\'s build.gradle to your own reverse-DNS id, e.g. "com.yourname.app"'
         return valid_package(self.built.get("package"), "the built manifest", fix)
 
@@ -885,7 +889,7 @@ class AndroidNative:
         if node.tag == "adaptive-icon":
             for tag in ("foreground", "background"):
                 if node.find(tag) is None:
-                    fails.append(("%s has no <%s>" % (label, tag), fix))
+                    unknowns.append("%s has no <%s>, and no source says the build tools reject that" % (label, tag))
             count = 0
             for tag in ("foreground", "background", "monochrome"):
                 layer = node.find(tag)
@@ -920,6 +924,7 @@ class AndroidNative:
     def declared(self):
         declared = set()
         removed = set()
+        self._no_debug()
         manifest = self.built if self.built is not None else self.manifest()
         for tag in ("uses-permission", "uses-permission-sdk-23"):
             for node in manifest.findall(tag):
@@ -1000,9 +1005,9 @@ class ExpoConfig:
         path = os.path.join(self.project, "package.json")
         data = load_json(path) if os.path.lexists(path) else None
         name = data.get("name") if isinstance(data, dict) else None
-        if isinstance(name, str) and name.strip():
+        if isinstance(name, str):
             return name, "package.json name, Expo's default when the config sets none"
-        return "", "the Expo config or package.json"
+        raise Unknown("no name in the Expo config or package.json, so Expo uses the folder name; set expo.name")
 
     def image_path(self, value, what):
         """Return an absolute path for a config image, or raise for remote and missing files."""
@@ -1033,8 +1038,12 @@ class ExpoConfig:
         return valid_name(name, source, "set expo.name in the app config")
 
     def web_name(self):
+        self._no_local_plugin()
+        fix = "set expo.name or expo.web.name in the app config"
+        if self.section("web").get("name"):
+            return valid_name(self.section("web")["name"], "the Expo config (web.name)", fix)
         name, source = self._name()
-        return valid_name(self.section("web").get("name") or name, source, "set expo.name or expo.web.name in the app config")
+        return valid_name(name, source, fix)
 
     def bundle_id(self):
         self._no_local_plugin()
@@ -1171,6 +1180,7 @@ class HeadReader(HTMLParser):
         self.title = None
         self.in_title = False
         self.head_over = False
+        self.base = False
         self.links = []
 
     def handle_starttag(self, tag, attrs):
@@ -1178,6 +1188,7 @@ class HeadReader(HTMLParser):
             self.head_over = True
         if self.head_over:
             return
+        self.base = self.base or tag == "base"
         if tag == "title" and self.title is None:
             self.in_title = True
             self.title = ""
@@ -1225,7 +1236,7 @@ class Web:
             head = self.head()
             links = [link["href"] for link in (head.links if head else [])
                      if "manifest" in (link.get("rel") or "").lower().split() and link.get("href")]
-            candidates = [found for found in (self._find(href, self.base) for href in links) if found]
+            candidates = [found for found in (self._find(href, self.base) for href in links if not self._base_relative(href)) if found]
         for path in candidates:
             if os.path.lexists(path):
                 data = load_json(path)
@@ -1233,6 +1244,11 @@ class Web:
                     raise Unknown("%s is not a JSON object" % show(_rel(path)))
                 return path, data
         return None, None
+
+    def _base_relative(self, ref):
+        """<base> is not resolved, so a relative reference beside one has no known target."""
+        head = self.head()
+        return head and head.base and not re.match(r"[a-zA-Z][a-zA-Z0-9+.-]*:|/", ref)
 
     def _next_code_manifest(self):
         """A manifest.ts or manifest.js generates the manifest at build time, whatever else exists."""
@@ -1262,12 +1278,14 @@ class Web:
         code_manifest = self._next_code_manifest()
         if code_manifest:
             raise Unknown(code_manifest)
-        path, data = self.manifest()
+        head = self.head()
+        if head and head.base and head.title is None:
+            raise Unknown("index.html has a <base> and no <title>; <base> is not resolved")
+        path, data = (None, None) if head and head.base else self.manifest()
         if data is not None:
             name = data.get("name") or data.get("short_name")
             if name is not None:
                 return valid_name(name, show(_rel(path)), fix)
-        head = self.head()
         if head and head.title is not None:
             if PLACEHOLDER.search(head.title):
                 raise Unknown("<title> holds a build placeholder (%s)" % show(head.title))
@@ -1297,7 +1315,9 @@ class Web:
         head = self.head()
         for link in head.links if head else []:
             rel = (link.get("rel") or "").lower().split()
-            if link.get("href") and ("icon" in rel or "apple-touch-icon" in rel):
+            if link.get("href") and self._base_relative(link["href"]) and {"icon", "apple-touch-icon", "manifest"} & set(rel):
+                unknowns.append("%s is relative beside a <base>, which is not resolved" % show(link["href"]))
+            elif link.get("href") and ("icon" in rel or "apple-touch-icon" in rel):
                 declared.append((link["href"], link.get("sizes"), self.base, "index.html"))
         if self.framework == "nextjs":
             self._next_icons(declared, unknowns)
