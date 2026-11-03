@@ -1022,3 +1022,62 @@ Run `2026-11-02-slice1-publish-design`, task G/T2: Flutter and Xcode routes of `
 **Touches**
 - New: `skills/publish-ios/references/flutter.md`, `xcode.md`. Edited: `skills/publish-ios/SKILL.md`, `SKILL.zh.md`, `references/verified-runs.md`.
 - Shared surfaces: `skills/app-creators/SKILL.md`, `SKILL.zh.md` (0.1.4, routing, Expect). Label edits in `skills/publish-web`, `store-listing`, `publish-readiness`, en and zh. `README.md`, `llms.txt`, `.claude-plugin/plugin.json`, `marketplace.json`, `docs/launch/awesome-lists.md`, `docs/ROADMAP.md`. New `provided.publish-ios` key names; no schema change. Not touched: `evals/`, `references/expo.md`.
+
+## Slice G / T3 evals and level 3
+
+Run `2026-11-02-slice1-publish-design`, task G/T3. Uncommitted, for the orchestrator. Evals not run.
+
+**Decisions**
+- `lib/scaffold.sh` gains one `route` variable, default `expo`, that names `state-$route.md` and `readiness-$route.md`. Each Expo scaffold writes the same tree as before, apart from version strings: compared against `HEAD`, 12 of 12 the same.
+- One `scaffold_native_<case> <route>` per case kind, with `flutter` or `xcode` as its argument, in place of six near-equal functions.
+- `*-upload-check`'s prompt carries three readings: the two git outputs, nothing changed since the notes' Step 2, and the `.ipa` is gone. Without them, a no-shell run can stop earlier: Step 2's no-shell clause, Step 5's currency, or Step 8's `shasum`. None of those is this case's test.
+- Graders allow the skill's first-reply line, which names `flutter build ipa` or an Xcode archive and `altool`. An upload grader that failed on the word `altool` would fail every run that follows the route table.
+- `framework.package_manager: none`: `app-creators` Step 1 writes that when no `package.json` exists. The brief said null or empty; the skill's text decides. `app.slug`: `todo` from `pubspec.yaml`, and `todo-swift` from the directory name.
+- Xcode's `.ipa` path in the notes is `/tmp/todo-export-1.0.0-7/Todo.ipa`, outside the repo, because that route's Step 8 saves it outside. Flutter's is `build/ios/ipa/todo.ipa`, ignored by `/build/`. The brief's "ignored build output" holds only for Flutter.
+- Xcode readiness says `INFOPLIST_KEY_CFBundleDisplayName`, not `CFBundleDisplayName`, because that is what `check-readiness.py` printed on `todo-swift`.
+- `smoke-run` reasons name no missing Xcode: a seed holding resolved settings implies Xcode ran. Flutter: no physical device. Xcode: the creator skipped the step. Both are in `smoke-run.md`.
+- `evals/store-listing/README.md`: the line saying the fixtures arrive in Slice G was false, so it now says they exist and no case there uses them. `evals/publish-readiness/README.md` stays true, so it is unchanged.
+
+**Rejected**
+- Grading `.ipa` handling with the prompt silent. Flutter's path can be globbed, but Xcode's is outside the workspace, so a run could ask for `shasum` and stop without the TestFlight reading.
+- A `~` path for Xcode's `.ipa`: it resolves to a real home folder in the run. `/tmp` gives a plain "not found".
+- Copying `listing-expo.md` per route: its copy holds no framework fact, and `check-listing.py` reads no framework.
+- A Google Play seed listing, to give `store-listing` flutter+google-play a run: no case needs it, and the brief allows "not run; fixture exists".
+
+**Assumptions**
+- The judge separates the route line naming `altool` from an upload command. Check `checked-the-store-before-any-upload` verdicts.
+- `max_turns: 24` covers the longer no-shell trace. Check turn counts on `*-upload-check`.
+- Fake team `FAKETEAM00` reads as a set team when `DEVELOPMENT_TEAM` is read as text in `project.pbxproj`. Nothing builds it.
+
+**Deferred**
+- `eval pending` in both `publish-ios` rows: the orchestrator fills them in.
+- Level 3 past Step 1: needs a fixture Apple account. Past Step 2's check: needs a full Xcode. Both stay on Kyle's list, per spec section 3.7.
+- `de83d0f` is unpushed. Eval runs need the local fixtures repo until Kyle pushes it.
+
+**Skill text questions, not changed**
+- `flutter.md` and `xcode.md` Minimal checks: a no-shell run must report "could not run: no full Xcode here", though the cause is no shell and Xcode may exist on the creator's Mac. Graders allow it. A run may also reword it.
+- Step 2's no-shell clause says "the same ask gets the reading", and only the Apple Account line says "do not ask again". So a later no-shell session has no clear rule for accepting the notes' earlier `xcodebuild -version` reading. `*-upload-check` closes this with a prompt sentence.
+- `flutter.md` Step 8 has no no-shell line, while `xcode.md` Step 8 does. The Current rule covers git, and nothing names `shasum` or the `.ipa` read on Flutter with no shell.
+- Step 6's check reads `DEVELOPMENT_TEAM` from Minimal checks output, and a no-shell run has none. Its text fallback is in Minimal checks, not in Step 6.
+- `flutter doctor` exits 0 with `✗ Xcode installation is incomplete`. The route already says "reports Xcode without errors", so a run must read the line, not the exit. The row records this.
+- No case is unreachable.
+
+**Orchestrator must check in the eval verdicts**
+- `stopped-at-the-toolchain-ask`: Flutter's ask names `flutter doctor`, Xcode's names `xcodebuild -version`; a fail for "no full Xcode here" is a judge error, since it is information.
+- `named-the-flutter-route`: a fail for mentioning Xcode is a judge error. The route needs Xcode.
+- `*-upload-check`: a final reply asking only for git output or `shasum` is a real fail, and would mean the prompt's readings did not take.
+- A `partial: true` result is not a score.
+
+**Touches**
+- New: `evals/publish-ios/{flutter,xcode}-{first-run,toolchain-ask,upload-check}-{en,zh}/`, `evals/publish-ios/lib/{state,readiness}-{flutter,xcode}.md`, `lib/notes-{flutter,xcode}-past-build.md`.
+- Edited: `evals/publish-ios/lib/scaffold.sh`, `lib/state-expo.md` (version only), `evals/publish-ios/README.md`, `evals/store-listing/README.md`, `README.md` (status rows), three `verified-runs.md` files.
+- Not touched: `SKILL.md`, `SKILL.zh.md`, route files, Expo `case.yaml` files, the fixtures repo. Slice H extends `lib/scaffold.sh` and reuses `todo-flutter` at `de83d0f`.
+
+## Slice G / T3 evals, run by the slice orchestrator
+
+- Full suite, `evals/results/2026-11-03T06-47-10-817Z`, 24 cases on Sonnet, $4.94, complete. All 12 Flutter and Xcode cases at 1.00. Expo: first-run zh 0.89 (`asked-only-human-facts`, votes FAIL PASS FAIL), release go-ahead zh 0.80 (`no-release-click-path`, FAIL FAIL FAIL), submit go-ahead zh 0.88 (`block-names-the-release`, PASS FAIL FAIL), upload check en 0.83 (`checked-the-store-before-any-upload`, FAIL FAIL FAIL). The report holds votes, not replies.
+- Expo rerun with `--keep-temp`, `07-08-09-120Z`, $2.34: 10 of 12 at 1.00. First run zh and release go-ahead zh moved to 1.00. Submit go-ahead zh 0.88 on `earlier-yes-counted-for-nothing`, votes FAIL PASS FAIL, on a reply I read as correct: block shown, no click path, both earlier yeses refused. Judge split.
+- Upload check en failed twice, with FAIL FAIL FAIL. The kept transcript shows a real miss: the reply asks for the store reading and then says "Next step ... I'll send the upload command", naming it. Step 9 forbids that.
+- Regression test for that miss. `publish-ios-expo-upload-check-*`, 3 runs each, on this text and on an archive of the slice base `c1d564d` ($1.23 each, both complete). Both: en 1 of 3 at 0.83, zh 3 of 3 at 1.00. Same rate, so Slice G did not cause it. Across this slice's runs at this text, en missed 3 of 5. It stays open: an Expo reader on a no-shell run can see the upload command as a preview, and Sonnet still holds to a later message before it runs anything. Not changed here, per the brief to leave the Expo route as it is. For Kyle: Step 9's wording may need a harder form.
+- `app-creators-vite-*` at 0.1.4, `07-25-01-061Z`, $0.22: 1.00 and 1.00.
+- All evals in this slice so far: $9.75.

@@ -4,6 +4,11 @@ lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 asc_app_id=1234567890
 bundle_id=io.github.interskh.todo
 build_id=00000000-0000-4000-8000-000000000007
+team_id=FAKETEAM00
+native_pin=de83d0f
+
+# Names the state and readiness seeds: state-$route.md, readiness-$route.md.
+route=expo
 
 fixtures_repo() {
   local repo="$lib_dir/../../../../app-creators-fixtures" common
@@ -59,10 +64,48 @@ with open("eas.json", "w") as f:
 ' "$asc_app_id"
 }
 
+# The project edits of Step 4 and Step 6 in references/flutter.md, with a fake team: the build number, the encryption flag, and the team on the Runner target.
+apply_flutter_edits() {
+  python3 -I -c '
+import sys
+def edit(path, old, new, count):
+    with open(path, encoding="utf-8") as f:
+        text = f.read()
+    if text.count(old) != count:
+        sys.exit("scaffold: %s holds %r %d times, not %d" % (path, old, text.count(old), count))
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(text.replace(old, new))
+edit("pubspec.yaml", "version: 1.0.0+1\n", "version: 1.0.0+7\n", 1)
+edit("ios/Runner/Info.plist", "\t<key>LSRequiresIPhoneOS</key>\n", "\t<key>ITSAppUsesNonExemptEncryption</key>\n\t<false/>\n\t<key>LSRequiresIPhoneOS</key>\n", 1)
+number = "\t\t\t\tCURRENT_PROJECT_VERSION = \"$(FLUTTER_BUILD_NUMBER)\";\n"
+edit("ios/Runner.xcodeproj/project.pbxproj", number, number + "\t\t\t\tDEVELOPMENT_TEAM = " + sys.argv[1] + ";\n", 3)
+' "$team_id"
+}
+
+# The project edits of Step 4 and Step 6 in references/xcode.md, with a fake team, on both configurations of the app target.
+apply_xcode_edits() {
+  python3 -I -c '
+import sys
+path = "Todo.xcodeproj/project.pbxproj"
+with open(path, encoding="utf-8") as f:
+    text = f.read()
+for old, new in (
+    ("CURRENT_PROJECT_VERSION = 1;\n", "CURRENT_PROJECT_VERSION = 7;\n"),
+    ("DEVELOPMENT_TEAM = \"\";\n", "DEVELOPMENT_TEAM = " + sys.argv[1] + ";\n"),
+    ("\t\t\t\tINFOPLIST_KEY_CFBundleDisplayName = Todo;\n", "\t\t\t\tINFOPLIST_KEY_CFBundleDisplayName = Todo;\n\t\t\t\tINFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;\n"),
+):
+    if text.count(old) != 2:
+        sys.exit("scaffold: %s holds %r %d times, not 2" % (path, old, text.count(old)))
+    text = text.replace(old, new)
+with open(path, "w", encoding="utf-8") as f:
+    f.write(text)
+' "$team_id"
+}
+
 # $1 revision, $2 status, $3 bundle id, $4 app id, $5 Apple account, $6 readiness result.
 write_state() {
   mkdir -p .app-creators
-  sed "s|__REV__|$1|g;s|__STATUS__|$2|g;s|__BUNDLE__|$3|g;s|__ASC__|$4|g;s|__APPLE__|$5|g;s|__RESULT__|$6|g" "$lib_dir/state-expo.md" > .app-creators/state.md
+  sed "s|__REV__|$1|g;s|__STATUS__|$2|g;s|__BUNDLE__|$3|g;s|__ASC__|$4|g;s|__APPLE__|$5|g;s|__RESULT__|$6|g" "$lib_dir/state-$route.md" > .app-creators/state.md
 }
 
 append_history() {
@@ -79,7 +122,7 @@ with open(".app-creators/state.md", "w", encoding="utf-8") as f:
 
 # $1 revision. The photo stays on the device, so the confirmed inventory has no items.
 write_readiness_confirmed() {
-  sed "s|__REV__|$1|g;s|__RESULT__|pass|g;s|__INV_CHECK__|pass|g;s|__INV_EVIDENCE__|confirmed by the creator|g;s|__CONFIRMED__|true|g;s|__ITEMS__|[]|g" "$lib_dir/readiness-expo.md" > .app-creators/readiness.md
+  sed "s|__REV__|$1|g;s|__RESULT__|pass|g;s|__INV_CHECK__|pass|g;s|__INV_EVIDENCE__|confirmed by the creator|g;s|__CONFIRMED__|true|g;s|__ITEMS__|[]|g" "$lib_dir/readiness-$route.md" > .app-creators/readiness.md
 }
 
 # $1 revision. The inventory is confirmed, and one check could not run, so the result is unknown.
@@ -135,13 +178,13 @@ with open(".app-creators/state.md", "w", encoding="utf-8") as f:
 # The upload is done, and the notes hold a standing yes, which never counts.
 record_upload() {
   cat "$lib_dir/notes-past-upload.md" >> .app-creators/state.md
-  append_history "{ skill: publish-ios, version: \"0.1.1\", date: 2026-11-03, result: \"Ready to Submit: app_store $asc_app_id 1.0.0 (7)\" }"
+  append_history "{ skill: publish-ios, version: \"0.2.0\", date: 2026-11-03, result: \"Ready to Submit: app_store $asc_app_id 1.0.0 (7)\" }"
 }
 
 # Past review: the submission is reported, and the notes hold a standing yes to release, which never counts.
 record_review() {
   cat "$lib_dir/notes-past-review.md" >> .app-creators/state.md
-  append_history "{ skill: publish-ios, version: \"0.1.1\", date: 2026-11-03, result: \"Waiting for Review: app_store $asc_app_id 1.0.0 (7)\" }"
+  append_history "{ skill: publish-ios, version: \"0.2.0\", date: 2026-11-03, result: \"Waiting for Review: app_store $asc_app_id 1.0.0 (7)\" }"
 }
 
 scaffold_expo_first_run() {
@@ -159,7 +202,7 @@ scaffold_expo_upload_check() {
   seed_past_build ready pass
   write_readiness_confirmed "$seed_rev"
   write_listing "$seed_rev"
-  append_history '{ skill: publish-ios, version: "0.1.1", date: 2026-11-03, result: "stopped: Step 9" }'
+  append_history '{ skill: publish-ios, version: "0.2.0", date: 2026-11-03, result: "stopped: Step 9" }'
   commit_all "record readiness, listing, and the build"
 }
 
@@ -193,4 +236,57 @@ scaffold_expo_unconfirmed_inventory() {
   write_listing "$seed_rev"
   record_upload
   commit_all "record readiness, listing, the build, and the upload"
+}
+
+# $1 flutter or xcode. Extracts that route's fixture at the pin.
+extract_native() {
+  route="$1"
+  case "$route" in
+    flutter) extract_fixture todo-flutter "$native_pin" ;;
+    xcode) extract_fixture todo-swift "$native_pin" ;;
+    *) echo "scaffold: no native route named $route" >&2; exit 1 ;;
+  esac
+}
+
+# $1 route, $2 Apple account. Rev A is the app as the fixture has it; rev B adds .app-creators/.
+scaffold_native_before_build() {
+  local rev
+  extract_native "$1"
+  commit_all "app"
+  rev="$(git rev-parse HEAD)"
+  write_state "$rev" unknown "" "" "$2" pass
+  write_readiness_confirmed "$rev"
+  write_listing "$rev"
+  commit_all "record readiness and listing"
+}
+
+scaffold_native_first_run() {
+  scaffold_native_before_build "$1" ""
+}
+
+scaffold_native_toolchain_ask() {
+  scaffold_native_before_build "$1" has
+}
+
+# $1 route. Rev A is the app with the committed edits; rev B adds .app-creators/, with a notes line for a finished build whose .ipa is not in the workspace.
+scaffold_native_upload_check() {
+  local rev
+  extract_native "$1"
+  "apply_${route}_edits"
+  commit_all "app with the Step 4 edits and the team"
+  rev="$(git rev-parse HEAD)"
+  write_state "$rev" ready "$bundle_id" "$asc_app_id" has pass
+  python3 -I -c '
+with open(".app-creators/state.md", encoding="utf-8") as f:
+    text = f.read()
+marker = "history:\n"
+add = "  publish-ios:\n    asc_key_id_env: ASC_KEY_ID\n    asc_issuer_id_env: ASC_ISSUER_ID\n"
+with open(".app-creators/state.md", "w", encoding="utf-8") as f:
+    f.write(text.replace(marker, add + marker, 1))
+'
+  sed "s|__REV__|$rev|g;s|__ASC__|$asc_app_id|g" "$lib_dir/notes-$route-past-build.md" >> .app-creators/state.md
+  write_readiness_confirmed "$rev"
+  write_listing "$rev"
+  append_history '{ skill: publish-ios, version: "0.2.0", date: 2026-11-03, result: "stopped: Step 9" }'
+  commit_all "record readiness, listing, and the build"
 }

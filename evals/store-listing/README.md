@@ -48,7 +48,7 @@ On a Mac without a full Xcode, `/usr/bin/git` is a shim that fails inside the ev
 - That the copy is good. The graders check that it is true to the app and fits; a person judges whether it sells.
 - The rerun rule on a field the creator edited, beyond the seeded case. `expo-overlimit` shows a failing field rewritten; no case edits a passing field and checks that it survives.
 - The readiness gate's `unknown`, stale, or missing branches. `expo-copy` and `expo-overlimit` hold a current `pass`, and `expo-readiness-fail` holds a current `fail`; no case exercises the other branches.
-- Flutter, Xcode, and Kotlin routes. Their fixtures arrive in Slices G and H.
+- Flutter, Xcode, and Kotlin routes. `todo-flutter` and `todo-swift` exist, and no case here runs on them. The Kotlin fixture arrives in Slice H.
 
 Per-route status lives in `skills/store-listing/references/verified-runs.md`.
 

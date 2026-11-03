@@ -149,23 +149,23 @@ about another.
 | `publish-readiness` | expo+app-store | unverified, level 3 open: smoke run needs a full Xcode; answers, fixes, and rerun not exercised |
 | `publish-readiness` | expo+google-play | unverified, level 3 open: smoke run needs a JDK; answers, fixes, and rerun not exercised |
 | `publish-readiness` | vite+web | unverified, level 3 open: answers, fixes, and rerun not exercised |
-| `publish-readiness` | flutter+app-store | unverified, level 3 open: no fixture yet, smoke run needs a full Xcode |
-| `publish-readiness` | flutter+google-play | unverified, level 3 open: no fixture yet, smoke run needs a JDK |
-| `publish-readiness` | xcode+app-store | unverified, level 3 open: no fixture yet, smoke run needs a full Xcode |
+| `publish-readiness` | flutter+app-store | unverified, level 3 open: script ran on `todo-flutter`, resolved settings and smoke run need a full Xcode; no skill run |
+| `publish-readiness` | flutter+google-play | unverified, level 3 open: script ran on `todo-flutter`, package and smoke run need a JDK; no skill run |
+| `publish-readiness` | xcode+app-store | unverified, level 3 open: script ran on `todo-swift`, resolved settings and smoke run need a full Xcode; no skill run |
 | `publish-readiness` | kotlin+google-play | unverified, level 3 open: no fixture yet, smoke run needs a JDK |
 | `publish-readiness` | expo+web | unverified, level 3 open: not run; no shipped skill publishes this route to the web |
-| `publish-readiness` | flutter+web | unverified, level 3 open: no fixture yet; no shipped skill publishes this route to the web |
+| `publish-readiness` | flutter+web | unverified, level 3 open: not run, `todo-flutter` has no `web/` folder; no shipped skill publishes this route to the web |
 | `publish-readiness` | nextjs+web | unverified, level 3 open: no fixture |
 | `publish-readiness` | static+web | unverified, level 3 open: no fixture |
 | `store-listing` | expo+app-store | unverified, level 3 open: no screenshots captured, no full Xcode; answers and rerun not exercised |
 | `store-listing` | expo+google-play | unverified, level 3 open: no screenshots captured, no JDK; answers and rerun not exercised |
-| `store-listing` | flutter+app-store | unverified, level 3 open: no fixture yet |
-| `store-listing` | flutter+google-play | unverified, level 3 open: no fixture yet |
-| `store-listing` | xcode+app-store | unverified, level 3 open: no fixture yet |
+| `store-listing` | flutter+app-store | unverified, level 3 open: script ran on a seed listing, no screenshots captured, no full Xcode; no skill run |
+| `store-listing` | flutter+google-play | unverified, level 3 open: not run, no seed listing for this store; no screenshots captured, no JDK |
+| `store-listing` | xcode+app-store | unverified, level 3 open: script ran on a seed listing, no screenshots captured, no full Xcode; no skill run |
 | `store-listing` | kotlin+google-play | unverified, level 3 open: no fixture yet |
 | `publish-ios` | expo+app-store | unverified, level 3 open: stops at Step 1, no Apple or Expo fixture account |
-| `publish-ios` | flutter+app-store | unverified, level 3 open: not run yet |
-| `publish-ios` | xcode+app-store | unverified, level 3 open: not run yet |
+| `publish-ios` | flutter+app-store | unverified, level 3 open: stops at Step 1, no Apple fixture account; Step 2's check fails too, no full Xcode |
+| `publish-ios` | xcode+app-store | unverified, level 3 open: stops at Step 1, no Apple fixture account; Step 2's check fails too, no full Xcode |
 | `publish-web` | vite+vercel | unverified, no run recorded |
 | `publish-web` | nextjs+vercel | unverified, no run recorded |
 | `publish-web` | static+vercel | unverified, no run recorded |

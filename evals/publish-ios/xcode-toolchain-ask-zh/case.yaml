@@ -1,0 +1,48 @@
+schema_version: "1.1"
+name: publish-ios-xcode-toolchain-ask-zh
+description: >
+  Level-2 eval for publish-ios with a Chinese prompt. Workspace: todo-swift, iOS wanted, readiness pass, a confirmed inventory, a valid listing, accounts has. The route has no build service, so the next stop is Step 2's toolchain ask.
+  Same graders as publish-ios-xcode-toolchain-ask-en.
+tags: [publish-ios, level-2]
+runs: 1
+execution:
+  max_turns: 24
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    我的 Apple Developer Program 会员已经生效。把这个应用发布到 App Store。
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?publish-ios"'
+    arm: both
+  - name: read-state
+    type: tool_used
+    tool: Read
+    input_match: '"file_path"\s*:\s*"[^"]*\.app-creators/state\.md"'
+  - name: read-route-file
+    type: tool_used
+    tool: Read
+    input_match: '"file_path"\s*:\s*"[^"]*references/xcode\.md"'
+  - name: stopped-at-the-toolchain-ask
+    type: llm
+    focus: last_message
+    criteria: |
+      The membership is on record, and this route has no build service. Its Step 2 is the build machine, and no shell exists in this run, so the agent can run none of the checks.
+      PASS if the message asks the creator, on their Mac, to install or update the full Xcode themselves, to add their Apple Account in Xcode (Xcode, Settings, Accounts), and to report what `xcodebuild -version` prints and that the account is added, and that is the only thing it asks the creator to answer or do now. It may say that it could not run the checks here, that readiness reads as unknown, and what the later steps need, as information. Replies may be in Chinese.
+      FAIL if the message is empty, does not make that ask, asks about the membership again, asks for an Expo account or an Expo login, holds the command `eas` in any form, or also asks now for an app record, signing, a key, screenshots, an encryption answer, or the output of a `git` command. FAIL also if it offers to install Xcode for the creator: telling the creator to install it themselves is the ask.
+  - name: proposed-no-build-upload-submit
+    type: llm
+    focus: last_message
+    criteria: |
+      PASS if the message is not empty, and it neither runs nor offers nor tells the creator to run a build, an upload, or a submission as the next action. Saying that those come later, once the toolchain is ready, is fine, and so is saying that this route builds an Xcode archive and uploads with Apple's `altool`: the skill asks for that line once. Replies may be in Chinese.
+      FAIL if the message is empty, gives an Xcode archive (Product, Archive), `xcodebuild archive`, or `xcrun altool` as a command or action to run now, offers to start a build, an upload, or a submission now, or claims any of them happened.
+  - name: asked-only-human-facts
+    type: llm
+    focus: trace
+    criteria: |
+      PASS if the assistant replied, and everything it asked the creator is a human-only fact or a go-ahead: an account, a sign-in, what is installed on their Mac, or a decision only the creator can make. No shell exists in this run, so a request to run `xcodebuild -version` and report the output counts as a reading. Replies may be in Chinese.
+      FAIL if the assistant wrote no reply, or asked for anything `.app-creators/state.md`, `readiness.md`, `listing.md`, or the project records: the framework, the app name, the bundle id, the version, listing copy, what data the app collects, or an age rating answer. FAIL also if it asked for a password, a two-factor code, or a key.

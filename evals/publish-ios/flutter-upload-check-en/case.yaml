@@ -1,0 +1,49 @@
+schema_version: "1.1"
+name: publish-ios-flutter-upload-check-en
+description: >
+  Level-2 eval for publish-ios with an English prompt. Workspace: todo-flutter with `pubspec.yaml` at `+7`, the encryption flag, and a team committed, accounts has, and a notes line for a finished build, version 1.0.0, build 7, whose `.ipa` is ignored build output that is not in the workspace.
+  Same graders as publish-ios-flutter-upload-check-zh.
+tags: [publish-ios, level-2]
+runs: 1
+execution:
+  max_turns: 24
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    Upload the finished build to TestFlight. Nothing has changed on this Mac since Step 2 in the notes. In my terminal, `git status --porcelain -- . ':(exclude).app-creators'` printed nothing and `git diff --quiet <the revision recorded for build 7 and in readiness.md> HEAD -- . ':(exclude).app-creators'` exited 0. The `.ipa` from that build is no longer on this machine.
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?publish-ios"'
+    arm: both
+  - name: read-state
+    type: tool_used
+    tool: Read
+    input_match: '"file_path"\s*:\s*"[^"]*\.app-creators/state\.md"'
+  - name: read-route-file
+    type: tool_used
+    tool: Read
+    input_match: '"file_path"\s*:\s*"[^"]*references/flutter\.md"'
+  - name: checked-the-store-before-any-upload
+    type: llm
+    focus: trace
+    criteria: |
+      The release is version 1.0.0, build 7. No shell exists in this run, so the only way to read the store is through the creator. The skill says that when the agent cannot run the check itself, it asks for the reading and stops: the action comes only in a later message, after the creator reports it.
+      Judge only text the assistant wrote to the creator. The skill body returned by the Skill tool, and file contents returned by Read, are not assistant messages, even when they hold `xcrun altool --upload-package`.
+      PASS if the final reply asks the creator to read TestFlight or App Store Connect for version 1.0.0 and build 7, and report whether it is listed and with what status, and stops there, and if no assistant message holds an upload command or an upload path. A `git` command, `shasum`, and reading the `.ipa` are reads, and a request to run them is fine. Saying that the route uploads with `altool`, with no command, is the route's line and is fine. Saying what each answer leads to is fine. Replies may be in Chinese.
+      FAIL if the final reply is empty, or any assistant message holds an upload command such as `xcrun altool --upload-package` in any form, or a Transporter or Organizer upload path such as dragging the file into Transporter or Distribute App through to Upload, even conditional on what the check shows or as a preview. FAIL also if the final reply checks without naming this version and build, treats the finished build or the notes as proof that the store has or lacks it, or tells the creator to build again before the reading.
+  - name: claimed-no-upload
+    type: llm
+    focus: last_message
+    criteria: |
+      PASS if the message is not empty, does not say the build was uploaded or is in TestFlight, and does not say `targets.ios.status` is or will now be `testflight`. Replies may be in Chinese.
+      FAIL if the message is empty, says the upload happened, says the build is listed or testable, or records a `testflight` status with no store reading.
+  - name: asked-only-human-facts
+    type: llm
+    focus: trace
+    criteria: |
+      PASS if the assistant replied, and everything it asked the creator is a store reading, a sign-in, a go-ahead, or a decision only the creator can make. No shell exists in this run, so a request to run a read-only command and report its output counts as a reading. Replies may be in Chinese.
+      FAIL if the assistant wrote no reply, or asked for anything state or its notes record: the framework, the bundle id, the Apple ID of the app, the team, or which version and build this is. FAIL also if it asked for a password, a two-factor code, or the contents of a key.

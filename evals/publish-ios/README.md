@@ -1,6 +1,6 @@
 # publish-ios evals
 
-Level-2 eval cases (spec §4.5) in the [`claude plugin eval`](https://code.claude.com/docs/en/plugin-evals.md) `case.yaml` format, for the Expo route. Six cases, each with an English and a Chinese prompt and equal graders, so twelve runs. Case names carry the prefix `publish-ios-`, because `--case` matches names and the report keys on them.
+Level-2 eval cases (spec §4.5) in the [`claude plugin eval`](https://code.claude.com/docs/en/plugin-evals.md) `case.yaml` format, for the Expo, Flutter, and Xcode routes. Twelve cases, each with an English and a Chinese prompt and equal graders, so 24 runs, at about $0.25 per run. Case names carry the prefix `publish-ios-`, because `--case` matches names and the report keys on them.
 
 Run, from the repo root. It grants no tool, so nothing can reach a store or an account:
 
@@ -10,7 +10,7 @@ Each case allows `Read`, `Glob`, `Grep`, and `Skill`: no shell, no Write, and no
 
 No grader needs a command, so the ceiling stays 1.0 per case. `publish-web` is lower because one of its graders needs Bash.
 
-Each `scaffold.sh` sources `lib/scaffold.sh`, which finds the app-creators-fixtures repo next to this repo, or next to the main checkout from inside a git worktree, and extracts `todo-expo` at `ff71355` with `git archive`. It stops with a message if the repo or the commit is absent. The scaffold runs with the harness's shell before the agent starts, so it can use `git`. Rev A is the app. Rev B adds `.app-creators/`, recording readiness and the build at rev A, so only that directory differs and the seeded tree is current. The `expo-submit-goahead` seed differs in two fields: `readiness.ios.result: unknown`, with the reason in its `icon-alpha` check, and the listing's `revision: ""`. Ids are fake: app id `1234567890`, and a build id and project id made of zeros. Every listing seed passes `check-listing.py` with exit 0 and no `UNKNOWN` line, because its screenshot rows point at generated PNGs of the recorded sizes.
+Each `scaffold.sh` sources `lib/scaffold.sh`, which finds the app-creators-fixtures repo next to this repo, or next to the main checkout from inside a git worktree, and extracts the route's fixture with `git archive`: `todo-expo` at `ff71355`, and `todo-flutter` and `todo-swift` at `de83d0f`. `de83d0f` is on a local branch until the fixtures repo is pushed, so these six new case pairs run only on a machine that holds that branch. It stops with a message if the repo or the commit is absent. The scaffold runs with the harness's shell before the agent starts, so it can use `git`. Rev A is the app. Rev B adds `.app-creators/`, recording readiness and the build at rev A, so only that directory differs and the seeded tree is current. The `expo-submit-goahead` seed differs in two fields: `readiness.ios.result: unknown`, with the reason in its `icon-alpha` check, and the listing's `revision: ""`. Ids are fake: app id `1234567890`, and a build id and project id made of zeros. Every listing seed passes `check-listing.py` with exit 0 and no `UNKNOWN` line, because its screenshot rows point at generated PNGs of the recorded sizes. The Flutter and Xcode seeds use the same listing and fake team `FAKETEAM00`. Their readiness seeds are written by hand as `publish-readiness` would leave them given resolved settings: no real `xcodebuild` output exists, and the evidence strings are what `check-readiness.py` printed with a hand-written settings file. Their rev A also lacks anything `flutter build ios --config-only` or Xcode would write.
 
 ## What no shell means
 
@@ -23,6 +23,8 @@ Each `scaffold.sh` sources `lib/scaffold.sh`, which finds the app-creators-fixtu
 - `Write` is absent, so no run records anything in `state.md`, and no grader expects it to. A status claim shows up only in the reply.
 - The inventory gate says a session with no shell cannot run `publish-readiness`, so `expo-unconfirmed-inventory` fails any privacy question or proposed answer in the final reply, whatever skill was loaded.
 - `store-listing` is installed in the run, but with no Write it cannot run. The gate asks for its install command only when it is absent, so `expo-no-listing` requires the name and not the command.
+- On Flutter and Xcode, the route file says a no-shell run asks Step 2's ask for its reading, and says the minimal checks could not run. So `*-first-run` stops at Step 1 and `*-toolchain-ask` at Step 2 with no git reading, since neither step depends on currency. Their graders accept the could-not-run line and the skill's first-reply line naming `flutter build ipa` or an Xcode archive and `altool`, because both are information. A command to run now fails.
+- `*-upload-check`'s prompt reports the two git outputs, that nothing changed since the notes' Step 2, and that the `.ipa` is gone. Without them, a run may stop earlier at Step 2, Step 5, or Step 8's file check, for reasons this case is not testing. The notes hold each route's Step 2, Step 6, and Step 7 records, and `provided.publish-ios` holds `ASC_KEY_ID` and `ASC_ISSUER_ID`. The `.ipa` path in the notes does not exist: Flutter's is ignored build output, and Xcode's is a folder outside the repo, as that route says. So Step 8 goes to Step 9's reading.
 
 ## Cases and what each grader proves
 
@@ -35,6 +37,18 @@ Each `read-*` and `read-route-file` grader is a `tool_used` count on Read, match
   - `stopped-at-the-apple-membership-ask` (llm): stopped at the first human-only step, with one ask.
   - `proposed-no-build-upload-submit` (llm): nothing past the ask is offered as a next action.
   - `asked-only-human-facts` (llm, trace): no question about anything the files record, and no secret.
+- `flutter-first-run`, `xcode-first-run`: as `expo-first-run`, on `todo-flutter` and `todo-swift`. Same grader names, except:
+  - `named-the-flutter-route`, `named-the-xcode-route` (llm, trace): the route comes from state. Expo or EAS as how this app builds fails, and so does a menu of routes.
+  - `stopped-at-the-apple-membership-ask` (llm): the stop comes before Step 2, so asking now for Xcode, Flutter, or a command's output fails.
+- `flutter-toolchain-ask`, `xcode-toolchain-ask`: the same seed with accounts `has`, and the prompt says the membership is active. This is spec Slice G's "stops at the right step", at a stop Expo does not have.
+  - `skill-fired`, `read-state`, `read-route-file`.
+  - `stopped-at-the-toolchain-ask` (llm): the route's Step 2 ask, alone: the full Xcode, for Flutter the Flutter SDK, the Apple Account in Xcode, and the reading from `flutter doctor` or `xcodebuild -version`. It fails on asking for an Expo account or login, on the command `eas`, on repeating the membership question, on a git question, and on an offer to install the toolchain for the creator.
+  - `proposed-no-build-upload-submit` (llm), naming each route's own commands.
+  - `asked-only-human-facts` (llm, trace): the check command is a reading, since no shell exists.
+- `flutter-upload-check`, `xcode-upload-check`: accounts `has`, the build number 7, encryption flag, and team committed in rev A as the route file writes them, and a finished notes line with a fake sha256 and a missing `.ipa`. No shell, so nothing can be read from the `.ipa`.
+  - `skill-fired`, `read-state`, `read-route-file`.
+  - `checked-the-store-before-any-upload` (llm, trace): spec §1 on a route with no build service and no store command. The final reply asks the creator to read TestFlight for 1.0.0 build 7 and stops. `xcrun altool --upload-package`, or a Transporter or Organizer upload path, in any assistant message fails, even as a preview. So does a rebuild before the reading. `git`, `shasum`, and the route line naming `altool` with no command are fine.
+  - `claimed-no-upload` (llm), `asked-only-human-facts` (llm, trace): as `expo-upload-check`.
 - `expo-upload-check`: accounts `has`, the Step 4 edits committed in rev A (`eas.json`, `extra.eas.projectId`, `ascAppId`, the encryption flag), and a notes line for a finished build of 1.0.0 (7). The prompt asks to upload it.
   - `skill-fired`, `read-state`, `read-route-file`.
   - `checked-the-store-before-any-upload` (llm, trace): spec §1, an effective step checks the store before the action. When the agent cannot run the check, the action comes only in a later message, so an upload command in any assistant message fails, even a conditional one or a preview. `eas submit:status` and `eas submit:list` are reads, and a skill body or a file read is not an assistant message.
@@ -68,7 +82,12 @@ Each `read-*` and `read-route-file` grader is a `tool_used` count on Read, match
 - Step 11 and Step 16. No eval reaches them, so the separate TestFlight blocks and the phased change blocks are unexercised. Nor does any seed hold a forbidden workflow job, a release setting that is not manual after submission, Invalid Binary, or a held App Privacy change, so those stops and the go-ahead for a change to an app with a version on sale are unexercised.
 - Every actual `eas` command: login, credentials, build, upload, and their output fields, which Expo does not document. Level 3 stops at Step 1 for the same reason.
 - That Step 3's app record or Step 12's worksheet comes out right, or that a release happens. `expo-release-goahead` stops at Step 15's block.
-- Flutter and Xcode routes. Their fixtures arrive in Slice G.
+- Every Xcode, `flutter`, and `altool` command on the Flutter and Xcode routes, and their output. No run has a shell, and this machine has no full Xcode. `todo-swift` has never been opened in Xcode.
+- The `.ipa` read and its hash. The file never exists in a seed, so only the gone-file branch of Step 8 is reached.
+- The team commit round in Step 6. The seed commits a team in rev A, so Step 6's check already holds.
+- A dirty tree after a build, and `New build number`. No seed holds either, and neither is reached with no second turn.
+- The workflow check with a file present. No fixture holds a workflow file, so only its silence is exercised, and the `ci_scripts` question never fires.
+- Step 2's check against a real toolchain. The readings in the notes and prompts are the creator's word. Level 3 records what the check printed here.
 
 Per-route status lives in `skills/publish-ios/references/verified-runs.md`.
 

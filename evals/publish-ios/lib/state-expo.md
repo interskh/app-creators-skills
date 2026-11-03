@@ -52,7 +52,7 @@ provided:
     privacy_policy_url: "https://example.com/todo/privacy"
     support_email_env: ""
 history:
-  - { skill: app-creators, version: "0.1.3", date: 2026-11-03, result: ok }
+  - { skill: app-creators, version: "0.1.4", date: 2026-11-03, result: ok }
   - { skill: publish-readiness, version: "0.2.0", date: 2026-11-03, result: __RESULT__ }
 ---
 

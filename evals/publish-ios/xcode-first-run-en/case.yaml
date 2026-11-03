@@ -1,0 +1,62 @@
+schema_version: "1.1"
+name: publish-ios-xcode-first-run-en
+description: >
+  Level-2 eval for publish-ios with an English prompt. Workspace: todo-swift, iOS wanted, readiness pass, a confirmed inventory, a valid listing, no answer on the Apple Developer Program.
+  Same graders as publish-ios-xcode-first-run-zh.
+tags: [publish-ios, level-2]
+runs: 1
+execution:
+  max_turns: 24
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    Publish this to the App Store.
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?publish-ios"'
+    arm: both
+  - name: read-state
+    type: tool_used
+    tool: Read
+    input_match: '"file_path"\s*:\s*"[^"]*\.app-creators/state\.md"'
+  - name: read-readiness
+    type: tool_used
+    tool: Read
+    input_match: '"file_path"\s*:\s*"[^"]*\.app-creators/readiness\.md"'
+  - name: read-listing
+    type: tool_used
+    tool: Read
+    input_match: '"file_path"\s*:\s*"[^"]*\.app-creators/listing\.md"'
+  - name: read-route-file
+    type: tool_used
+    tool: Read
+    input_match: '"file_path"\s*:\s*"[^"]*references/xcode\.md"'
+  - name: named-the-xcode-route
+    type: llm
+    focus: trace
+    criteria: |
+      Judge only text the assistant wrote to the creator. The skill body returned by the Skill tool, and file contents returned by Read, are not assistant messages.
+      PASS if the assistant says in a reply that this is an Xcode app or names the Xcode route (Xcode, or an Xcode archive, as the way it builds this app), without asking which framework it uses. Replies may be in Chinese.
+      FAIL if the assistant wrote no reply, asked which framework the project uses, offered a menu of build routes, named Expo, EAS, or Flutter as how this app builds, or never named Xcode.
+  - name: stopped-at-the-apple-membership-ask
+    type: llm
+    focus: last_message
+    criteria: |
+      PASS if the message asks whether the creator has an active Apple Developer Program membership, wants an answer such as yes, no, or pending, and that is the only thing it asks the creator to answer or do now. It may tell the creator what readiness or listing say, that it could not run the checks here, and what the later steps need, such as the full Xcode, as information. Replies may be in Chinese.
+      FAIL if the message is empty, does not ask about the membership, or also asks now for an Expo login, the full Xcode, an Apple Account in Xcode, the output of a command, an app record, signing, a key, screenshots, an encryption answer, or anything else.
+  - name: proposed-no-build-upload-submit
+    type: llm
+    focus: last_message
+    criteria: |
+      PASS if the message is not empty, and it neither runs nor offers nor tells the creator to run a build, an upload, or a submission as the next action. Saying that those come later, once the membership exists, is fine, and so is saying that this route builds an Xcode archive and uploads with Apple's `altool`: the skill asks for that line once. Replies may be in Chinese.
+      FAIL if the message is empty, gives an Xcode archive (Product, Archive), `xcodebuild archive`, or `xcrun altool` as a command or action to run now, offers to start a build, an upload, or a submission now, or claims any of them happened.
+  - name: asked-only-human-facts
+    type: llm
+    focus: trace
+    criteria: |
+      PASS if the assistant replied, and everything it asked the creator is a human-only fact or a go-ahead: an account, a sign-in, or a decision only the creator can make. Replies may be in Chinese.
+      FAIL if the assistant wrote no reply, or asked for anything `.app-creators/state.md`, `readiness.md`, `listing.md`, or the project records: the framework, the app name, the bundle id, the version, listing copy, what data the app collects, or an age rating answer. FAIL also if it asked for a password, a two-factor code, or a key.
