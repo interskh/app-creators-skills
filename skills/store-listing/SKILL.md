@@ -80,7 +80,7 @@ No step here is **effective**: this skill touches no external system. It creates
    - Every claim traces to Step 2's list. No invented features, numbers, awards, reviews, or other apps' or companies' names. If the app is local, do not imply sync or accounts. If a claim needs a fact no file shows, leave it out and ask in Step 7.
    - Follow `## Not checked by the script` in `references/limits.md`: the name minimum, the keyword length and the names keywords must not repeat or use, and a plain-text description with line breaks and no HTML.
    - Separate Apple `keywords` with commas and no spaces. Spaces may separate words within a phrase.
-   - Write zh as Chinese copy, for a Chinese reader, with its own order and wording, and full-width punctuation. Do not translate the en copy line by line. The App Store `keywords` limit counts bytes, so zh keywords use it up faster.
+   - Write zh as Chinese copy, for a Chinese reader, with its own order and wording, and full-width punctuation. Do not translate the en copy line by line. The App Store `keywords` limit counts bytes, so zh keywords use it up faster. The keyword rules in `## Not checked by the script` apply to zh too: each keyword must be longer than 2 characters, so `待办` is too short; write a phrase such as `待办清单`.
 
    On a rerun, keep every existing non-empty field that passes and still matches the code, word for word. Write only what is empty, fails, or no longer matches. The creator may have edited any field, so whenever you replace non-empty text, put the old and new text in the notes and show both in Step 7. Keep rows, paths, and sizes that still apply.
    Expect: copy you can defend line by line.

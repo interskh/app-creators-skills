@@ -24,7 +24,7 @@ fail() {
 FAIL $1: $2"
 }
 
-# pngh <path> <w> <h> <colour type> [trns|late]: signature and IHDR; trns adds tRNS then IDAT, late puts the bytes tRNS inside IDAT.
+# pngh <path> <w> <h> <colour type> [trns|text-idat|text-trns|big]: signature, IHDR, the variant's chunks, IDAT. big pushes IDAT past the prefix.
 pngh() {
   mkdir -p "$(dirname "$1")"
   python3 -I -c 'import struct,sys,zlib
@@ -32,8 +32,11 @@ p,w,h,c=sys.argv[1],int(sys.argv[2]),int(sys.argv[3]),int(sys.argv[4])
 x=sys.argv[5] if len(sys.argv)>5 else ""
 ch=lambda t,d:struct.pack(">I",len(d))+t+d+struct.pack(">I",zlib.crc32(t+d))
 s=b"\x89PNG\r\n\x1a\n"+ch(b"IHDR",struct.pack(">IIBBBBB",w,h,8,c,0,0,0))
+s+=ch(b"tEXt",b"note\0IDAT")+ch(b"tRNS",b"\x00") if x=="text-idat" else b""
+s+=ch(b"tEXt",b"note\0tRNS") if x=="text-trns" else b""
 s+=ch(b"tRNS",b"\x00") if x=="trns" else b""
-s+=ch(b"IDAT",b"tRNS") if x else b""
+s+=ch(b"iTXt",bytes(1<<20))+ch(b"tRNS",b"\x00") if x=="big" else b""
+s+=ch(b"IDAT",b"\x00")
 open(p,"wb").write(s)' "$@"
 }
 
@@ -512,17 +515,30 @@ for c in 0 2 3; do
   expect "no-alpha colour type $c passes" 0 '^PASS image\.s\.ex\.1:'
 done
 
+for variant in trns text-idat text-trns big; do
+  pngh "$p/a.png" 100 200 2 "$variant"
+  shot "$p" ex a.png
+  run_check "$p" --limits "$syn"
+  expect "undecided alpha, $variant" 0 '^UNKNOWN image\.s\.ex\.1: "a\.png" PNG 100x200 may hold a tRNS chunk; export without alpha$' '!^FAIL ' '!^PASS image'
+  shot "$p" loose a.png
+  run_check "$p" --limits "$syn"
+  expect "undecided alpha ignored without the token, $variant" 0 '^PASS image\.s\.loose\.1:'
+done
+pngh "$p/a.png" 100 201 2 trns
+shot "$p" ex a.png
+run_check "$p" --limits "$syn"
+expect "wrong size beats undecided alpha" 1 '^FAIL image\.s\.ex\.1: "a\.png" is 100x201' '!alpha'
 pngh "$p/a.png" 100 200 2 trns
+shot "$p" ex a.png 200x100
+run_check "$p" --limits "$syn"
+expect "wrong recorded size beats undecided alpha" 1 '^FAIL image\.s\.ex\.1: the listing records the wrong size' '!alpha'
+pngh "$p/a.png" 100 200 2
 shot "$p" ex a.png
 run_check "$p" --limits "$syn"
-expect "tRNS before IDAT is alpha" 1 '^FAIL image\.s\.ex\.1: "a\.png" has an alpha channel'
-shot "$p" loose a.png
+expect "plain colour type 2 passes" 0 '^PASS image\.s\.ex\.1: "a\.png" PNG 100x200 '
+pngh "$p/a.png" 100 200 6 trns
 run_check "$p" --limits "$syn"
-expect "tRNS allowed without the token" 0 '^PASS image\.s\.loose\.1:'
-pngh "$p/a.png" 100 200 3 late
-shot "$p" ex a.png
-run_check "$p" --limits "$syn"
-expect "tRNS bytes inside IDAT are not alpha" 0 '^PASS image\.s\.ex\.1:'
+expect "colour type 6 fails even beside tRNS" 1 '^FAIL image\.s\.ex\.1: "a\.png" has an alpha channel'
 
 jpeg "$p/j.jpg" 100 200 c0 0
 shot "$p" ex j.jpg

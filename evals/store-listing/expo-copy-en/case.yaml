@@ -55,6 +55,13 @@ graders:
       Read the copy under `stores:` in the frontmatter, in English and Chinese. The app is a to-do list that keeps its items on the device: add, tick off, delete, and attach one photo from the library to an item.
       PASS if every claim fits that. Plain marketing wording such as simple or quick is fine.
       FAIL if any field claims or implies cloud sync, backup, accounts, sharing, collaboration, reminders, notifications, widgets, search, or any other feature the app does not have, or gives an invented number, award, or review, or names another app or company as a comparison.
+  - name: keywords-longer-than-two-characters
+    type: llm
+    focus: { source: file, path: .app-creators/listing.md }
+    criteria: |
+      Read every locale's `keywords` under `app_store` in the frontmatter of the file. Split each on commas, half-width or full-width. One CJK character counts as one character.
+      PASS if each comma-separated keyword in every locale has more than 2 characters.
+      FAIL if any keyword has 2 characters or fewer, or if any `keywords` field is empty.
   - name: asks-only-human-facts
     type: llm
     focus: trace

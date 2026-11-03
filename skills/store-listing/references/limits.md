@@ -38,6 +38,8 @@
 
 `required: unverified` means the source states the limit but not whether the field is required. The script enforces the limit and reports an empty field as `UNKNOWN`. `checked: unverified` makes the whole row `UNKNOWN`.
 
+On a `no-alpha` row, PNG colour type 4 or 6 fails. Any other PNG is `UNKNOWN` when its first 1 MiB holds the bytes `tRNS` or lacks the bytes `IDAT`, because the script does not walk chunks; export without alpha.
+
 ## Not checked by the script
 
 All lines checked 2026-11-03.

@@ -20,6 +20,7 @@ Regexes read the frontmatter of `.app-creators/listing.md`. They start at the fi
   - `app-store-en`, `app-store-zh`, `google-play-en`, `google-play-zh`: each store holds each locale in the frontmatter, with its main fields written.
   - `last-check-has-no-fail-line` (llm): half of slice E's proof line, copy in en and zh passes the script.
   - `copy-claims-only-what-the-app-does` (llm): reads the file. No cloud sync, accounts, or other invented claim.
+  - `keywords-longer-than-two-characters` (llm): reads the file. Each `app_store` keyword in every locale has more than 2 characters, the rule in `limits.md`, which the script does not check.
   - `asks-only-human-facts` (llm): no question about framework, bundle id, or a secret.
   - `changed-nothing-outside-app-creators` (llm).
 - `expo-overlimit`: a valid listing committed in rev B, whose Google Play `short_description` is one over. The scaffold reads the limit from the real `limits.md`, so the seed tracks the table, and stops if the seeded words no longer fit. `check-listing.py` exits 1 on this seed. Every grader fails on the seed alone. This is the other half of the proof line, with the skill's response to it.
@@ -46,6 +47,7 @@ On a Mac without a full Xcode, `/usr/bin/git` is a shim that fails inside the ev
 - That the stores accept this copy. No store is touched, and the limits come from vendor pages rather than from a submission.
 - That the copy is good. The graders check that it is true to the app and fits; a person judges whether it sells.
 - The rerun rule on a field the creator edited, beyond the seeded case. `expo-overlimit` shows a failing field rewritten; no case edits a passing field and checks that it survives.
+- The readiness gate's `unknown`, stale, or missing branches. `expo-copy` and `expo-overlimit` hold a current `pass`, and `expo-readiness-fail` holds a current `fail`; no case exercises the other branches.
 - Flutter, Xcode, and Kotlin routes. Their fixtures arrive in Slices G and H.
 
 Per-route status lives in `skills/store-listing/references/verified-runs.md`.

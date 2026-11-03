@@ -205,7 +205,7 @@ def image_info(data):
         if len(data) < 29 or data[8:16] != b"\0\0\0\x0dIHDR" or data[25] not in (0, 2, 3, 4, 6):
             return None
         w, h = struct.unpack(">II", data[16:24])
-        return ("PNG", w, h, data[25] in (4, 6) or b"tRNS" in data[33:data.find(b"IDAT")]) if w and h else None
+        return ("PNG", w, h, data[25] in (4, 6) or (None if b"tRNS" in data or b"IDAT" not in data else False)) if w and h else None
     pos = 2 if data.startswith(b"\xff\xd8") else len(data)
     while pos + 4 <= len(data) and data[pos] == 0xFF:
         marker = data[pos + 1]
@@ -258,6 +258,8 @@ def check_image(project, n, shot, rows):
         problems.append(("the listing records the wrong size %s for %s, which is %s" % (show(shot["size"]), shown, actual), "write size %s" % actual))
     if problems:
         return "FAIL %s: %s; fix: %s" % (cid, " and ".join(p[0] for p in problems), " and ".join(p[1] for p in problems))
+    if row["no_alpha"] and alpha is None:
+        return "UNKNOWN %s: %s %s %s may hold a tRNS chunk; export without alpha" % (cid, shown, kind, actual)
     return "PASS %s: %s %s %s fits the limits row" % (cid, shown, kind, actual)
 
 def main(argv):
