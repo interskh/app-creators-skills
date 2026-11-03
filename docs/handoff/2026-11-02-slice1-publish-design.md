@@ -1956,3 +1956,16 @@ implement-loop: slice I follow-up shipped; remaining: [J]
 - Eval coverage: no case reaches a Google Play pre-submit flag, the earlier-send check, the track question, or the saved-report wait. A `target: trace` regex for click paths is still deferred.
 
 implement-loop: slice I follow-up shipped; remaining: [J]
+
+## Slice J / prerequisite
+
+Slice J needs the public repo current, so it waits for Kyle to push `main`. On 2026-11-04, local `main` was 9 commits ahead of `origin/main` (3165140), so the slice did not start.
+
+## Run close / privacy gate
+
+- Skills, `privacy-scan --range b856970..HEAD` (61 commits): exit 0. The only warning is author identity, which is contributor attribution.
+- Fixtures, `privacy-scan --range 95c2f95..a4c56a0` (3 commits): exit 0, with the same author warning.
+- Judgment pass over the added lines: no emails, no home paths, and no private repo references. The `Kyle:` lines are decision attribution. `evals/results/` is gitignored.
+- The pass found stale ROADMAP lines that told Kyle to install a JDK. Slice H found JDKs, Android Studio, and an Android SDK already on the run machine, with no JDK on `PATH`. The lines now say so, and the `apkanalyzer` half of the resolved-input check is marked as run. Dated `verified-runs.md` rows stay as recorded.
+
+implement-loop: slice J blocked-prerequisite: Kyle pushing main
