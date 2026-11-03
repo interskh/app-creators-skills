@@ -100,7 +100,7 @@
 
 6. 跑 smoke run（`ios`、`android`）。默认：`references/smoke-run.md` 里对应框架的命令。备选：无。
    执行：先查工具链。没有的话，这一项保持 `unknown`，并告诉创作者风险：只在 release 构建里出现的崩溃，要到上传之后或审核时才会暴露。工具链缺失本身不挡 `pass`。工具链齐全且工作区干净时，在 `HEAD` 的临时导出目录里运行，绝不在项目目录里运行：在项目里 prebuild 会生成原生目录，弄脏工作区，还会改变哪份配置生效。
-   `android` 平台的原生项目（Kotlin、Flutter、带真实 `android/` 目录的 Expo），在这个导出目录里完成 release 构建后，读构建产物的 manifest：`f="$(mktemp -d)/built-manifest.xml"; apkanalyzer manifest print <apk> > "$f"; echo "$f"`，bundle 则用 `bundletool dump manifest --bundle=<aab> > "$f"`。然后带上 `--resolved "$f"` 重做第 4、5 步，`package` 才可能通过。绝不传入不是这一步从当前 `HEAD` 构建出来的产物：过期的产物会造成错误的 `PASS`。没有 release 构建或没有这些工具时，`package` 保持 `UNKNOWN`，最后的回复要说明缺什么。
+   `android` 平台的原生项目（Kotlin、Flutter、带真实 `android/` 目录的 Expo），在这个导出目录里完成 release 构建后，读构建产物的 manifest：`f="$(mktemp -d)/built-manifest.xml"; apkanalyzer manifest print <apk> > "$f"; echo "$f"`，bundle 则用 `bundletool dump manifest --bundle=<aab> > "$f"`。然后带上 `--resolved "$f"` 重做第 4、5 步，`package` 才可能通过，`permissions-declared` 也由这份 manifest 决定。绝不传入不是这一步从当前 `HEAD` 构建出来的产物：过期的产物会造成错误的 `PASS`。没有 release 构建或没有这些工具时，`package` 保持 `UNKNOWN`，最后的回复要说明缺什么。
    预期：release 构建能在模拟器上启动并走完第一屏，写 `pass`；因为项目本身的原因构建或启动失败，写 `fail`；其余写 `unknown`。Flutter 不能在模拟器上跑 release 模式，它的规则见 `references/smoke-run.md`。更新两个文件。
 
 7. 汇报，然后问一次。默认：一条消息。备选：无。

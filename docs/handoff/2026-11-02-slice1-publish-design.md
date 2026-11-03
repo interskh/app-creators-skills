@@ -352,3 +352,34 @@ Every PASS now needs an authoritative input. Script at 1558 lines, tests at 1855
 - `docs/specs/2026-11-02-slice1-publish-design.md` §3.4, `docs/ROADMAP.md` (one `Kyle:` line).
 - `evals/publish-readiness/*/case.yaml` (result graders), `evals/publish-readiness/README.md`.
 - Shared surface: the script's CLI, `--expo-config` replaced by repeatable `--resolved`. Any sibling calling it must change; `store-listing` does not call it.
+
+## Slice D follow-up / gate fix round 1
+
+**Decisions**
+- The `Package.swift` and relocated-Gradle divergence with `skills/app-creators/SKILL.md` is fixed, not deferred: both now take a route and print `UNKNOWN`. The fallback reads no file content and sits at the `unknown` end of detection.
+- `app.config.json` wins over `app.json`, confirmed in `getStaticConfigFilePath` in `@expo/config`.
+- `exp.name ?? pkgName` means null falls back and an empty string does not; the script matches both. A malformed `package.json` is `UNKNOWN`, not `FAIL`.
+- `slug` is a reliable marker: `ensureConfigHasDefaultValues` always sets it, and `npx expo config --json` prints `config.exp`.
+- On Expo with a real `android/`, every detected permission is treated as `declare`, not `auto`: a built manifest is the merged result, so an absent one is a real gap there, and with no built manifest it is `UNKNOWN`. The Expo config route keeps its `how` rules.
+- The HTML read is `index.html` at the web root only; `public/index.html` is dropped, because the stated Vite limit needs that to be true.
+- A missing attribute in `src/main` is `FAIL` only when the built manifest also lacks it. A built manifest holding a reference leaves the line `UNKNOWN`, since the reference cannot be followed.
+- The test helper `built` now writes `@ref/...` label and icon, the form a real build prints, so existing `src/main` seeds still exercise `src/main`.
+- Symlinks into a scan-skipped folder use the same `_skip_dir` rule as the walk, so a link to `src/build` stays silent and a link to root `build` is `UNKNOWN`.
+
+**Rejected**
+- Vite `root` relocation: the follow-up's rule says a web manifest or HTML title decides, and reading the config is forbidden; `UNKNOWN` for every `vite.config.*` would make every Vite app unable to pass. Stated as a limit.
+- Expo auto permissions `PASS` on `launchCameraAsync()`: delete the source file and the same `PASS` prints, so source does not decide it; source can only remove the `PASS`, and `app.json`'s block list is the data.
+- A raw-only match with the key already declared stays `PASS`: the declared key is the authoritative input and a stripper error cannot make it false. The orchestrator reports this reading to the coordinator.
+- `<Text>it's</Text> // launchCameraAsync()` false `FAIL`: the rule allows a stripped-text `FAIL`; fixing it needs a parser.
+- A built manifest from another project: no field ties it to a checkout; documented instead.
+- A guard for body text joining an unclosed `<title>`: Python 3.14's parser reads the title as RCDATA, so the branch could not be tested here.
+
+**Assumptions**
+- `apkanalyzer manifest print` shows resource references as `@ref/...`; no real output was available. A literal label is what the script trusts, and a reference falls back, so a different form fails safe.
+
+**Deferred**
+- Flutter and native Expo not scanning Swift with `APPLE_APIS`, within the stated scope line.
+- Barrel re-exports, same.
+- A tracked `ios/` also listed in `.gitignore`, unverified.
+- Expo's third name fallback, the folder name when `package.json` has no `name`: the fix list says `FAIL` when neither file has one, so this `FAIL` can be stricter than Expo.
+- A `package.json` holding an `expo` object still classifies as an Expo config under E2's rule.

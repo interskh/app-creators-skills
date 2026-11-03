@@ -117,20 +117,17 @@ needed a hand-written scanner for a smaller job.
 `check-readiness.py <project> --platform ios|android|web` prints one
 `PASS`, `FAIL`, or `UNKNOWN` line per check and exits 0 when nothing
 fails, 1 on a failure, 2 on a usage or environment error. A check it
-cannot decide statically is `UNKNOWN`, never `PASS`. Expo's dynamic
-`app.config.js` is one case: the script reads `app.json`, and the skill
-runs the framework's own config command when a dynamic config exists and
-feeds the result back with `--resolved <file>`.
-
-Every `PASS` needs an authoritative input: a data format the tools
-themselves consume or emit, meaning JSON, plist, Android manifest XML, HTML,
-a web manifest, image files, and the framework's own resolved output. The
-script never interprets source that only a compiler or a build system can
-evaluate, so a Gradle file, a `.pbxproj`, an `.xcconfig`, or a JS or TS config
-is not an input. A native project with no resolved input gives `UNKNOWN` for
-the affected checks, neither `FAIL` nor `PASS`. The operator passes resolved
-output with repeatable `--resolved <file>`, and the script classifies each
-file by content: Xcode's resolved build settings, an Expo config, or the
+cannot decide statically is `UNKNOWN`, never `PASS`. Every `PASS` needs an
+authoritative input: a data format the tools themselves consume or emit,
+meaning JSON, plist, Android manifest XML, HTML, a web manifest, image files,
+and the framework's own resolved output, plus `.app-creators/state.md`, this
+skill family's own data file. The script never interprets source that only a
+compiler or a build system can evaluate, so a Gradle file, a `.pbxproj`, an
+`.xcconfig`, or a JS or TS config is not an input. A native project with no
+resolved input gives `UNKNOWN` for the affected checks, neither `FAIL` nor
+`PASS`. The skill runs the framework's own commands where it can, and passes
+their output with repeatable `--resolved <file>`; the script classifies each
+file by content as Xcode's resolved build settings, an Expo config, or the
 manifest of a built Android release.
 
 `check-readiness.py` checks only what files show: app name, bundle id or
