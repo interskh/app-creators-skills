@@ -397,3 +397,33 @@ Every PASS now needs an authoritative input. Script at 1558 lines, tests at 1855
 **Deferred**
 - `pubspec.yaml` mentioning `flutter` in prose with a root `index.html` exits 2: no `PASS`, it needs an unusual repository, and any fix would add interpretation.
 - A `<title>` inside `<body>` prints `FAIL`: rare, and not run in a browser.
+
+## Slice D follow-up / whole-run gate result
+
+Gate on `git diff 849ff80...HEAD`: full suite, one reviewer, and Codex, with two fix rounds. Both rounds are spent. The gate is not passed: one concrete false `PASS` stays open at dc338d9.
+
+Suite at dc338d9 passes: 77/77, 106/106, 48/48, 593/593, lint clean, template lint clean, manifests parse. Eval `publish-readiness-*` at 50d6e51: 8/8 at 1.00, $1.76. Eval at dc338d9: 8/8 at 1.00, $2.01. `privacy-scan --range 849ff80..HEAD` printed one author identity warning, which is contributor attribution; the full branch scan belongs to the slice loop. Script 1680 lines against about 1,000. Tests 2360 lines.
+
+What the gate proved: the three earlier open defects are gone with regression tests; no `PASS` comes from JS, TS, Gradle, pbxproj, or xcconfig; a native route with no resolved input prints `UNKNOWN` on the affected checks. Route choice was the remaining way a data file could pass when the build uses something else, and round 1 closed the cases found. Round 1 fixed 14 reviewer findings and 3 Codex findings; round 2 fixed two reviewer blockers and one Codex finding.
+
+**Open, at the cap**
+- False `PASS` `icon-sizes`: `<head><base href="https://example.invalid/assets/"><title>Demo</title><link rel="icon" href="/i.svg"></head>` with a local `i.svg`. The browser loads the icon from the other origin. `Web._base_relative` in `check-readiness.py:1251` exempts rooted references. Fix: remove `|/` from that regex, which also clears the false `FAIL` below. Reviewer and Codex found this independently.
+- False `FAIL` `icon-sizes`: the same HTML with no local file.
+- False `FAIL` `app-name`: `<head><base href="/"><title></title><link rel="manifest" href="/m.json"></head>` with `m.json` holding a name. `Web.app_name` skips the manifest whenever a `<base>` exists, so the empty title decides. It should be `UNKNOWN`.
+
+**Rejected**
+- Reviewer finding 8, Vite `root` relocation: the follow-up's rule says a web manifest or HTML title decides, reading the config is forbidden, and `UNKNOWN` for every `vite.config.*` would stop every Vite app. Stated in `references/checks.md`.
+- Codex finding 4, Expo automatic permissions: the same `PASS` prints with the source file deleted, so source does not decide it.
+- Codex finding 5, a raw-only match with the key declared stays `PASS`: the declared key is the authoritative input, and a stripper error cannot make it false. This narrows the instruction "a match only in raw text gives `UNKNOWN`" to the unsatisfied case; `UNKNOWN` there would be a false `UNKNOWN`.
+- Reviewer finding 15, `<Text>it's</Text> // launchCameraAsync()` false `FAIL`: the rule allows a stripped-text `FAIL`, and a fix needs a parser.
+
+**Deferred**
+- Script size: the rule's reviewer named no remaining source interpretation worth cutting, apart from the permission scan and API tables, which the contract allows. The file grew through rounds 1 and 2, which turned distinctions into `UNKNOWN`.
+- No resolved Xcode or Android path has run against real tool output. `-json`, `PRODUCT_TYPE`, `PLATFORM_NAME`, and the `apkanalyzer` form are assumptions. The `Kyle:` line in `docs/ROADMAP.md` holds that check.
+- A built manifest is not tied to a checkout. Flutter's default web template holds `<base>`, so Flutter web `icon-sizes` is `UNKNOWN`.
+- Flutter and native Expo do not scan Swift with `APPLE_APIS`. A barrel re-export is not detected. Both sit inside the stated scope line.
+
+**Process**
+- Advisor not called. No Fable. Kyle's `/tmp/cc-<task>.sh` Bash rule reached every agent during the run.
+
+implement-loop: slice D follow-up deferred: gate blocked at the fix cap by one open false PASS (HTML base with a rooted icon) at dc338d9; remaining: [E, F, G, H, I, J]
