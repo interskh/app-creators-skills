@@ -558,3 +558,39 @@ implement-loop: slice D follow-up shipped; remaining: [E, F, G, H, I, J]
 **Touches**: `scripts/lint-skills.sh` (new function plus a no-arg-only call before the exit), `tests/lint-skills.test.sh` (README for the temp repo, `rr_*` helpers and about 30 cases). No other rule changed.
 
 **Evidence**: tests 104/104 under /bin/bash 3.2, PATH bash 5.3, and PATH mawk 1.3.4. Mutations: 8/8 caught.
+
+## Slice E / whole-run gate
+
+Gate on `git diff 3b02272...HEAD`: full suite, one reviewer, and Codex, with two fix rounds. Both rounds are spent. Every finding taken is closed: the reviewer closed its four at c25ba17, and Codex closed its two at 6521a19. Codex did not read round 2, which changed only skill prose and one grader line.
+
+Suite at c25ba17 passes: lint tests 109/109, metrics 106/106, check-pwa 48/48, check-readiness 596/596, check-listing 208/208, lint clean, template lint clean, manifests parse. Eval `store-listing-*` at c25ba17: `evals/results/2026-11-03T02-21-34-844Z`, 6/6 at 1.00, $1.21. `store-listing-expo-overlimit-en` three more runs: `evals/results/2026-11-03T02-27-31-914Z`, 1.00, $0.44. Eval `app-creators-vite-*` at 0.1.2: `evals/results/2026-11-03T02-12-25-832Z`, 1.00 and 1.00, $0.27. All eval runs in this slice cost $6.59. `privacy-scan --range 3b02272..HEAD` printed one author identity warning, which is contributor attribution; the full branch scan belongs to the slice loop.
+
+The reviewer spot-checked `limits.md` against live pages, every fetch returned 200, and no value differed: Apple's keywords, name, subtitle, description, and promotional text; Google's 30/80/4,000, phone, feature graphic, TV banner, and automotive rows; every Apple screenshot row and the required classes. It could not confirm the Required cell for `name` and `subtitle`, because its extraction lost the column mapping.
+
+**Round 1**
+- Alpha: the byte search gave a false `PASS` and a false `FAIL`. Reviewer and Codex found this independently. A `no-alpha` PNG that is not colour type 4 or 6 is now `UNKNOWN` when `tRNS` bytes are in the prefix or `IDAT` is not.
+- Lint: outcomes such as `failed` and `unknown` verified, and a later `fail` did not override a `pass`. The latest level 4 row now decides, and only `pass` and `live` verify. `docs/SKILL-CONVENTIONS.md` states it.
+- zh keywords: a run wrote two-character keywords. Step 3 and a new grader cover it.
+- `app-creators` 0.1.2 had no level 2 result. It has now.
+
+**Round 2**
+- The keyword grader could pass on an empty run.
+- Step 8 read `size` only from a `PASS` line, which the round 1 alpha change could withhold.
+- `expo-overlimit-en` scored 0.83 at 6521a19, with last-check-has-no-fail-line votes FAIL FAIL FAIL. The trace was not kept, so the cause is inferred: the agent replied without a clean rerun after its edit. Step 6 now requires one. Four runs since scored 1.00.
+
+**Rejected**
+- A PNG chunk walk for alpha, which the reviewer proposed. Kyle's rule for this script is no added parsing, and what it cannot decide is `UNKNOWN`.
+
+**Open**
+- Script size: `check-listing.py` is 293 lines against about 250. Kyle's instruction was to stop and report rather than add parsing. It holds no parsing beyond the stated grammar. A first draft was 467 lines. The T1 report lists further cuts of about 7 lines. The only other removal the reviewer named is the `checked: unverified` branch, which no real row uses and which the unverified-row rule asks for, so it stays.
+- Residual false `PASS`: a metadata chunk over 1 MiB that holds the bytes `IDAT`, before a real `tRNS`. Accepted: the input is contrived, and the fix is the chunk walk.
+- A screenshot row with path `.` prints "resolves outside the project". The result is still `UNKNOWN`.
+- Screenshot locale rows are for Slice F: Apple scales screenshots only when the interface is the same across localizations.
+
+**Process**
+- Advisor not called. No Fable. Kyle's `/tmp/cc-<task>.sh` Bash rule reached every agent. No doer stalled.
+- The T2 doer ran a bare `git reset -q` in this worktree, against its brief. It only cleared staged changes and left a reflog entry; `HEAD` and the tree were intact.
+- T1's first draft was over budget, and the T1 doer stopped and reported, as briefed. I then changed the `required` rule: a sourced limit enforces, and `required: unverified` only leaves an empty field `UNKNOWN`. Without that, a 31-character Google `title` did not fail.
+- The orchestrator made the small T2 eval fixes and round 2 itself.
+
+implement-loop: slice E shipped c25ba17; remaining: [F, G, H, I, J]
