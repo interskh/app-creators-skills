@@ -1606,3 +1606,26 @@ implement-loop: slice H deferred: gate at the fix cap with one open eval defect 
 - Evals this round: $6.27.
 
 implement-loop: slice H follow-up shipped; remaining: [I, J]
+
+### Slice H follow-up / orchestrator close
+
+**Eval-driven clauses (6e20edf).** The follow-up evals showed two skill misses. A zh `kotlin-target-api-low` stop previewed the upload path after the fix. An iOS `expo-first-run-en` first reply asked for git output. Step 9 now says the stop gives no upload path. The iOS Current paragraph now scopes Android's "first reply asks for no git output" rule.
+
+**Recheck** of `195858d..6e20edf` (b81a5cf grader correction, 1a64669, 6e20edf): one fresh reviewer and one Codex job.
+- Codex: none.
+- Reviewer: claims 1 and 2 held. The six grader files are byte-identical, and the FAIL clause still fails any review, publish, or rollout path. Claim 3 held on Android.
+- Reviewer MAJOR: the iOS clause "names no command to run" contradicted the readiness row's install command for an absent `publish-readiness`. It could also read as banning the required route line. Fixed in 207000c to Android's wording.
+- Reviewer MINOR: the Expo CI-file checks listed only some upload forms. iOS now counts `-s` and `npx testflight` too, with the same sources [3][9] the file's table already cites. Android counts a short form of either flag. Both now count a CI step that starts a submitting `.eas/workflows/` file, whatever its own trigger says.
+- Reviewer MINOR: the zh Step 9 stop banned any preview of the steps after the fix, while en bans only the upload path. zh now matches en.
+- Reviewer also-seen, fixed on both skills: on a no-shell first run, a recorded `fail` read as not current. Nothing sent the agent back to the `now` gate once a git reading arrived. The readiness row now says: "When a later git reading shows a recorded `fail` is current, stop as in the row above."
+- Not fixed: `publish-ios/references/expo.md` lists the fastlane files that `flutter.md`'s list already holds. This is redundant, not wrong.
+
+**Process.** An eval run had started before the 207000c edits. It was stopped, and its partial output was discarded. Every number below is at 207000c.
+
+**Final check at 207000c**
+- Suite: lint tests 109/109, metrics 106/106, check-pwa 48/48, check-readiness 596/596, check-listing 226/226, `lint: 6 skills clean`, `claude plugin validate .` passed with warnings.
+- `publish-android-kotlin-target-api-low-*` ×3: 5 of 6 at 1.00 (`evals/results/2026-11-03T16-06-29-483Z`, $1.47). zh 3 of 3. en had one 0.89 on `no-upload-path`. Deferred: about one en run in six still names an upload path at the Step 9 stop.
+- `publish-ios-expo-first-run-*` ×3: 6 of 6 at 1.00 (`16-15-00-061Z`, $1.28).
+- No second recheck read 207000c, by the one-recheck bound.
+
+implement-loop: slice H follow-up shipped; remaining: [I, J]
