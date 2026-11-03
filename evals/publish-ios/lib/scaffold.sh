@@ -41,6 +41,28 @@ commit_all() {
   git -c user.name=fixture -c user.email=fixture -c commit.gpgsign=false -c core.hooksPath=/dev/null commit -q -m "$1"
 }
 
+# An in-app privacy policy link in todo-expo's App.tsx, to the URL the state seed records, so store-review's privacy policy row can clear.
+add_privacy_link() {
+  python3 -I -c '
+import re, sys
+with open(sys.argv[1], encoding="utf-8") as f:
+    url = re.search(r"^\s*privacy_policy_url: \"([^\"]+)\"$", f.read(), re.M).group(1)
+with open("App.tsx", encoding="utf-8") as f:
+    text = f.read()
+for old, new in (
+    ("  Image,\n", "  Image,\n  Linking,\n"),
+    ("const STORAGE_KEY = \x27todos\x27;\n", "const STORAGE_KEY = \x27todos\x27;\nconst PRIVACY_POLICY_URL = \x27" + url + "\x27;\n"),
+    ("      <StatusBar style=\"auto\" />\n", "      <Pressable onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}>\n        <Text style={styles.link}>Privacy policy</Text>\n      </Pressable>\n      <StatusBar style=\"auto\" />\n"),
+    ("  thumb: { width: 40, height: 40, borderRadius: 4 },\n", "  thumb: { width: 40, height: 40, borderRadius: 4 },\n  link: { color: \x27#06c\x27, paddingVertical: 8 },\n"),
+):
+    if text.count(old) != 1:
+        sys.exit("scaffold: App.tsx holds %r %d times, not 1" % (old, text.count(old)))
+    text = text.replace(old, new)
+with open("App.tsx", "w", encoding="utf-8") as f:
+    f.write(text)
+' "$lib_dir/state-expo.md"
+}
+
 # The project edits of Step 4 in references/expo.md, with fake ids.
 apply_step4_edits() {
   python3 -I -c '
@@ -160,6 +182,7 @@ for device, w, h in (("iphone_dynamic_island_medium", 1206, 2622), ("ipad_13in",
 # $1 status, $2 readiness result. Sets seed_rev. Rev A is the app with the Step 4 edits; the case commits rev B, so only .app-creators/ differs.
 seed_past_build() {
   extract_fixture todo-expo ff71355
+  add_privacy_link
   apply_step4_edits
   commit_all "app with the Step 4 edits"
   seed_rev="$(git rev-parse HEAD)"
@@ -190,6 +213,7 @@ record_review() {
 scaffold_expo_first_run() {
   local rev
   extract_fixture todo-expo ff71355
+  add_privacy_link
   commit_all "app"
   rev="$(git rev-parse HEAD)"
   write_state "$rev" unknown "" "" "" pass

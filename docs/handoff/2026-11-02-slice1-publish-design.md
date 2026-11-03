@@ -1674,3 +1674,44 @@ implement-loop: slice H follow-up shipped; remaining: [I, J]
 - New: `skills/store-review/` (SKILL.md 182 lines, `references/app-store.md`, `google-play.md`, `verified-runs.md`, template `SKILL.zh.md`).
 - Edited: `README.md`, `llms.txt`, `.claude-plugin/plugin.json`, `marketplace.json`, `docs/launch/awesome-lists.md`, `docs/ROADMAP.md`, `skills/app-creators/SKILL.md`, `SKILL.zh.md`.
 - Shared surfaces for T2 and T3: the `PRE-SUBMIT REVIEW:` contract and its `Result:` line (Step 4), the `REJECTION READING:` shape (Step 8), the message block (Step 9), the checklist ids, and the action words in each reference's Messages table. The `app-creators` row says the platform skill runs `store-review` before submitting, which holds once T2 lands.
+
+## Slice I / T2 pre-submit call in publish-ios and publish-android
+
+**Decisions**
+- The review is a gate row, "when no other gate stops the step". A step stopped by the listing or inventory gate would review stale inputs and rerun after the fix anyway. It also keeps the gate cases free of review output and turns.
+- Android runs it before a Step 12 action that goes to review and before Step 15's block, not before "publish now, with no review": that action skips Google's review.
+- "Only its latest review in this session counts", matching store-review Step 5.
+- `note` lines go before the block, so the block stays last.
+- Step 14 / Step 16: store-review owns the block for every message to a reviewer; the publish skill keeps only resubmissions. The old message blocks live only in the absent-skill fallback.
+- iOS `review.md`: metadata or server-side fix → change, then reply (default); resubmitting the same build is the alternative. Reply before appeal; resubmitting closes an open appeal. Build fix → new build from Step 8.
+- Android `review.md`: the sign-in row left the Messages table. A fix in App content (Sign-in details) or the listing is Save, then a Step 15 block. Suspension appeal route added (Policy status, Appeal).
+- Seeds: `add_privacy_link` reads the URL from `state-expo.md`, so seed and code cannot drift. Applied to every Expo seed in rev A (iOS: both extract sites; Android: `extract_route expo`).
+- Versions: publish-ios 0.2.1, publish-android 0.1.1 (frontmatter and `history` string, en and zh).
+
+**Rejected**
+- Running the review alongside the other gates to report every stop at once: it costs turns on a step that stops anyway.
+- Editing graders: none demands what the skill now forbids. Notes come before the block, and the trace graders' click-path rules still hold.
+- Raising `max_turns`: the READMEs say why 24 (12 + 12 trace window).
+- Changing `app-content.md`'s "Sign-in details (app access)": Google's target audience page (9867159) still says "instructions for app access" today. Out of this task's scope.
+
+**Assumptions**
+- The store-review checklist gives no `flag` on the seeded `todo-expo` (no sign-in, purpose string present, listing claims trace to code). Not run; check the first eval report.
+- "Installed" means the Skill tool offers `store-review`. Plugin evals auto-discover `skills/`, so it is installed in every run.
+
+**Deferred**
+- README.md and llms.txt: nothing they say became false. README's "names `publish-readiness` and `store-listing` when they are missing" is incomplete now, not false.
+- `verified-runs.md`: no row; the orchestrator adds eval rows.
+
+**Facts re-fetched 2026-11-04 (curl, HTTP 200 unless noted)**
+- Apple: distribute/app-review, overview-of-submitting-for-review, overview-of-publishing, reply-to-app-review-messages, app-and-submission-statuses, manage-a-submission-with-unresolved-issues, encryption documentation, review-status, appeal-to-the-app-review-board, bug-fix-submissions, request-expedited-review. Contact form `?topic=appeal`: 302 to Apple sign-in, fields not read.
+- Google: answers 9859654, 9859751, 9867159, 14151465, 9859350, 17118609, 2477981, 9859455, 9859655, 9842754, 15748846, and developers.google.com/android-publisher/edits.
+- Noted, not changed: answer 9859455 calls the Publishing overview section "Changes ready to send for review"; 9859654 and the skill say "Changes not yet sent for review".
+
+**Touches**
+- `skills/publish-ios/SKILL.md`, `SKILL.zh.md`, `references/review.md`; `skills/publish-android/SKILL.md`, `SKILL.zh.md`, `references/review.md`.
+- `evals/publish-ios/lib/scaffold.sh`, `evals/publish-android/lib/scaffold.sh`, both eval READMEs.
+- Shared surface: each publish skill's gate table and Step 14 / 16 text (T3 zh store-review should match the step numbers named here).
+
+**Eval cases to rerun**
+- Must: `publish-ios-expo-submit-goahead-{en,zh}`, `publish-android-expo-review-goahead-{en,zh}` (review now runs; watch turns).
+- Seed changed, should be unaffected: every other `publish-ios-expo-*` and `publish-android-expo-*` pair (first-run, upload-check, no-listing, unconfirmed-inventory, release-goahead, rollout-goahead).

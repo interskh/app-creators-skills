@@ -13,7 +13,7 @@ license: MIT
 metadata:
   stage: publish
   platform: ios
-  version: "0.2.0"
+  version: "0.2.1"
   verified: "unverified"
   verified_version: ""
   zh: SKILL.zh.md
@@ -77,7 +77,7 @@ Run every command from the project root.
 | Step 12, before the privacy form | `data_inventory.confirmed` not true, or its `revision` not current | Stop. Run `publish-readiness` if this session has a shell and can write files; otherwise name it, with the install command above if it is absent. Its rerun keeps confirmed items and asks only about new ones. Under this skill, ask no privacy question, propose no inventory or App Privacy answer, and never set `confirmed`: `publish-readiness` does that. |
 | Step 12 | `listing.md` missing, or a limit fails | Stop. Run `store-listing` if this session has a shell and can write files; otherwise name it, with `npx skills add interskh/app-creators-skills --skill store-listing` if it is absent. The limit check is below. |
 | Step 13 | listing `revision` not current | Show the listing and screenshots in full with the go-ahead block, every field of every locale, and ask whether they still match the app. |
-| Step 13 | `store-review` not installed | Say "the pre-submit review was skipped: `store-review` has not shipped", and continue to the go-ahead. |
+| Step 13, when no other gate stops it | pre-submit review | Run `store-review`'s pre-submit review for `app_store`, its Steps 2 to 4. Only its latest review in this session counts. Any `flag` line stops the step as a gate does: list each `flag` with its fix. Show its `note` lines in the message with the block, before the block. Absent skill: say "the pre-submit review was skipped: `store-review` is not installed", give `npx skills add interskh/app-creators-skills --skill store-review`, and continue to the go-ahead. |
 
 **A stop with a version in review.** When the workflow check or a readiness `fail` stops the run, and state (`targets.ios.status: review`, the latest `history` row, or the notes) or the creator shows a version waiting for or in App Review, the stop message also says in plain words that approval could publish that version with no further yes, unless its App Store Version Release setting, read from the store in this session for this submission, shows "Manually release this version". A setting in the notes or from an earlier session does not count. With no such reading, also ask for it in that message. Take no other action.
 
@@ -196,7 +196,7 @@ Every step below is marked **human-only**, **effective**, or **go-ahead**, excep
     Proof: the creator reports Waiting for Review or In Review for this identity. Record `targets.ios.status: review`, or keep `live` if a version is on sale.
 
 14. Read the review. Default: the creator reports the status. Alternative: Apple's status emails.
-    Run: state the time Apple gives in `references/review.md`, and stop. A later session asks for the status and maps it per `references/statuses.md`. On a rejection, read `references/review.md`: a resubmission is a new Step 13 with a new block. A reply, a bug-fix acceptance, an appeal, and any other message to App Review each reach a reviewer, so each is a **go-ahead** with its own block, in the words that file gives, and its route comes only after the yes. Proof: the creator reports it sent. `store-review` has not shipped; say so.
+    Run: state the time Apple gives in `references/review.md`, and stop. A later session asks for the status and maps it per `references/statuses.md`. On a rejection, run `store-review`'s rejection reading on the message. It names the guideline, the fix, and the route, and it holds the go-ahead block for every message to App Review, so this skill shows no block for one. A resubmission stays this skill's: a new Step 13 with a new block, from Step 8 when code changed. A fix in App Store Connect or on the server, such as demo credentials, is a change and then a reply, with no resubmission. Absent skill: name it with `npx skills add interskh/app-creators-skills --skill store-review`, and read `references/review.md`. Then a reply, a bug-fix acceptance, an appeal, and any other message to App Review each reach a reviewer, so each is a **go-ahead** with its own block, in the words that file gives, and its route comes only after the yes. Proof: the creator reports it sent.
 
 15. **go-ahead** Release to the public. Default: manual release from Pending Developer Release. Alternative: phased release for a version update, per `references/release.md`.
     Check first: ask for this version's app status and the build number in its Build section. On a version update, also ask what its Phased Release for Automatic Updates section shows.
@@ -244,7 +244,7 @@ Read the whole frontmatter, change only these fields, and write the whole frontm
 - `accounts.apple_developer`: `has`, `missing`, or `pending`, from Step 1. Provided by the creator; never overwrite it without asking.
 - `tools.*`: only if the route chose one.
 - `provided.publish-ios.*`: env var names only, as the route file lists them.
-- `history`: append `{ skill: publish-ios, version: "0.2.0", date: <YYYY-MM-DD>, result: "<outcome>: app_store <asc_app_id> <version> (<build number>)" }`, with Apple's status text as the outcome, for example `"Waiting for Review: app_store 1234567890 1.0.0 (7)"`. For a stop before an identity exists, use `"stopped: <step>"`. Never edit a row.
+- `history`: append `{ skill: publish-ios, version: "0.2.1", date: <YYYY-MM-DD>, result: "<outcome>: app_store <asc_app_id> <version> (<build number>)" }`, with Apple's status text as the outcome, for example `"Waiting for Review: app_store 1234567890 1.0.0 (7)"`. For a stop before an identity exists, use `"stopped: <step>"`. Never edit a row.
 - Free text goes in the notes below the frontmatter: the build revision, its clean-tree record, the locale mapping, a release setting read after submission, a held App Privacy change, an Invalid Binary build, and why the run stopped.
 
 Tell the creator to commit `.app-creators/`; it holds no secrets, and the next run reads it.

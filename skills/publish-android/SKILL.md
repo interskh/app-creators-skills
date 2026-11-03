@@ -15,7 +15,7 @@ license: MIT
 metadata:
   stage: publish
   platform: android
-  version: "0.1.0"
+  version: "0.1.1"
   verified: "unverified"
   verified_version: ""
   zh: SKILL.zh.md
@@ -80,7 +80,7 @@ Run every command from the project root.
 | Step 11, before the Data safety form | `data_inventory.confirmed` not true, or its `revision` not current | Stop. Run `publish-readiness` if this session has a shell and can write files; otherwise name it, with the install command above if it is absent. Ask no privacy question, propose no inventory or Data safety answer, and never set `confirmed`: `publish-readiness` does that. Do not describe the questions it will ask, and point to no file, listing text, or item as a hint toward an answer. |
 | Step 11 | `listing.md` missing, or a limit fails | Stop. Run `store-listing` if this session has a shell and can write files; otherwise name it, with `npx skills add interskh/app-creators-skills --skill store-listing` if it is absent. The limit check is below. |
 | Steps 12 and 15 | listing `revision` not current | Show the listing and graphics in full with the go-ahead block, every field of every locale, and ask whether they still match the app. |
-| Step 15 | `store-review` not installed | Say "the pre-submit review was skipped: `store-review` has not shipped", and continue to the go-ahead. |
+| Steps 12 and 15, before a send for review, when no other gate stops the step | pre-submit review | Before a Step 12 action that goes to review, and before Step 15's block, run `store-review`'s pre-submit review for `google_play`, its Steps 2 to 4. Only its latest review in this session counts. Any `flag` line stops the step as a gate does: list each `flag` with its fix. Show its `note` lines in the message with the block, before the block. Absent skill: say "the pre-submit review was skipped: `store-review` is not installed", give `npx skills add interskh/app-creators-skills --skill store-review`, and continue to the go-ahead. |
 
 **A stop with changes in review.** When the workflow check or a readiness `fail` stops the run, and state (`targets.android.status: review`, the latest `history` row, or the notes) or the creator shows changes in review, the stop message also says in plain words: Google publishes approved changes automatically unless managed publishing is on, as read from the Publishing overview in this session for this app. A reading from the notes or an earlier session does not count. With no such reading, also ask for it in that message. Take no other action.
 
@@ -203,7 +203,7 @@ Every step below is marked **human-only**, **effective**, or **go-ahead**, excep
     Proof: the rows sit in "Changes in review", or the submission is In review. Record `review`, or keep `live`.
 
 16. Read the review. Default: the creator reports the status. Alternative: Google's email.
-    Run: state the times in `references/review.md`, and stop. A later session asks for the status and maps it per `references/statuses.md`. On a rejection, read `references/review.md`: a resubmission is a new Step 15 block. An appeal reaches Google, so it is a **go-ahead** with its own block, in the words that file gives.
+    Run: state the times in `references/review.md`, and stop. A later session asks for the status and maps it per `references/statuses.md`. On a rejection, run `store-review`'s rejection reading on the message. It names the policy, the fix, and the route, and it holds the go-ahead block for an appeal, so this skill shows no block for one. A resubmission stays this skill's. A fix in App content, such as Sign-in details, or in the listing: the creator changes it and Saves, and a new Step 15 block sends it for review, with no message to Google. A fix in code: a new build from Step 8. Absent skill: name it with `npx skills add interskh/app-creators-skills --skill store-review`, and read `references/review.md`. Then an appeal reaches Google, so it is a **go-ahead** with its own block, in the words that file gives.
 
 17. **go-ahead** Publish changes. Default: Publishing overview, Publish changes. Alternative: none.
     Check first: ask for the three sections' rows. "Changes in review" must be empty. Published, with production holding this version code and no rollout change waiting on the Publishing overview, reuses the step. A production release under "Changes ready to publish" with a different version code: stop, name both, and say a yes here would publish that build, not this one.
@@ -245,7 +245,7 @@ Read the whole frontmatter, change only these fields, and write the whole frontm
 - `targets.android.package`: from Step 3.
 - `accounts.google_play`: `has`, `missing`, or `pending`, from Step 1. Provided by the creator; never overwrite it without asking.
 - `provided.publish-android.*`: env var names only, as the route file lists them.
-- `history`: append `{ skill: publish-android, version: "0.1.0", date: <YYYY-MM-DD>, result: "<outcome>: google_play <package> <version name> (<version code>) <track>" }`, with Google's status text as the outcome, for example `"In review: google_play com.example.app 1.0.0 (7) production"`. For a stop before an identity exists, use `"stopped: <step>"`. Never edit a row.
+- `history`: append `{ skill: publish-android, version: "0.1.1", date: <YYYY-MM-DD>, result: "<outcome>: google_play <package> <version name> (<version code>) <track>" }`, with Google's status text as the outcome, for example `"In review: google_play com.example.app 1.0.0 (7) production"`. For a stop before an identity exists, use `"stopped: <step>"`. Never edit a row.
 - Free text goes in the notes below the frontmatter: the build revision, its clean-tree record, the target API reading, the `Upload:` lines, the locale mapping, the managed publishing reading, and why the run stopped.
 
 Tell the creator to commit `.app-creators/`; it holds no secrets, and the next run reads it.

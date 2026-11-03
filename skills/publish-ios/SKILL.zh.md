@@ -54,7 +54,7 @@
 | 第 12 步，隐私表单之前 | `data_inventory.confirmed` 不是 true，或者它的 `revision` 不是当前的 | 停下。这次会话有 shell、能写文件时，运行 `publish-readiness`；否则说出它，它没安装时再加上上面的安装命令。重跑会保留已确认的条目，只问新增的。在这个 skill 里，不问任何隐私问题，不提议清单内容或 App Privacy 答案，也绝不设置 `confirmed`：这些都由 `publish-readiness` 来做。 |
 | 第 12 步 | 没有 `listing.md`，或者某项限制不通过 | 停下。这次会话有 shell、能写文件时，运行 `store-listing`；否则说出它，它没安装时再加上 `npx skills add interskh/app-creators-skills --skill store-listing`。限制检查见下。 |
 | 第 13 步 | listing 的 `revision` 不是当前的 | 随 go-ahead block 完整展示文案和截图，每个语言的每个字段都要有，并问它们是否还和应用相符。 |
-| 第 13 步 | 没装 `store-review` | 说“提交前审查已跳过：`store-review` 暂未提供”，然后继续到 go-ahead。 |
+| 第 13 步，没有别的关口挡住时 | 提交前审查 | 运行 `store-review` 针对 `app_store` 的提交前审查，也就是它的第 2 到 4 步。只认本次会话里它最新的一次审查。只要有一行 `flag`，这一步就像被关口挡住一样停下：逐条列出每个 `flag` 和它的修复办法。它的 `note` 行放进出 block 的那条消息里，排在 block 前面。这个 skill 没装时，说“提交前审查已跳过：没有安装 `store-review`”，给出 `npx skills add interskh/app-creators-skills --skill store-review`，然后继续到 go-ahead。 |
 
 **停下时有版本在审核中。** workflow 检查或 readiness 的 `fail` 让这次运行停下，而 state（`targets.ios.status: review`、最新的 `history` 行或备注）或创作者说明有版本正在等待审核或审核中时，停下的消息里还要直白地说：审核一通过，这个版本就可能发布，不会再问他；除非本次会话针对这次提交从商店读到的 App Store Version Release 设置显示 "Manually release this version"。备注里的设置或之前会话读到的设置都不算。没有这样的读取时，还要在这条消息里问。不做其他任何动作。
 
@@ -173,7 +173,7 @@ Reply "yes" to do this for exactly this release. Anything else stops here.
     证据：创作者报告这个身份的状态是 Waiting for Review 或 In Review。记 `targets.ios.status: review`；有在售版本时保持 `live`。
 
 14. 读取审核结果。默认：创作者报告状态。备选：Apple 的状态邮件。
-    执行：说出 `references/review.md` 里 Apple 给的时间，然后停下。之后的会话询问状态，按 `references/statuses.md` 对应。被拒时读 `references/review.md`：重新提交是一次新的第 13 步，要出新的 block。回复、接受 bug 修复的提议、申诉，以及发给 App Review 的其他消息，都会到审核人员手里，所以每一项都是 **go-ahead**，单独出 block，动作按那个文件的原文写，途径要等 yes 之后才给。证据：创作者报告已发出。`store-review` 暂未提供，要说明。
+    执行：说出 `references/review.md` 里 Apple 给的时间，然后停下。之后的会话询问状态，按 `references/statuses.md` 对应。被拒时，用 `store-review` 的被拒解读来读这条消息。它会指出是哪条指南、怎么修、走哪条途径；每一条发给 App Review 的消息，都由它出 go-ahead block，所以本 skill 不再为这些消息出 block。重新提交仍归本 skill：是一次新的第 13 步，要出新的 block；改了代码就从第 8 步开始。在 App Store Connect 里或服务器上就能修好的问题，比如演示账号，先改好再回复，不用重新提交。这个 skill 没装时，说出它并给出 `npx skills add interskh/app-creators-skills --skill store-review`，然后读 `references/review.md`。这时回复、接受 bug 修复的提议、申诉，以及发给 App Review 的其他消息，都会到审核人员手里，所以每一项都是 **go-ahead**，单独出 block，动作按那个文件的原文写，途径要等 yes 之后才给。证据：创作者报告已发出。
 
 15. **go-ahead** 向公众发布。默认：从 Pending Developer Release 手动发布。备选：版本更新用分阶段发布，见 `references/release.md`。
     先查：问这个版本的 app status 和 Build 部分的 build number。版本更新时，还要问 Phased Release for Automatic Updates 部分显示什么。
@@ -221,7 +221,7 @@ Reply "yes" to do this for exactly this release. Anything else stops here.
 - `accounts.apple_developer`：`has`、`missing` 或 `pending`，来自第 1 步。这是创作者提供的；不问过绝不覆盖。
 - `tools.*`：路线选了工具才写。
 - `provided.publish-ios.*`：只写环境变量名，按路线文件列的。
-- `history`：追加 `{ skill: publish-ios, version: "0.2.0", date: <YYYY-MM-DD>, result: "<outcome>: app_store <asc_app_id> <version> (<build number>)" }`，outcome 写 Apple 的状态文字，例如 `"Waiting for Review: app_store 1234567890 1.0.0 (7)"`。身份还没有就停下时，写 `"stopped: <step>"`。绝不修改已有的行。
+- `history`：追加 `{ skill: publish-ios, version: "0.2.1", date: <YYYY-MM-DD>, result: "<outcome>: app_store <asc_app_id> <version> (<build number>)" }`，outcome 写 Apple 的状态文字，例如 `"Waiting for Review: app_store 1234567890 1.0.0 (7)"`。身份还没有就停下时，写 `"stopped: <step>"`。绝不修改已有的行。
 - 自由文字写在 frontmatter 下方的备注里：构建 revision、代码树干净的记录、语言对应关系、提交之后读到的发布设置、留着的 App Privacy 改动、Invalid Binary 的构建，以及这次运行停下的原因。
 
 请创作者 commit `.app-creators/`：里面没有 secret，下次运行要读。
