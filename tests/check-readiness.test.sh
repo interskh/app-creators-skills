@@ -1925,21 +1925,31 @@ variant static base-href
 put "$dir/index.html" '<head><base href="/assets/"><title>Demo</title><link rel="icon" href="i.svg"></head>\n'
 put "$dir/assets/i.svg" '<svg/>\n'
 run_check "$dir" --platform web
-expect "beside a <base>: a relative icon is UNKNOWN, and the title decides" 0 '^PASS app-name: "Demo" from index.html' '^UNKNOWN icon-sizes: "i.svg" is relative beside a <base>' '!^FAIL ' '!^PASS icon-sizes: '
+expect "beside a <base>: a relative icon is UNKNOWN, and the title decides" 0 '^PASS app-name: "Demo" from index.html' '^UNKNOWN icon-sizes: "i.svg" is relative or rooted beside a <base>' '!^FAIL ' '!^PASS icon-sizes: '
 put "$dir/site.json" '{"name":"Linked"}\n'
 put "$dir/index.html" '<head><base href="/assets/"><link rel="manifest" href="site.json"><link rel="icon" sizes="32x32" href="/favicon.png"></head>\n'
 run_check "$dir" --platform web
-expect "beside a <base> with no title: app-name is UNKNOWN, and a relative manifest link too" 0 '^UNKNOWN app-name: index.html has a <base> and no <title>' '^UNKNOWN icon-sizes: "site.json" is relative beside a <base>' '!Linked' '!^(PASS|FAIL) (app-name|icon-sizes)'
+expect "beside a <base> with no title: app-name is UNKNOWN, and a relative manifest link too" 0 '^UNKNOWN app-name: index.html has a <base> and no non-empty <title>' '^UNKNOWN icon-sizes: "site.json" is relative or rooted beside a <base>' '!Linked' '!^(PASS|FAIL) (app-name|icon-sizes)'
 put "$dir/index.html" '<head><base href="/assets/"><title>Demo</title><link rel="manifest" href="/site.json"><link rel="icon" sizes="32x32" href="/favicon.png"></head>\n'
 run_check "$dir" --platform web
-expect "beside a <base>: the title decides over a rooted manifest, and a rooted icon is read" 0 '^PASS app-name: "Demo" from index.html' '^PASS icon-sizes: ' '!Linked'
+expect "beside a <base>: the title decides over a rooted manifest, and a rooted icon is UNKNOWN" 0 '^PASS app-name: "Demo" from index.html' '^UNKNOWN icon-sizes: .*"/favicon.png" is relative or rooted beside a <base>' '!Linked' '!^(PASS|FAIL) icon-sizes'
+put "$dir/i.svg" '<svg/>\n'
+put "$dir/index.html" '<head><base href="https://example.invalid/assets/"><title>Demo</title><link rel="icon" href="/i.svg"></head>\n'
+run_check "$dir" --platform web
+expect "a <base> on another origin: a local file of the same rooted name does not pass" 0 '^UNKNOWN icon-sizes: "/i.svg" is relative or rooted beside a <base>' '!^(PASS|FAIL) icon-sizes'
+rm -f "$dir/i.svg"
+run_check "$dir" --platform web
+expect "a <base> on another origin: a missing local file does not fail" 0 '^UNKNOWN icon-sizes: "/i.svg" is relative or rooted beside a <base>' '!^FAIL '
+put "$dir/index.html" '<head><base href="/"><title></title><link rel="manifest" href="/site.json"></head>\n'
+run_check "$dir" --platform web
+expect "a <base> with an empty title: app-name is UNKNOWN" 0 '^UNKNOWN app-name: index.html has a <base> and no non-empty <title>' '!^(PASS|FAIL) app-name'
 put "$dir/index.html" '<head><title>Demo</title><link rel="icon" sizes="32x32" href="favicon.png"></head><body><base href="/assets/"></body>\n'
 run_check "$dir" --platform web
 expect "a <base> after the head does not count" 0 '^PASS icon-sizes: '
 variant flutter base-template
 sub "$dir/web/index.html" '<title>Todo</title>' '<base href="$FLUTTER_BASE_HREF"><title>Template</title>'
 run_check "$dir" --platform web
-expect "flutter web template: <base> makes relative links UNKNOWN, and the title decides" 0 '^PASS app-name: "Template" from index.html' '^UNKNOWN icon-sizes: .*relative beside a <base>' '!^FAIL '
+expect "flutter web template: <base> makes relative links UNKNOWN, and the title decides" 0 '^PASS app-name: "Template" from index.html' '^UNKNOWN icon-sizes: .*relative or rooted beside a <base>' '!^FAIL '
 
 # ---- A declared web icon must be an image ---------------------------------------
 

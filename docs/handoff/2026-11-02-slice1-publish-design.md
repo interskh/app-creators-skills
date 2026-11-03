@@ -427,3 +427,15 @@ What the gate proved: the three earlier open defects are gone with regression te
 - Advisor not called. No Fable. Kyle's `/tmp/cc-<task>.sh` Bash rule reached every agent during the run.
 
 implement-loop: slice D follow-up deferred: gate blocked at the fix cap by one open false PASS (HTML base with a rooted icon) at dc338d9; remaining: [E, F, G, H, I, J]
+
+## Slice D follow-up / orchestrator fix past the cap
+
+The coordinator closed the open `<base>` defects with one fail-closed change, past the two-round cap, because it only removes interpretation. A rooted link beside a `<base>` is now `UNKNOWN`, like a relative one, and a `<base>` with an empty title leaves `app-name` `UNKNOWN`. This covers the open false `PASS` and both false `FAIL`s above.
+
+Evidence: `tests/check-readiness.test.sh` 596/596 under bash 3.2 and bash 5. Restoring the rooted exemption fails 3 tests, and treating an empty title as a title fails 1. Full suite and lint pass.
+
+Not rechecked: no reviewer or Codex read this change, and the eval did not rerun. No eval case has a `<base>`, and the only output change is on `<base>` pages.
+
+Accepted from the gate: a raw-only permission match with the key declared stays `PASS`, because the declared key is the authoritative input.
+
+implement-loop: slice D follow-up shipped; remaining: [E, F, G, H, I, J]

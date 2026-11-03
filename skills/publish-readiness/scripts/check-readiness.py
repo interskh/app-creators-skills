@@ -1246,9 +1246,9 @@ class Web:
         return None, None
 
     def _base_relative(self, ref):
-        """<base> is not resolved, so a relative reference beside one has no known target."""
+        """<base> is not resolved, so a relative or rooted reference beside one has no known target."""
         head = self.head()
-        return head and head.base and not re.match(r"[a-zA-Z][a-zA-Z0-9+.-]*:|/", ref)
+        return head and head.base and not re.match(r"[a-zA-Z][a-zA-Z0-9+.-]*:", ref)
 
     def _next_code_manifest(self):
         """A manifest.ts or manifest.js generates the manifest at build time, whatever else exists."""
@@ -1279,8 +1279,8 @@ class Web:
         if code_manifest:
             raise Unknown(code_manifest)
         head = self.head()
-        if head and head.base and head.title is None:
-            raise Unknown("index.html has a <base> and no <title>; <base> is not resolved")
+        if head and head.base and not (head.title or "").strip():
+            raise Unknown("index.html has a <base> and no non-empty <title>; <base> is not resolved")
         path, data = (None, None) if head and head.base else self.manifest()
         if data is not None:
             name = data.get("name") or data.get("short_name")
@@ -1316,7 +1316,7 @@ class Web:
         for link in head.links if head else []:
             rel = (link.get("rel") or "").lower().split()
             if link.get("href") and self._base_relative(link["href"]) and {"icon", "apple-touch-icon", "manifest"} & set(rel):
-                unknowns.append("%s is relative beside a <base>, which is not resolved" % show(link["href"]))
+                unknowns.append("%s is relative or rooted beside a <base>, which is not resolved" % show(link["href"]))
             elif link.get("href") and ("icon" in rel or "apple-touch-icon" in rel):
                 declared.append((link["href"], link.get("sizes"), self.base, "index.html"))
         if self.framework == "nextjs":
