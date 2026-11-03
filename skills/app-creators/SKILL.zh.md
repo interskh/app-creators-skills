@@ -64,7 +64,7 @@
    - `accounts.*`、`tools.*`、`monetization.model` 和 `provided` 下的每个叶子：`""`。不要自己写成 `missing` 或 `none`。
    - `app.slug`：取 `package.json` 的 `name`（去掉 `@scope/` 前缀）转成 kebab-case；没有就取 `pubspec.yaml` 的 `name`，再没有就取 Expo 的 `slug`，最后取目录名。
    - `app.languages`：`[en]`，除非项目显示了别的语言（例如有 `i18n` 或 `locales` 目录，就列出里面的语言）。
-   - `updated`：今天。`history`：`[{ skill: app-creators, version: "0.1.5", date: <today>, result: ok }]`。
+   - `updated`：今天。`history`：`[{ skill: app-creators, version: "0.1.6", date: <today>, result: ok }]`。
 
    以 Vite 待办示例应用为例：
 
@@ -123,7 +123,7 @@
        privacy_policy_url: ""
        support_email_env: ""
    history:
-     - { skill: app-creators, version: "0.1.5", date: 2026-10-26, result: ok }
+     - { skill: app-creators, version: "0.1.6", date: 2026-10-26, result: ok }
    ---
    ```
 
@@ -138,6 +138,7 @@
    | `publish` | web | `publish-web` |
    | `publish` | iOS | `store-listing`，然后是 `publish-ios` |
    | `publish` | Android | `store-listing`，然后是 `publish-android` |
+   | `publish` | iOS 或 Android，提交审核之前或被拒之后 | `store-review`；平台 skill 提交前会先跑它 |
    | `acquire` | 任意 | 先 `analytics-setup`（暂未提供），再 `launch-channels`（暂未提供）；还有 `growth-loops` 和 `paid-ua`（暂未提供） |
    | `acquire` | iOS 或 Android | 再加 `aso`（暂未提供） |
    | `monetize` | 任意 | `monetize-strategy`（暂未提供）；做广告用 `monetize-ads`（暂未提供）；然后 `payouts-and-tax`（暂未提供） |
@@ -172,7 +173,7 @@
 - 识别类事实，按本次的证据写：`framework.kind`、`framework.package_manager`、`framework.evidence`、`app.slug`、`app.languages`、`targets.*.detected`。
 - 提供类事实，只按创作者本次给的回答写：`goal`、`targets.*.intent`、`app.name`、`app.description`。
 - `schema`：只在创建时写 `"1.0"`。重跑时主版本号是 `1`，就原样保留已有的值：更新的次版本号（例如 `"1.1"`）不变，它加的键也保留。绝不把文件降级。`updated`：今天。
-- `history`：追加 `{ skill: app-creators, version: "0.1.5", date: <YYYY-MM-DD>, result: ok }`。
+- `history`：追加 `{ skill: app-creators, version: "0.1.6", date: <YYYY-MM-DD>, result: ok }`。
 
 创建文件时，其他字段都按第 4 步的首次运行取值写，其中 `targets.*.status` 一律是 `unknown`。绝不写 `readiness.*`、`accounts.*`、`tools.*`、`monetization` 或 `provided`：创建时保持首次运行的取值，重跑时原样保留。
 

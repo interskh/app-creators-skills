@@ -1629,3 +1629,48 @@ implement-loop: slice H follow-up shipped; remaining: [I, J]
 - No second recheck read 207000c, by the one-recheck bound.
 
 implement-loop: slice H follow-up shipped; remaining: [I, J]
+
+## Slice I / T1 store-review skill
+
+**Decisions**
+- Two modes in one skill. Pre-submit review is Steps 2 to 5; its block is printed in Step 4. Rejection reading is Steps 6 to 10; the message go-ahead is Step 9, sending is Step 10. Step 1 picks the mode and store.
+- The skill writes no file and sets no state field, so it runs with only Read, Glob, and Grep, and never races a calling skill's one-write frontmatter rule. The calling publish skill records outcomes.
+- Readiness gate: a `fail` at a current revision stops with no block. Currency uses git if a shell exists, else the caller's reading in this session, else "not current". It never asks for git output. A rejection reading ignores the gate.
+- Checklist ids: Apple's guideline numbers (`2.1(a)`, `4.3`, `4.2`, `5.1.1(i)`, `5.1.1(ii)`, `5.1.1(v)`, `4.8`, `2.3.2`, `3.1.2(c)`). Google has no numbers, so kebab keys with Google's policy name as the short name (`sign-in-details`, `deceptive-behavior`, `spam-webview`, `functionality`, `privacy-policy`, `prominent-disclosure`, `account-deletion`, `payments-disclosure`, `subscriptions`).
+- Sign-in detection uses search terms plus reading around each hit, not a list of SDK names: SDK package names would be facts from memory.
+- Apple demo-credential fix: default route is change, then reply. Apple's review-status page says a resubmission is not needed for metadata or server-side fixes "such as providing or activating demo credentials". Resubmitting the same build is the alternative (reply page).
+- Google sign-in fix: the creator saves Sign-in details, then `publish-android` Step 15 sends for review. Google lists no reply route; the file says so.
+- The message block adds a `Submission:` line and a `Rejection:` line. The yes rule copies the publish skills' wording. Step 9's check is a report already in this session; it asks nothing before the block.
+- `app-creators` 0.1.6: one routing row (en, zh). README, llms.txt, both plugin manifests, awesome-lists drafts: six to seven skills.
+
+**Rejected**
+- A `history` row from this skill: it would need Write, which the eval grants do not include, and it splits the caller's write.
+- A pre-submit "readiness" pseudo-line in the block: it would break the fixed contract. A current `fail` stops with no block instead.
+- Crash or smoke-run rows: `publish-readiness` owns the smoke run, and callers already restate readiness in their block.
+- Apple 3.1.1 as a row: it is about the payment method, not disclosure. Spec §2 keeps purchases to disclosure checks. 2.3.2 (listing) and 3.1.2(c) (paywall) carry the disclosure.
+
+**Assumptions**
+- A creator's "saved" report about the sign-in form is enough to clear the flag. Nothing reads the store. Check at level 4.
+- The calling skills pass the store and their git reading. T2 decides how.
+
+**Deferred**
+- `SKILL.zh.md` is the scaffold template; T3 writes it. Evals: T3. Wiring `publish-ios` Step 13 and `publish-android` Step 15, and removing their "has not shipped" lines: T2.
+- `verified-runs.md` is header only; README row `store-review | all routes | unverified, no run recorded`.
+- Left out on purpose: 5.1.1(v) "use it without a login", 4.1 copycats, Google Repetitive Content (files cannot show other apps), loot-box odds, content rating appeals (in `publish-android`).
+
+**Facts left out or unverified**
+- Apple's appeal and expedite forms both 302 to Apple sign-in today; their fields were not read.
+- Google's "File an appeal" link resolves to a Play Help troubleshooter (topic 2993242); its steps were not read.
+- Failed or wrong fetches: guessed Google answer 9900633 for appeals returned the Families Self-Certified Ads SDK page (not used). One `curl -L` of the Apple appeal form timed out at the proxy; a no-follow request then showed the 302. Apple's `support/offering-account-deletion-in-your-app/` redirects to `help/app-review/guideline-reference/5-1-1-account-deletion`. Google Deceptive Behavior and User Data answers redirect to 17006354 and 10144311.
+- Git doc pages: HTTP 200 only, content not re-read; the commands are copied from `docs/STATE.md`.
+
+**Conflicts for T2 (publish skills' `review.md`, not edited)**
+- `publish-ios/references/review.md` says a metadata issue can be resubmitted with the same build. Apple's review-status page and the Metadata Rejected status text say to fix and reply; resubmitting is not necessary. Step 14 sends every rejection to a new Step 13.
+- Apple's new App Review Board page: reply with a clarification before an appeal; resubmitting closes an open appeal; one appeal per app, all guidelines in it. `publish-ios` review.md lacks these.
+- `publish-android/references/review.md` lists "send the updated sign-in details for review" as its own message block. It is a Send for review, so it belongs in Step 15's block; two blocks for one action risk a double yes.
+- Google names the App content section "Sign-in details", not "App access".
+
+**Touches**
+- New: `skills/store-review/` (SKILL.md 182 lines, `references/app-store.md`, `google-play.md`, `verified-runs.md`, template `SKILL.zh.md`).
+- Edited: `README.md`, `llms.txt`, `.claude-plugin/plugin.json`, `marketplace.json`, `docs/launch/awesome-lists.md`, `docs/ROADMAP.md`, `skills/app-creators/SKILL.md`, `SKILL.zh.md`.
+- Shared surfaces for T2 and T3: the `PRE-SUBMIT REVIEW:` contract and its `Result:` line (Step 4), the `REJECTION READING:` shape (Step 8), the message block (Step 9), the checklist ids, and the action words in each reference's Messages table. The `app-creators` row says the platform skill runs `store-review` before submitting, which holds once T2 lands.

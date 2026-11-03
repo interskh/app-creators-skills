@@ -12,7 +12,7 @@ license: MIT
 metadata:
   stage: core
   platform: all
-  version: "0.1.5"
+  version: "0.1.6"
   verified: "unverified"
   verified_version: ""
   zh: SKILL.zh.md
@@ -86,7 +86,7 @@ Check for `.app-creators/state.md` and take the matching branch:
    - `accounts.*`, `tools.*`, `monetization.model`, and every leaf of `provided`: `""`. Do not invent `missing` or `none`.
    - `app.slug`: kebab-case of `package.json` `name` (drop an `@scope/` prefix), else `pubspec.yaml` `name`, else the Expo `slug`, else the directory name.
    - `app.languages`: `[en]`, unless the project shows otherwise (for example an `i18n` or `locales` directory: list the locales it shows).
-   - `updated`: today. `history`: `[{ skill: app-creators, version: "0.1.5", date: <today>, result: ok }]`.
+   - `updated`: today. `history`: `[{ skill: app-creators, version: "0.1.6", date: <today>, result: ok }]`.
 
    Example for the Vite to-do fixture:
 
@@ -145,7 +145,7 @@ Check for `.app-creators/state.md` and take the matching branch:
        privacy_policy_url: ""
        support_email_env: ""
    history:
-     - { skill: app-creators, version: "0.1.5", date: 2026-10-26, result: ok }
+     - { skill: app-creators, version: "0.1.6", date: 2026-10-26, result: ok }
    ---
    ```
 
@@ -160,6 +160,7 @@ Check for `.app-creators/state.md` and take the matching branch:
    | `publish` | web | `publish-web` |
    | `publish` | iOS | `store-listing`, then `publish-ios` |
    | `publish` | Android | `store-listing`, then `publish-android` |
+   | `publish` | iOS or Android, before submission or after a rejection | `store-review`; the platform skill runs it before submitting |
    | `acquire` | any | `analytics-setup` (not shipped yet) first, then `launch-channels` (not shipped yet); also `growth-loops` and `paid-ua` (not shipped yet) |
    | `acquire` | iOS or Android | also `aso` (not shipped yet) |
    | `monetize` | any | `monetize-strategy` (not shipped yet); for ads, `monetize-ads` (not shipped yet); then `payouts-and-tax` (not shipped yet) |
@@ -194,7 +195,7 @@ Read the whole frontmatter first if the file exists, change only these fields, a
 - Detected facts, from this run's evidence: `framework.kind`, `framework.package_manager`, `framework.evidence`, `app.slug`, `app.languages`, `targets.*.detected`.
 - Provided facts, only from answers given in this run: `goal`, `targets.*.intent`, `app.name`, `app.description`.
 - `schema`: `"1.0"` on create only. On a rerun with major `1`, keep the existing value verbatim: a newer minor such as `"1.1"` stays, and so do the keys it added. Never downgrade the file. `updated`: today.
-- `history`: append `{ skill: app-creators, version: "0.1.5", date: <YYYY-MM-DD>, result: ok }`.
+- `history`: append `{ skill: app-creators, version: "0.1.6", date: <YYYY-MM-DD>, result: ok }`.
 
 On create, write every other field at its first-run value from step 4; `targets.*.status` is always `unknown` there. Never write `readiness.*`, `accounts.*`, `tools.*`, `monetization`, or `provided`: leave them at the first-run value on create and preserve them on a rerun.
 

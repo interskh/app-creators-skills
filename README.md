@@ -4,7 +4,7 @@ Open-source agent skills for creators who built an app with AI and now
 need to publish it. They install into Claude Code, Codex, and other
 coding agents that skills.sh supports.
 
-This is a pre-release. Six skills ship today, and none has been
+This is a pre-release. Seven skills ship today, and none has been
 verified on a real account. `app-creators` detects the project and
 writes its state file. `publish-readiness` checks whether the app is
 ready for the App Store, Google Play, or the web, and reports each gap
@@ -12,6 +12,8 @@ with its fix. `store-listing` writes App Store and Google Play listing
 copy in English and Chinese and plans the screenshots. `publish-ios` takes
 an Expo, Flutter, or Xcode app to App Store review and release. `publish-android`
 takes an Expo, Flutter, or Kotlin app to Google Play review and release.
+`store-review` checks an app against App Store and Google Play review rules
+before submission, and reads a rejection with its fix and response route.
 `publish-web` deploys a web app to Vercel or Cloudflare Pages.
 
 User acquisition and monetization are planned and have not shipped. See
@@ -31,13 +33,13 @@ npx skills add interskh/app-creators-skills -a codex
 npx skills add interskh/app-creators-skills
 ```
 
-The Claude Code commands install all six skills for your user. Run the
+The Claude Code commands install all seven skills for your user. Run the
 `npx skills` commands from your project root; by default they write to
 the project, under `.agents/skills/` for Codex.
 
 In a terminal, the `npx skills` CLI shows a picker. Select all the skills,
 because `publish-readiness`, `store-listing`, `publish-ios`,
-`publish-android`, and `publish-web` read the state file that `app-creators` writes. When the CLI detects a coding agent, it installs
+`publish-android`, `store-review`, and `publish-web` read the state file that `app-creators` writes. When the CLI detects a coding agent, it installs
 them all without asking.
 With no terminal and no detected agent, it stops with "Nothing was
 installed"; add `-a <agent> -y`.
@@ -55,6 +57,7 @@ skills add no telemetry of their own.
 | `store-listing` | publish | all | unverified |
 | `publish-ios` | publish | ios | unverified |
 | `publish-android` | publish | android | unverified |
+| `store-review` | publish | all | unverified |
 | `publish-web` | publish | web | unverified |
 
 ### app-creators
@@ -64,7 +67,8 @@ It detects the framework and which destinations the project already has
 config for, asks the creator what they want now and where the app should
 go, writes `.app-creators/state.md`, and names the next skill. To publish,
 that is `publish-readiness`, then `publish-web` for the web, or
-`store-listing`, then `publish-ios` for iOS, or `store-listing`, then `publish-android` for Android;
+`store-listing`, then `publish-ios` for iOS, or `store-listing`, then `publish-android` for Android,
+with `store-review` before a store submission and after a rejection;
 for anything else it says the skill has not shipped. Use it when the creator says start, where do I begin, set up app
 creators, what's next, or ship my app (开始, 从哪开始, 下一步, 发布我的应用),
 or when another App Creators skill reports that `state.md` is missing or
@@ -145,6 +149,25 @@ above; it needs `app-creators` installed too, and it names `publish-readiness`
 and `store-listing` when they are missing. Chinese version:
 [`SKILL.zh.md`](skills/publish-android/SKILL.zh.md).
 
+### store-review
+
+[`store-review`](skills/store-review/SKILL.md) reviews an app against the App
+Store Review Guidelines or Google Play policy before submission, from what the
+project files show: a demo account for a login, spam and minimum functionality,
+privacy policy, purpose strings, account deletion, login services, misleading
+claims, and in-app purchase and subscription disclosure. Each finding is a
+`flag` that stops a submission until it is fixed, a `note` for the creator to
+judge, or `clear`, each with its evidence. Given a pasted rejection, it names the
+guideline or policy, what it requires, the fix, and the route: resubmit through
+`publish-ios` or `publish-android`, reply, or appeal. It drafts replies and
+appeals, and the creator sends each after a yes. It never asks for a demo
+account; the creator types it into the store's form. It touches no store or
+account and needs no shell. Use it when the creator asks will my app pass
+review, pre-submit check, app rejected, or appeal (审核前检查, 会不会被拒, 被拒了,
+审核被拒, 申诉). Install it with `npx skills add interskh/app-creators-skills` or
+the Claude Code commands above; it needs `app-creators` installed too. Chinese
+version: [`SKILL.zh.md`](skills/store-review/SKILL.zh.md).
+
 ### publish-web
 
 [`publish-web`](skills/publish-web/SKILL.md) deploys a Next.js, Vite, or
@@ -193,6 +216,7 @@ about another.
 | `publish-android` | expo+google-play | unverified, level 3 open: stops at Step 1, no Google Play or Expo fixture account; Step 2's check fails too, `eas` is not installed and has no login |
 | `publish-android` | flutter+google-play | unverified, level 3 open: stops at Step 1, no Google Play fixture account; Step 2's check fails too, `flutter doctor` reports Android license status unknown; the later local steps ran through a signed bundle and its target API read, with a throwaway key |
 | `publish-android` | kotlin+google-play | unverified, level 3 open: stops at Step 1, no Google Play fixture account; the local steps ran through a signed bundle and its target API read, with a throwaway key |
+| `store-review` | all routes | unverified, no run recorded |
 | `publish-web` | vite+vercel | unverified, no run recorded |
 | `publish-web` | nextjs+vercel | unverified, no run recorded |
 | `publish-web` | static+vercel | unverified, no run recorded |
