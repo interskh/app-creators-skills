@@ -2,7 +2,7 @@
   "name": "app-creators",
   "displayName": "App Creators",
   "version": "0.1.0",
-  "description": "Skills that help a creator check an AI-built app's readiness for the App Store, Google Play, or the web, write App Store and Google Play listing copy with a screenshot plan, take an Expo, Flutter, or Xcode app to App Store review and release, and publish a web app to Vercel or Cloudflare Pages. Pre-release; Google Play publishing, user acquisition, and monetization skills are planned.",
+  "description": "Skills that help a creator check an AI-built app's readiness for the App Store, Google Play, or the web, write App Store and Google Play listing copy with a screenshot plan, take an Expo, Flutter, or Xcode app to App Store review and release, take an Expo, Flutter, or Kotlin app to Google Play review and release, and publish a web app to Vercel or Cloudflare Pages. Pre-release; user acquisition and monetization skills are planned.",
   "author": {
     "name": "App Creators contributors"
   },

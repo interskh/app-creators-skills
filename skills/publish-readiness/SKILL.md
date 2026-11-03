@@ -140,7 +140,7 @@ No step here is **effective**: this skill touches no external system. It creates
    Expect: a rerun at the new commit shows the line as `PASS`.
 
 10. Name the next skill and stop. Default: this list. Alternative: none.
-    Run: first do Verify. Then tell the creator to commit `.app-creators/`; it holds no secrets, and the next skill reads it. Then name the next skill: for web, `publish-web` when `framework.kind` is `vite`, `nextjs`, or `static`, and otherwise say that no shipped skill publishes this framework to the web; for iOS, `store-listing` and `publish-ios`; for Android, `store-listing` and `publish-android` (not shipped yet).
+    Run: first do Verify. Then tell the creator to commit `.app-creators/`; it holds no secrets, and the next skill reads it. Then name the next skill: for web, `publish-web` when `framework.kind` is `vite`, `nextjs`, or `static`, and otherwise say that no shipped skill publishes this framework to the web; for iOS, `store-listing` and `publish-ios`; for Android, `store-listing` and `publish-android`.
     Expect: one final reply with each platform's `result` and the path to the report. A `pass` with `smoke-run: unknown` says the smoke run did not run, and states the risk. A native route with no resolved input ends `unknown`, and the reply names the missing tool. Never say the app is approved, published, or live.
 
 ## Verify
@@ -157,7 +157,7 @@ No step here is **effective**: this skill touches no external system. It creates
 |---|---|---|
 | `git` exits 72: "couldn't create cache file ... xcrun_db" | Seen in the 2026-11-02 eval runs: a sandboxed agent on macOS, where `/usr/bin/git` is an Xcode shim that cannot write its cache | Use a real git binary if one exists, such as `/opt/homebrew/bin/git`. If none exists, write `revision: ""` and `unknown`, and tell the creator git could not run |
 | A Flutter app reports it cannot run release mode on an emulator | Flutter supports release mode only on physical devices | Run only the release build; `smoke-run` stays `unknown` unless a physical device is connected |
-| The release build from `npx expo run:android --variant release` is not signed for Google Play | Expo documents this build as a test of production-only bugs | Expected; signing belongs to `publish-android` (not shipped yet) |
+| The release build from `npx expo run:android --variant release` is not signed for Google Play | Expo documents this build as a test of production-only bugs | Expected; signing belongs to `publish-android` |
 
 ## Update state
 

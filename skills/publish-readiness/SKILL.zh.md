@@ -116,7 +116,7 @@
    预期：在新 commit 上重跑，这一行变成 `PASS`。
 
 10. 说出下一个 skill，然后停下。默认：下面的列表。备选：无。
-    执行：先做“验证”一节。然后请创作者提交 `.app-creators/`：里面没有 secret，下一个 skill 要读。然后说出下一个 skill：网页平台，`framework.kind` 是 `vite`、`nextjs` 或 `static` 时用 `publish-web`，其他框架就说明目前没有已发布的 skill 能把这个框架发布到网页；iOS 用 `store-listing` 和 `publish-ios`；Android 用 `store-listing` 和 `publish-android`（暂未提供）。
+    执行：先做“验证”一节。然后请创作者提交 `.app-creators/`：里面没有 secret，下一个 skill 要读。然后说出下一个 skill：网页平台，`framework.kind` 是 `vite`、`nextjs` 或 `static` 时用 `publish-web`，其他框架就说明目前没有已发布的 skill 能把这个框架发布到网页；iOS 用 `store-listing` 和 `publish-ios`；Android 用 `store-listing` 和 `publish-android`。
     预期：最后一条回复写清每个平台的 `result` 和报告路径。`pass` 且 `smoke-run: unknown` 时，要说明 smoke run 没有跑，并讲清风险。原生路线没有解析结果时，平台以 `unknown` 结束，回复要说出缺的工具。绝不说应用已经通过审核、已经发布或已经上线。
 
 ## 验证
@@ -133,7 +133,7 @@
 |---|---|---|
 | `git` 退出码 72：“couldn't create cache file ... xcrun_db” | 2026-11-02 的 eval 运行里出现过：macOS 上 agent 在沙箱里运行，`/usr/bin/git` 是 Xcode 的转发程序，写不了缓存 | 有真正的 git 可执行文件就用它，例如 `/opt/homebrew/bin/git`。没有就写 `revision: ""` 和 `unknown`，并告诉创作者 git 跑不起来 |
 | Flutter 应用提示模拟器上不能跑 release 模式 | Flutter 只在真机上支持 release 模式 | 只跑 release 构建；没连真机时 `smoke-run` 保持 `unknown` |
-| `npx expo run:android --variant release` 的 release 构建没有针对 Google Play 签名 | Expo 的文档说明，这个构建用来测试只在生产构建里出现的问题 | 正常现象；签名属于 `publish-android`（暂未提供） |
+| `npx expo run:android --variant release` 的 release 构建没有针对 Google Play 签名 | Expo 的文档说明，这个构建用来测试只在生产构建里出现的问题 | 正常现象；签名属于 `publish-android` |
 
 ## 更新状态
 

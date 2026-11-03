@@ -64,7 +64,7 @@
    - `accounts.*`、`tools.*`、`monetization.model` 和 `provided` 下的每个叶子：`""`。不要自己写成 `missing` 或 `none`。
    - `app.slug`：取 `package.json` 的 `name`（去掉 `@scope/` 前缀）转成 kebab-case；没有就取 `pubspec.yaml` 的 `name`，再没有就取 Expo 的 `slug`，最后取目录名。
    - `app.languages`：`[en]`，除非项目显示了别的语言（例如有 `i18n` 或 `locales` 目录，就列出里面的语言）。
-   - `updated`：今天。`history`：`[{ skill: app-creators, version: "0.1.4", date: <today>, result: ok }]`。
+   - `updated`：今天。`history`：`[{ skill: app-creators, version: "0.1.5", date: <today>, result: ok }]`。
 
    以 Vite 待办示例应用为例：
 
@@ -123,7 +123,7 @@
        privacy_policy_url: ""
        support_email_env: ""
    history:
-     - { skill: app-creators, version: "0.1.4", date: 2026-10-26, result: ok }
+     - { skill: app-creators, version: "0.1.5", date: 2026-10-26, result: ok }
    ---
    ```
 
@@ -137,14 +137,14 @@
    | `publish` | 任意，发布之前 | `publish-readiness`，然后是下面对应平台的 skill |
    | `publish` | web | `publish-web` |
    | `publish` | iOS | `store-listing`，然后是 `publish-ios` |
-   | `publish` | Android | `store-listing`，然后是 `publish-android`（暂未提供） |
+   | `publish` | Android | `store-listing`，然后是 `publish-android` |
    | `acquire` | 任意 | 先 `analytics-setup`（暂未提供），再 `launch-channels`（暂未提供）；还有 `growth-loops` 和 `paid-ua`（暂未提供） |
    | `acquire` | iOS 或 Android | 再加 `aso`（暂未提供） |
    | `monetize` | 任意 | `monetize-strategy`（暂未提供）；做广告用 `monetize-ads`（暂未提供）；然后 `payouts-and-tax`（暂未提供） |
    | `monetize` | iOS 或 Android | `monetize-iap`（暂未提供） |
    | `monetize` | web | `monetize-web`（暂未提供） |
 
-   预期：最后一条回复写清识别出的框架和证据、记下的 `goal` 和各平台意向、文件路径 `.app-creators/state.md`，以及网页平台的“下一步：运行 `publish-readiness`，然后运行 `publish-web`”，iOS 平台的“下一步：运行 `publish-readiness`，然后运行 `store-listing`，再运行 `publish-ios`”，Android 平台同样换成 `publish-android`，或路由到的名字。下一个 skill 暂未提供时（比如 `publish-android`），照实说，并告诉创作者这段时间能做什么。绝不执行流水线里的任何一步，也绝不声称外部结果：绝不说应用已经发布、已经上架或已经上线。
+   预期：最后一条回复写清识别出的框架和证据、记下的 `goal` 和各平台意向、文件路径 `.app-creators/state.md`，以及网页平台的“下一步：运行 `publish-readiness`，然后运行 `publish-web`”，iOS 平台的“下一步：运行 `publish-readiness`，然后运行 `store-listing`，再运行 `publish-ios`”，Android 平台同样换成 `publish-android`，或路由到的名字。下一个 skill 暂未提供时（比如 `analytics-setup`），照实说，并告诉创作者这段时间能做什么。绝不执行流水线里的任何一步，也绝不声称外部结果：绝不说应用已经发布、已经上架或已经上线。
 
 ## 验证
 
@@ -172,7 +172,7 @@
 - 识别类事实，按本次的证据写：`framework.kind`、`framework.package_manager`、`framework.evidence`、`app.slug`、`app.languages`、`targets.*.detected`。
 - 提供类事实，只按创作者本次给的回答写：`goal`、`targets.*.intent`、`app.name`、`app.description`。
 - `schema`：只在创建时写 `"1.0"`。重跑时主版本号是 `1`，就原样保留已有的值：更新的次版本号（例如 `"1.1"`）不变，它加的键也保留。绝不把文件降级。`updated`：今天。
-- `history`：追加 `{ skill: app-creators, version: "0.1.4", date: <YYYY-MM-DD>, result: ok }`。
+- `history`：追加 `{ skill: app-creators, version: "0.1.5", date: <YYYY-MM-DD>, result: ok }`。
 
 创建文件时，其他字段都按第 4 步的首次运行取值写，其中 `targets.*.status` 一律是 `unknown`。绝不写 `readiness.*`、`accounts.*`、`tools.*`、`monetization` 或 `provided`：创建时保持首次运行的取值，重跑时原样保留。
 

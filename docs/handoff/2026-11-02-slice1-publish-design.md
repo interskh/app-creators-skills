@@ -1349,3 +1349,45 @@ Shared steps, shared references, the Expo route, and the target API check. `SKIL
 **Touches**
 - New: `skills/publish-android/` (SKILL.md 262 lines, 14 references; the scaffold zh template is unchanged).
 - `README.md`: one row in Verification per route for `publish-android` expo+google-play. Part b adds its own rows.
+
+## Slice H / T2b Flutter and Gradle routes
+
+Run `2026-11-02-slice1-publish-design`, task H/T2b. Uncommitted, for the orchestrator. `SKILL.md` unchanged.
+
+**Decisions**
+- Defaults checked on today's pages. Build: `flutter build appbundle` and `./gradlew bundleRelease`, kept. Signing: Play App Signing, Google-generated app key, the creator's upload key outside the repo, read by Gradle from an ignored properties file (Flutter `android/key.properties`, Kotlin `keystore.properties`), per Flutter's and Android's pages. Alternative on both: Android Studio Generate Signed Bundle, which is also the build alternative. Flutter's "Gradle" alternative is Gradle through Android Studio, as Flutter's FAQ says.
+- Upload: Play Console for every upload, saved as a draft on internal testing. Step 7 skipped on both routes. The spec's alternative, the Play Developer API, is named but not operated: it needs a service account and hand-written requests.
+- Kotlin loads `keystore.properties` only when it exists (Flutter's guard), not unconditionally (Android's form), so debug builds and tests work before Step 6. Variable renamed `keystoreProps`: `lint-skills.sh` flags `keyPassword = keystoreProperties...` as secret-shaped.
+- Version code is committed: `+n` in `pubspec.yaml`, `versionCode` literal in `app/build.gradle.kts`. New version code is edit, commit, Step 5, Step 8. A literal in Flutter's `defaultConfig` goes back to `flutter.versionCode`.
+- Build proof is a notes line plus the file: clean before and after, `rm -rf` of the bundle folder after `git check-ignore` exit 0, sha256 on the line, hash check on reuse. Flutter's `findBundleFile` takes the first `.aab` it finds, which is why the folder is cleared.
+- Flutter Step 4 runs `flutter build apk --config-only`, so migrator writes land in that commit.
+- New Step 9 signer read: `keytool -printcert -jarfile`. Unsigned, `CN=Android Debug`, or a SHA-256 other than the notes' `Upload key:` line stops before upload. Kotlin's Step 6 also reads `signingReport`.
+- Resume rules follow Slice G: `started`/`finished`/`failed`, any other-commit `Upload:` line raises the code. A same-code retry is allowed because Play refuses a used version code, so it cannot add a second binary.
+- Workflow check: same list on both routes, matched by meaning. Stops on unpinned uploads on any trigger (fastlane, Codemagic, Gradle Play Publisher defaults all release) and on any upload with an automatic trigger.
+- `app-creators` 0.1.5 (from 0.1.4), all four version strings in en and three in zh. The Expect example of an unshipped skill is now `analytics-setup`. Other skills label-only, no bump.
+- Roadmap: ticked Account and signing, Build and testing tracks, Submission. Parent and zh left for T3. Account item now says 12 testers for 14 days, per Google's page.
+
+**Rejected**
+- fastlane `supply` or Gradle Play Publisher for later uploads: sourced and no hand-written requests, but both default to a release that reaches users, and both add a service account with release rights.
+- Android's unconditional properties load: every Gradle run fails until Step 6.
+- `signingReport` on Flutter: in a `/tmp` copy of `todo-flutter`, offline, it exited 1 with no report. Cause not checked.
+- `--build-number` on Flutter, for the same reason as `publish-ios`.
+
+**Assumptions**
+- `java -jar bundletool-all-<v>.jar` works. Only the library jar with a classpath ran here (T1's).
+- Play refuses a used version code for a bundle too. The page says APK.
+- The Flutter signing block works on `todo-flutter`. It ran only in the Kotlin form on a `todo-kotlin` copy.
+
+**Deferred**
+- No question for CI configured on a website (Bitrise, Codemagic editor); the route says it cannot see them.
+- `SKILL.zh.md` is still the template; README and llms.txt link it, as Slice F did. T3 writes it and the evals.
+
+**Facts left out or unverified**
+- Play error texts for a debug-signed bundle, a wrong upload key, and a used code.
+- Android Studio's default destination for Generate Signed Bundle: the routes say pick a folder outside the repo.
+- Failed fetches: Flutter `.gitignore` templates at `android.tmpl/.gitignore.tmpl` and `app_shared/...` (404); found at `app/android.tmpl/.gitignore` and `app/android-kotlin.tmpl/app/build.gradle.kts.tmpl`.
+- Commands run on `/tmp` copies only, never in the fixtures worktree: `flutter build apk --config-only` on `todo-flutter` (no tracked change); on `todo-kotlin` with the signing edit and a throwaway key, `signingReport` and `bundleRelease` (signed, tree clean), and with no key, `validateSigningRelease` failed with `Keystore file not set for signing config release`; `keytool -printcert` and bundletool reads on signed and unsigned copies.
+
+**Touches**
+- New: `skills/publish-android/references/flutter.md`, `gradle.md`. Edited: `references/verified-runs.md` (two rows).
+- Shared: `skills/app-creators/SKILL.md`, `SKILL.zh.md` (0.1.5, routing, Expect). Labels in `publish-ios`, `publish-web`, `store-listing`, `publish-readiness`, en and zh. `README.md`, `llms.txt`, `.claude-plugin/plugin.json`, `marketplace.json`, `docs/launch/awesome-lists.md`, `docs/ROADMAP.md`. No schema change.

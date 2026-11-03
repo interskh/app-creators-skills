@@ -34,7 +34,7 @@ Route, from `framework.kind`. Trust the project over state if they conflict, and
 | `expo` | Continue. The route file is `references/expo.md`. Say so once in your first reply: this is an Expo app, so the route builds and uploads with EAS. |
 | `flutter` | Continue. The route file is `references/flutter.md`. Say so once in your first reply: this is a Flutter app, so the route builds with `flutter build ipa` and uploads with Apple's `altool`. |
 | `xcode` | Continue. The route file is `references/xcode.md`. Say so once in your first reply: this is an Xcode app, so the route builds an Xcode archive and uploads with Apple's `altool`. |
-| `kotlin` | Say a Kotlin app has no iOS route, name `publish-android` (not shipped yet), and stop. |
+| `kotlin` | Say a Kotlin app has no iOS route, name `publish-android`, and stop. |
 | `unknown` | Run `app-creators` first and come back. |
 
 - Not this skill: the app is a web build (`nextjs`, `vite`, `static`). Use `publish-web`.

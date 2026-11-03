@@ -11,7 +11,7 @@
 | `expo` | 继续。路线文件是 `references/expo.md`。第一次回复里说一次：这是 Expo 应用，走 EAS 构建和上传这条路线。 |
 | `flutter` | 继续。路线文件是 `references/flutter.md`。第一次回复里说一次：这是 Flutter 应用，走 `flutter build ipa` 构建、Apple 的 `altool` 上传这条路线。 |
 | `xcode` | 继续。路线文件是 `references/xcode.md`。第一次回复里说一次：这是 Xcode 应用，走 Xcode archive 构建、Apple 的 `altool` 上传这条路线。 |
-| `kotlin` | 说明 Kotlin 应用没有 iOS 路线，说出 `publish-android`（暂未提供），然后停下。 |
+| `kotlin` | 说明 Kotlin 应用没有 iOS 路线，说出 `publish-android`，然后停下。 |
 | `unknown` | 先运行 `app-creators` 再回来。 |
 
 - 不适用：应用是网页构建（`nextjs`、`vite`、`static`），改用 `publish-web`。
