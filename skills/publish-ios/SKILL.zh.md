@@ -9,7 +9,8 @@
 | `framework.kind` | 怎么做 |
 |---|---|
 | `expo` | 继续。路线文件是 `references/expo.md`。第一次回复里说一次：这是 Expo 应用，走 EAS 构建和上传这条路线。 |
-| `flutter`、`xcode` | 说明这条路线暂未提供，然后停下。 |
+| `flutter` | 继续。路线文件是 `references/flutter.md`。第一次回复里说一次：这是 Flutter 应用，走 `flutter build ipa` 构建、Apple 的 `altool` 上传这条路线。 |
+| `xcode` | 继续。路线文件是 `references/xcode.md`。第一次回复里说一次：这是 Xcode 应用，走 Xcode archive 构建、Apple 的 `altool` 上传这条路线。 |
 | `kotlin` | 说明 Kotlin 应用没有 iOS 路线，说出 `publish-android`（暂未提供），然后停下。 |
 | `unknown` | 先运行 `app-creators` 再回来。 |
 
@@ -19,8 +20,8 @@
 ## 你需要准备
 
 - Apple Developer Program 会员资格：只有它能发布到 App Store。每年 99 USD；个人身份在商店里以法定姓名显示为卖家。组织身份需要法律实体、签署权限、工作邮箱、公开网站和 D-U-N-S Number。D-U-N-S Number 免费，最多要 5 个工作日，Apple 再要 2 个工作日。注册个人身份大约 30 分钟，组织身份要几天（都是估算）。详见 `references/accounts.md`。
-- 构建服务账号，由路线文件指定：`references/expo.md` 用的是 Expo 账号。Free 方案就够起步。大约 5 分钟（估算）。
-- 你本人的登录：Apple 两步验证登录和签名那一步，只在你自己的终端或浏览器里输入。大约 10 分钟（估算）。
+- 构建服务账号，由路线文件指定：`references/expo.md` 用的是 Expo 账号。Free 方案就够起步。大约 5 分钟（估算）。`references/flutter.md` 和 `references/xcode.md` 没有构建服务：需要一台装了完整 Xcode 的 Mac，Flutter 路线还要 Flutter SDK，并且在 Xcode 里添加好你的 Apple 账号。查过的页面都没有给出安装要多久。
+- 你本人的登录：Apple 两步验证登录和签名那一步，只在你自己的终端、浏览器或 Xcode 里输入。大约 10 分钟（估算）。
 - 只有你能做的决定，直接填进 App Store Connect：价格和供应地区、类别、支持 URL、版权、内容权利、欧盟 trader 身份；应用需要登录的话，还要给 App Review 一个演示账号。大约 15 分钟（估算）。
 - 第 4 步里关于加密的一个回答。1 分钟。
 - `store-listing` 规划好的截图。
@@ -96,7 +97,7 @@ Reply "yes" to do this for exactly this release. Anything else stops here.
    问完就停：“你发布这个应用用的账号，有有效的 Apple Developer Program 会员资格吗？请回复：有、没有，或办理中。”回答“没有”时，告诉创作者 `references/accounts.md` 里要准备什么，以及要自己在 Apple Developer app 或 Apple Developer 网站上注册。
    预期：“有”记 `has`，“没有”记 `missing`，“办理中”记 `pending`。记下来。`missing` 或 `pending` 时停下：账号没有之前，不提议任何构建、上传或提交。
 
-2. **human-only** 构建服务账号和登录。默认和备选：路线文件。
+2. **human-only** 构建服务账号和登录，或者路线要求的替代条件。默认和备选：路线文件。
    先查：路线的登录检查。显示了账号就到第 3 步。
    问完就停：路线文件里那句话，命令和菜单名原样保留，其余用中文说。创作者自己登录；绝不代输或索取密码。
    预期：路线的登录检查显示这个账号。
@@ -107,7 +108,7 @@ Reply "yes" to do this for exactly this release. Anything else stops here.
    证据：创作者报告 Apple ID 和版本，状态是 Prepare for Submission 或更靠后的状态，并说明列表里有没有在售版本。记下 `targets.ios.asc_app_id` 和 `targets.ios.bundle_id`。`targets.ios.status`：有在售版本时按“更新状态”写 `live`，否则按 `references/statuses.md` 写 `ready`。创作者报告还没有记录时，记 `none`，然后停下。
 
 4. 项目改动。默认和具体改动：路线文件。备选：无。
-   执行：构建之前，把路线要求的改动全部做完，放进一个 commit：配置、项目关联、`targets.ios.asc_app_id`、新版本的版本号、加密标记。加密先读项目，项目里已有答案就不问；没有的话按 `references/export-compliance.md` 问一次，只按创作者的回答改。把 diff 给创作者看，请创作者 commit。
+   执行：构建之前，把路线要求的改动全部做完，放进一个 commit：配置、项目关联、`targets.ios.asc_app_id`、新版本的版本号、加密标记，以及路线文件放在项目里的 build number。加密先读项目，项目里已有答案就不问；没有的话按 `references/export-compliance.md` 问一次，只按创作者的回答改。把 diff 给创作者看，请创作者 commit。
    预期：`git status --porcelain -- . ':(exclude).app-creators'` 没有输出。这些改动会改变 revision，所以后面接第 5 步。
 
 5. 重新绑定就绪结果。默认：`publish-readiness`。备选：“开始之前”里的过期规则。
@@ -118,10 +119,10 @@ Reply "yes" to do this for exactly this release. Anything else stops here.
 
 6. **human-only** 签名。默认和备选：路线文件。
    先查：路线里检查签名是否存在的方式。
-   问完就停：路线文件里那句话，命令和菜单名原样保留，其余用中文说。Apple 登录和两步验证码只在创作者自己的终端里输入。
+   问完就停：路线文件里那句话，命令和菜单名原样保留，其余用中文说。Apple 登录和两步验证码只在创作者自己的终端里输入，路线文件说明的情况下也可以在 Xcode 里输入。
    预期：创作者报告已完成。路线指定了工具才记 `tools.*`。
 
-7. **human-only** App Store Connect API key。默认和备选：路线文件。有了这个 key，路线上传和读取商店都不用人工介入。
+7. **human-only** App Store Connect API key。默认和备选：路线文件。有了这个 key，路线上传不用人工介入；路线的工具能读取商店时，读取也不用。
    先查：路线的检查通过，或者 `provided.publish-ios` 里有路线列出的 App Store Connect key 环境变量名。那里的其他名字，比如构建服务的 token，都不算。
    问完就停：路线文件里那句话，命令和菜单名原样保留，其余用中文说。角色见 `references/accounts.md`。绝不查看 key：只记环境变量名。
    预期：路线的检查通过，或者创作者选了路线里不用 key 的走法。
@@ -129,18 +130,18 @@ Reply "yes" to do this for exactly this release. Anything else stops here.
 8. **effective** 构建。默认和备选：路线文件。
    先查：按路线的方式查这个 revision 有没有已完成或进行中的构建。有就复用。旧构建不算；返回 Invalid Binary 的构建永远不算，即使 commit 没变。代码树干净的证明必须按路线文件说的方式存在。
    执行：代码树干净时，运行路线的构建命令。构建一开始就把构建 revision 写进备注。
-   证据：构建服务显示已完成，并且路线的读取方式能给出完整的发布身份，或者路线说明的、这个构建此时能有的那部分身份。这不是商店状态。失败时，给出第一条错误，再看“排查”。
+   证据：构建已完成，由路线文件说明怎么证明（在 `references/expo.md` 上，就是构建服务显示已完成），并且路线的读取方式能给出完整的发布身份，或者路线说明的、这个构建此时能有的那部分身份。这不是商店状态。失败时，给出第一条错误，再看“排查”。
 
 9. **effective** 上传。默认和备选：路线文件。之后怎么走见 `references/testflight.md`。
    先查：在商店里查这个版本号和 build number 的构建；还没有 build number 的构建，按路线说的查。已经列出就跳过上传。
    执行：读取结果回来之后，才给路线的上传命令，指定这个构建。请创作者读取的那条消息里绝不放这条命令，当作“下一步”预告也不行。
    证据：这个构建列在 TestFlight 里，状态来自 `references/statuses.md`，且不是 Invalid Binary；遇到 Invalid Binary，按第 13 步说的记下来，回到第 8 步。上传命令跑完不算。还在 Processing 时，说明情况后停下；重跑会从这里继续。遇到 Missing Compliance，按 `references/export-compliance.md` 处理。按 `references/statuses.md` 记 `targets.ios.status`；有在售版本时保持 `live`。
 
-10. **effective** TestFlight 内部测试（创作者要求才做）。默认：路线的 group 选项。备选：App Store Connect，见 `references/testflight.md`。
+10. **effective** TestFlight 内部测试（创作者要求才做）。默认：路线的 group 选项，路线文件有写才用。备选：App Store Connect，见 `references/testflight.md`。
     先查：问创作者这个构建是否已经在内部组里。执行之后，问这个构建的状态。
     证据：这个身份的状态是 Testing 或 Ready to Test。内部测试只到创作者自己的团队，不经过任何审核人员，不算 go-ahead。
 
-11. **go-ahead** 外部 TestFlight（创作者要求才做）。下面每个动作都会触达审核人员或团队之外的人，所以各自单独出 block、各有证据，对一个动作说的 yes 不覆盖下一个。默认：App Store Connect，见 `references/testflight.md`。备选：无；`references/expo.md` 禁止用自动化。
+11. **go-ahead** 外部 TestFlight（创作者要求才做）。下面每个动作都会触达审核人员或团队之外的人，所以各自单独出 block、各有证据，对一个动作说的 yes 不覆盖下一个。默认：App Store Connect，见 `references/testflight.md`。备选：无；路线文件禁止用自动化。
     先查：问这个构建的状态和所有包含它的组，这些组各自还有哪些可测试的构建，每个组的 Testers 和 Public Link 部分显示什么，以及这个构建的 Individual Testers 部分列了多少外部测试人员；这部分也可能有内部测试人员。只有证据已经满足的动作才跳过。
     执行：只为要做的那一个动作出 block，动作按下面的原文写。得到 yes 之后，由创作者点击。然后问证据要求的读取结果。
     - "add this build to external TestFlight and submit it for TestFlight App Review"，不勾选 "Automatically notify testers"。证据：这个身份的状态是 Waiting for Review 或 In Beta Review。
@@ -205,11 +206,11 @@ Reply "yes" to do this for exactly this release. Anything else stops here.
 |---|---|---|
 | `git` 退出码 72：“couldn't create cache file ... xcrun_db” | 2026-11-02 的 eval 运行里出现过：macOS 上 agent 在沙箱里运行，`/usr/bin/git` 是 Xcode 的转发程序，写不了缓存 | 有真正的 git 可执行文件就用它，例如 `/opt/homebrew/bin/git`。没有就按“当前”那条规则：告诉创作者 git 跑不起来，步骤需要时再请创作者提供命令输出 |
 | 构建显示 Missing Compliance | 没有回答出口合规问题。Apple 的页面 | 按 `references/export-compliance.md` 处理。不要只为这个重新构建 |
-| 版本显示 Invalid Binary | Apple 的页面：构建不符合二进制要求 | 上传带新 build number 的新构建，或者选一个符合要求的。读 `references/expo.md` 里工具链那一行 |
+| 版本显示 Invalid Binary | Apple 的页面：构建不符合二进制要求 | 上传带新 build number 的新构建，或者选一个符合要求的。读路线文件里工具链那一行 |
 | 签署最新协议之前不能创建应用 | Apple 的页面：Account Holder 必须先签署最新协议 | 请 Account Holder 在 Business 下签署。这是 human-only 步骤 |
 | 构建停在 Processing 超过 24 小时 | Apple 的页面：可能有问题 | 按 `references/statuses.md` 提交 Feedback Assistant 工单或联系 Apple |
 | 构建上传显示 Failed | Apple 的页面 | 读这个构建上的错误。下次上传可以重用同一个 build number |
-| 路线报错 | Expo 文档有记录 | `references/expo.md` 里的 Troubleshooting 表 |
+| 路线报错 | 路线相关厂商的文档有记录，或者实际运行中见过 | 路线文件里的 Troubleshooting 表 |
 
 ## 更新状态
 
@@ -220,7 +221,7 @@ Reply "yes" to do this for exactly this release. Anything else stops here.
 - `accounts.apple_developer`：`has`、`missing` 或 `pending`，来自第 1 步。这是创作者提供的；不问过绝不覆盖。
 - `tools.*`：路线选了工具才写。
 - `provided.publish-ios.*`：只写环境变量名，按路线文件列的。
-- `history`：追加 `{ skill: publish-ios, version: "0.1.1", date: <YYYY-MM-DD>, result: "<outcome>: app_store <asc_app_id> <version> (<build number>)" }`，outcome 写 Apple 的状态文字，例如 `"Waiting for Review: app_store 1234567890 1.0.0 (7)"`。身份还没有就停下时，写 `"stopped: <step>"`。绝不修改已有的行。
+- `history`：追加 `{ skill: publish-ios, version: "0.2.0", date: <YYYY-MM-DD>, result: "<outcome>: app_store <asc_app_id> <version> (<build number>)" }`，outcome 写 Apple 的状态文字，例如 `"Waiting for Review: app_store 1234567890 1.0.0 (7)"`。身份还没有就停下时，写 `"stopped: <step>"`。绝不修改已有的行。
 - 自由文字写在 frontmatter 下方的备注里：构建 revision、代码树干净的记录、语言对应关系、提交之后读到的发布设置、留着的 App Privacy 改动、Invalid Binary 的构建，以及这次运行停下的原因。
 
 请创作者 commit `.app-creators/`：里面没有 secret，下次运行要读。
@@ -239,4 +240,4 @@ Reply "yes" to do this for exactly this release. Anything else stops here.
 - [Apple：Overview of publishing your app on the App Store](https://developer.apple.com/help/app-store-connect/manage-your-apps-availability/overview-of-publishing-your-app-on-the-app-store/)：最多 24 小时上线，查阅于 2026-11-03。
 - [Expo：Create your first build](https://docs.expo.dev/build/setup/)：Free 方案和 Expo 账号，查阅于 2026-11-03。
 - “当前”里的 git 命令依据 `docs/STATE.md`。[Git pathspec 的 exclude 语法](https://git-scm.com/docs/gitglossary)、[git-status](https://git-scm.com/docs/git-status)、[git-diff](https://git-scm.com/docs/git-diff)，查阅于 2026-11-03。
-- 参考文件，各带自己的来源和日期：`references/expo.md`、`references/accounts.md`、`references/statuses.md`、`references/export-compliance.md`、`references/testflight.md`、`references/listing.md`、`references/localizations.md`、`references/app-privacy.md`、`references/age-rating.md`、`references/release.md`、`references/review.md`。
+- 参考文件，各带自己的来源和日期：`references/expo.md`、`references/flutter.md`、`references/xcode.md`、`references/accounts.md`、`references/statuses.md`、`references/export-compliance.md`、`references/testflight.md`、`references/listing.md`、`references/localizations.md`、`references/app-privacy.md`、`references/age-rating.md`、`references/release.md`、`references/review.md`。

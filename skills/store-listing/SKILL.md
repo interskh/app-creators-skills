@@ -27,7 +27,7 @@ metadata:
 - The creator asks to check a listing against the store limits, or says a field is too long.
 - `app-creators` or `publish-readiness` named this skill as the next step for iOS or Android.
 - Not this skill: the creator asks whether the app is ready to publish. Use `publish-readiness`.
-- Not this skill: the creator wants the build uploaded or submitted. Use `publish-ios` (Expo apps today) or `publish-android` (not shipped yet).
+- Not this skill: the creator wants the build uploaded or submitted. Use `publish-ios` or `publish-android` (not shipped yet).
 
 ## What you must provide
 
@@ -151,7 +151,7 @@ No step here is **effective**: this skill touches no external system. It creates
    Expect: the script's lines reflect the answers, and `state.md` has one more `history` row if `result` changed.
 
 9. Name the next skill and stop. Default: this list. Alternative: none.
-   Run: first do Verify. Tell the creator to commit `.app-creators/`; it holds no secrets, and the next skill reads it. Name the next skill: `publish-ios` for `app_store` (Expo apps today) and `publish-android` for `google_play` (not shipped yet).
+   Run: first do Verify. Tell the creator to commit `.app-creators/`; it holds no secrets, and the next skill reads it. Name the next skill: `publish-ios` for `app_store` and `publish-android` for `google_play` (not shipped yet).
    Expect: one final reply with the path to the file and the `result`. Never say the listing is live, submitted, or approved.
 
 ## Verify

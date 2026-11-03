@@ -10,12 +10,11 @@ writes its state file. `publish-readiness` checks whether the app is
 ready for the App Store, Google Play, or the web, and reports each gap
 with its fix. `store-listing` writes App Store and Google Play listing
 copy in English and Chinese and plans the screenshots. `publish-ios` takes
-an Expo app to App Store review and release. `publish-web` deploys a web
+an Expo, Flutter, or Xcode app to App Store review and release. `publish-web` deploys a web
 app to Vercel or Cloudflare Pages.
 
-App Store publishing covers Expo apps only today; the Flutter and Xcode
-routes have not shipped. Publishing to Google Play, user acquisition, and
-monetization are planned and have not shipped. See
+Publishing to Google Play, user acquisition, and monetization are planned
+and have not shipped. See
 [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Install
@@ -64,8 +63,7 @@ It detects the framework and which destinations the project already has
 config for, asks the creator what they want now and where the app should
 go, writes `.app-creators/state.md`, and names the next skill. To publish,
 that is `publish-readiness`, then `publish-web` for the web, or
-`store-listing`, then `publish-ios` for iOS, whose Expo route is the only one
-shipped, or `store-listing` for Android, whose platform skill has not shipped;
+`store-listing`, then `publish-ios` for iOS, or `store-listing` for Android, whose platform skill has not shipped;
 for anything else it says the skill has not shipped. Use it when the creator says start, where do I begin, set up app
 creators, what's next, or ship my app (开始, 从哪开始, 下一步, 发布我的应用),
 or when another App Creators skill reports that `state.md` is missing or
@@ -107,14 +105,15 @@ above; it needs `app-creators` installed too. Chinese version:
 
 ### publish-ios
 
-[`publish-ios`](skills/publish-ios/SKILL.md) takes an Expo app to App Store
-review and release: Apple Developer Program, App Store Connect app record,
-signing, EAS build and upload, TestFlight, App Privacy and age rating from
-the readiness report, and listing from `listing.md`. The Flutter and Xcode
-routes have not shipped, and a Kotlin app has no iOS route. It stops at every
+[`publish-ios`](skills/publish-ios/SKILL.md) takes an Expo, Flutter, or Xcode
+app to App Store review and release: Apple Developer Program, App Store Connect
+app record, signing, build and upload with EAS, `flutter build ipa`, or an Xcode
+archive, TestFlight, App Privacy and age rating from the readiness report, and
+listing from `listing.md`. A Kotlin app has no iOS route. It stops at every
 human step with one exact ask, and asks for a yes before anything reaches a
-reviewer or the public. The default path needs a paid Apple Developer Program
-membership and an Expo account. Use it when the creator says publish to the
+reviewer or the public. Every route needs a paid Apple Developer Program
+membership. The Expo route needs an Expo account; the Flutter and Xcode routes
+need a Mac with the full Xcode. Use it when the creator says publish to the
 App Store, ship to iOS, TestFlight, submit for review, or App Store Connect
 (发布到 App Store, 上架 iOS, 上架苹果, 提交审核, 苹果开发者账号). Install it with
 `npx skills add interskh/app-creators-skills` or the Claude Code commands
@@ -165,6 +164,8 @@ about another.
 | `store-listing` | xcode+app-store | unverified, level 3 open: no fixture yet |
 | `store-listing` | kotlin+google-play | unverified, level 3 open: no fixture yet |
 | `publish-ios` | expo+app-store | unverified, level 3 open: stops at Step 1, no Apple or Expo fixture account |
+| `publish-ios` | flutter+app-store | unverified, level 3 open: not run yet |
+| `publish-ios` | xcode+app-store | unverified, level 3 open: not run yet |
 | `publish-web` | vite+vercel | unverified, no run recorded |
 | `publish-web` | nextjs+vercel | unverified, no run recorded |
 | `publish-web` | static+vercel | unverified, no run recorded |

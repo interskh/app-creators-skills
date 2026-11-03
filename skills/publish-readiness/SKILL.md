@@ -140,7 +140,7 @@ No step here is **effective**: this skill touches no external system. It creates
    Expect: a rerun at the new commit shows the line as `PASS`.
 
 10. Name the next skill and stop. Default: this list. Alternative: none.
-    Run: first do Verify. Then tell the creator to commit `.app-creators/`; it holds no secrets, and the next skill reads it. Then name the next skill: for web, `publish-web` when `framework.kind` is `vite`, `nextjs`, or `static`, and otherwise say that no shipped skill publishes this framework to the web; for iOS, `store-listing` and `publish-ios` (Expo apps today); for Android, `store-listing` and `publish-android` (not shipped yet).
+    Run: first do Verify. Then tell the creator to commit `.app-creators/`; it holds no secrets, and the next skill reads it. Then name the next skill: for web, `publish-web` when `framework.kind` is `vite`, `nextjs`, or `static`, and otherwise say that no shipped skill publishes this framework to the web; for iOS, `store-listing` and `publish-ios`; for Android, `store-listing` and `publish-android` (not shipped yet).
     Expect: one final reply with each platform's `result` and the path to the report. A `pass` with `smoke-run: unknown` says the smoke run did not run, and states the risk. A native route with no resolved input ends `unknown`, and the reply names the missing tool. Never say the app is approved, published, or live.
 
 ## Verify

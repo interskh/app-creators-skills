@@ -23,7 +23,7 @@ metadata:
 - The creator wants a web app live on a public HTTPS URL: "publish", "deploy", "go live", "put it online".
 - The creator wants the app installable from the browser (PWA) or served on their own domain.
 - `.app-creators/state.md` has `targets.web.intent: wanted` and `targets.web.status` is not `live`.
-- Not this skill: the app ships as a native iOS or Android binary. Use `publish-ios` (Expo apps today) or `publish-android` (not shipped yet).
+- Not this skill: the app ships as a native iOS or Android binary. Use `publish-ios` or `publish-android` (not shipped yet).
 - Not this skill: the creator asks whether the app is ready to publish, not to publish it. Use `publish-readiness`.
 
 ## What you must provide

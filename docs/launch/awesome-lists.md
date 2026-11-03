@@ -40,7 +40,7 @@ Meets the rules today: yes. Add to `🛠 Development & Code Tools`.
 PR title: `Add app-creators-skills`
 
 ```markdown
-- [app-creators-skills](https://github.com/interskh/app-creators-skills) - Pre-release Claude Code plugin with five skills: write a project state file, check publish readiness, write App Store and Google Play listing copy, take an Expo app to App Store review and release, and deploy a Next.js, Vite, or static app to Vercel, or a Vite, static, or Next.js static-export app to Cloudflare Pages. Not yet verified on a real account.
+- [app-creators-skills](https://github.com/interskh/app-creators-skills) - Pre-release Claude Code plugin with five skills: write a project state file, check publish readiness, write App Store and Google Play listing copy, take an Expo, Flutter, or Xcode app to App Store review and release, and deploy a Next.js, Vite, or static app to Vercel, or a Vite, static, or Next.js static-export app to Cloudflare Pages. Not yet verified on a real account.
 ```
 
 PR body:
@@ -90,7 +90,7 @@ Form fields:
 Category: Deployment & Execution
 Resource Name: App Creators skills
 URL: https://github.com/interskh/app-creators-skills
-Description: Agent skills that install into Claude Code and Codex. app-creators writes a project state file; publish-readiness checks readiness for the App Store, Google Play, or the web; store-listing writes App Store and Google Play listing copy and a screenshot plan; publish-ios takes an Expo app to App Store review and release; publish-web deploys a Next.js, Vite, or static app to Vercel, or a Vite, static, or Next.js static-export app to Cloudflare Pages. Pre-release.
+Description: Agent skills that install into Claude Code and Codex. app-creators writes a project state file; publish-readiness checks readiness for the App Store, Google Play, or the web; store-listing writes App Store and Google Play listing copy and a screenshot plan; publish-ios takes an Expo, Flutter, or Xcode app to App Store review and release; publish-web deploys a Next.js, Vite, or static app to Vercel, or a Vite, static, or Next.js static-export app to Cloudflare Pages. Pre-release.
 Public Evidence: The README lists install commands. On 2026-11-02 each one ran against the public repo and installed both skill files; no agent session has loaded the skills yet. Skill source: https://github.com/interskh/app-creators-skills/blob/main/skills/publish-web/SKILL.md
 Access and License: Free, MIT. Deploying needs a Vercel account or a Cloudflare account. The Vercel Hobby plan covers personal, non-commercial apps only.
 Current Availability: A new user can install it today. It is pre-release, and no skill has been verified on a real account.
@@ -134,7 +134,7 @@ Category: Skills
 Link: https://github.com/interskh/app-creators-skills
 Author Name: interskh
 Author Link: https://github.com/interskh
-Description: Claude Code plugin with five skills. app-creators detects the project and writes a state file; publish-readiness checks readiness for the App Store, Google Play, or the web; store-listing writes App Store and Google Play listing copy and a screenshot plan; publish-ios takes an Expo app to App Store review and release; publish-web deploys a Next.js, Vite, or static app to Vercel, or a Vite, static, or Next.js static-export app to Cloudflare Pages. Pre-release, not yet verified on a real account.
+Description: Claude Code plugin with five skills. app-creators detects the project and writes a state file; publish-readiness checks readiness for the App Store, Google Play, or the web; store-listing writes App Store and Google Play listing copy and a screenshot plan; publish-ios takes an Expo, Flutter, or Xcode app to App Store review and release; publish-web deploys a Next.js, Vite, or static app to Vercel, or a Vite, static, or Next.js static-export app to Cloudflare Pages. Pre-release, not yet verified on a real account.
 ```
 
 ## 5. VoltAgent/awesome-agent-skills

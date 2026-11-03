@@ -3,7 +3,7 @@
 - 创作者想让网页应用上线，用公开的 HTTPS URL 访问：“发布”“部署”“上线”“放到网上”。
 - 创作者想让应用能从浏览器安装（PWA），或者用自己的域名访问。
 - `.app-creators/state.md` 里 `targets.web.intent: wanted`，且 `targets.web.status` 不是 `live`。
-- 不适用：应用要发布成 iOS 或 Android 原生安装包，改用 `publish-ios`（目前只支持 Expo 应用）或 `publish-android`（暂未提供）。
+- 不适用：应用要发布成 iOS 或 Android 原生安装包，改用 `publish-ios` 或 `publish-android`（暂未提供）。
 - 不适用：创作者问的是应用能不能发布，并没有要现在发布，改用 `publish-readiness`。
 
 ## 你需要准备

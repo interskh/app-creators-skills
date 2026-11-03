@@ -1,19 +1,19 @@
 ---
 name: publish-ios
 description: >
-  Take an Expo app to App Store review and release: Apple Developer Program,
-  App Store Connect app record, signing, EAS build and upload, TestFlight,
-  App Privacy and age rating from the readiness report, listing from
-  listing.md. Stops at every human step with one exact ask, and asks for a yes
-  before anything reaches a reviewer or the public. The Flutter and Xcode
-  routes have not shipped. Use when the creator says publish to the App Store,
+  Take an Expo, Flutter, or Xcode app to App Store review and release: Apple
+  Developer Program, App Store Connect app record, signing, build and upload
+  with EAS, flutter build ipa, or an Xcode archive, TestFlight, App Privacy and
+  age rating from the readiness report, listing from listing.md. Stops at every
+  human step with one exact ask, and asks for a yes before anything reaches a
+  reviewer or the public. Use when the creator says publish to the App Store,
   ship to iOS, TestFlight, submit for review, App Store Connect, release my
   iOS app, 发布到 App Store, 上架 iOS, 上架苹果, 提交审核, 苹果开发者账号.
 license: MIT
 metadata:
   stage: publish
   platform: ios
-  version: "0.1.1"
+  version: "0.2.0"
   verified: "unverified"
   verified_version: ""
   zh: SKILL.zh.md
@@ -32,7 +32,8 @@ Route, from `framework.kind`. Trust the project over state if they conflict, and
 | `framework.kind` | what to do |
 |---|---|
 | `expo` | Continue. The route file is `references/expo.md`. Say so once in your first reply: this is an Expo app, so the route builds and uploads with EAS. |
-| `flutter`, `xcode` | Say this route has not shipped yet, and stop. |
+| `flutter` | Continue. The route file is `references/flutter.md`. Say so once in your first reply: this is a Flutter app, so the route builds with `flutter build ipa` and uploads with Apple's `altool`. |
+| `xcode` | Continue. The route file is `references/xcode.md`. Say so once in your first reply: this is an Xcode app, so the route builds an Xcode archive and uploads with Apple's `altool`. |
 | `kotlin` | Say a Kotlin app has no iOS route, name `publish-android` (not shipped yet), and stop. |
 | `unknown` | Run `app-creators` first and come back. |
 
@@ -42,8 +43,8 @@ Route, from `framework.kind`. Trust the project over state if they conflict, and
 ## What you must provide
 
 - An Apple Developer Program membership: only it can publish to the App Store. 99 USD a year; an individual appears as the seller under their legal name. An organization needs a legal entity, signing authority, a work email, a public website, and a D-U-N-S Number, which is free and can take up to 5 business days plus 2 for Apple. Enrolling takes about 30 minutes for an individual, and days for an organization (estimates). Detail: `references/accounts.md`.
-- A build service account, named by the route: an Expo account on `references/expo.md`. The Free plan is enough to start. Takes about 5 minutes (estimate).
-- Your own sign-ins: Apple two-factor login and the signing step, typed only in your terminal or browser. Takes about 10 minutes (estimate).
+- A build service account, named by the route: an Expo account on `references/expo.md`. The Free plan is enough to start. Takes about 5 minutes (estimate). `references/flutter.md` and `references/xcode.md` have no build service: they need a Mac with the full Xcode, for Flutter the Flutter SDK too, and your Apple Account added in Xcode. No page read gives a time for installing them.
+- Your own sign-ins: Apple two-factor login and the signing step, typed only in your terminal, browser, or Xcode. Takes about 10 minutes (estimate).
 - Decisions only you can make, typed directly into App Store Connect: price and availability, category, support URL, copyright, content rights, EU trader status, and, if the app needs sign-in, a demo account for App Review. Takes about 15 minutes (estimate).
 - One answer on encryption in Step 4. Takes 1 minute.
 - The screenshots `store-listing` planned.
@@ -119,7 +120,7 @@ Every step below is marked **human-only**, **effective**, or **go-ahead**, excep
    Ask, and stop: "Do you have an active Apple Developer Program membership on the account that will publish this app? Reply yes, no, or pending." On no, tell them what to prepare from `references/accounts.md`, and that they enroll themselves in the Apple Developer app or on the Apple Developer site.
    Expect: `has` from yes, `missing` from no, `pending` from pending. Record it. On `missing` or `pending`, stop: propose no build, upload, or submit before this account exists.
 
-2. **human-only** Build service account and login. Default and alternative: the route file.
+2. **human-only** Build service account and login, or what the route needs in its place. Default and alternative: the route file.
    Check first: the route's login check. If it shows an account, go to Step 3.
    Ask, and stop: the exact ask in the route file. The creator signs in; never type or ask for the password.
    Expect: the route's login check shows the account.
@@ -130,7 +131,7 @@ Every step below is marked **human-only**, **effective**, or **go-ahead**, excep
    Proof: the creator reports the Apple ID and the version, at Prepare for Submission or later, and whether the list shows a version on sale. Record `targets.ios.asc_app_id` and `targets.ios.bundle_id`. Record `targets.ios.status`: `live` if a version is on sale, as Update state says, otherwise `ready` per `references/statuses.md`. If they report no record yet, record `none`, and stop.
 
 4. Project edits. Default and exact edits: the route file. Alternative: none.
-   Run: make every edit the route requires, in one commit, before any build: config, project link, `targets.ios.asc_app_id`, the version for a new release, and the encryption flag. For encryption, read the project first. If it already answers, do not ask. If not, ask once, per `references/export-compliance.md`, and edit only on the creator's answer. Show the diff, and ask the creator to commit.
+   Run: make every edit the route requires, in one commit, before any build: config, project link, `targets.ios.asc_app_id`, the version for a new release, the encryption flag, and the build number where the route file keeps it in the project. For encryption, read the project first. If it already answers, do not ask. If not, ask once, per `references/export-compliance.md`, and edit only on the creator's answer. Show the diff, and ask the creator to commit.
    Expect: `git status --porcelain -- . ':(exclude).app-creators'` prints nothing. These edits change the revision, which is why Step 5 follows.
 
 5. Rebind readiness. Default: `publish-readiness`. Alternative: the stale rule in Before you start.
@@ -141,10 +142,10 @@ Every step below is marked **human-only**, **effective**, or **go-ahead**, excep
 
 6. **human-only** Signing. Default and alternative: the route file.
    Check first: the route's check that signing exists.
-   Ask, and stop: the exact ask in the route file. Apple sign-in and its two-factor code happen only in the creator's terminal.
+   Ask, and stop: the exact ask in the route file. Apple sign-in and its two-factor code happen only in the creator's terminal, or in Xcode where the route says so.
    Expect: the creator reports it finished. Record `tools.*` only if the route names one.
 
-7. **human-only** App Store Connect API key. Default and alternative: the route file. This key lets the route upload and read the store with no prompt.
+7. **human-only** App Store Connect API key. Default and alternative: the route file. This key lets the route upload with no prompt, and read the store where its tool can.
    Check first: the route's check passes, or `provided.publish-ios` holds the App Store Connect key env names the route lists. Any other name there, such as a build service token, does not count.
    Ask, and stop: the exact ask in the route file. Roles: `references/accounts.md`. Never see the key: record env var names only.
    Expect: the route's check passes, or the creator chooses the route's path with no key.
@@ -152,18 +153,18 @@ Every step below is marked **human-only**, **effective**, or **go-ahead**, excep
 8. **effective** Build. Default and alternative: the route file.
    Check first: the route's lookup for a build of this revision that is finished or in progress. Reuse it. An older build does not count, and a build that came back Invalid Binary never counts, even with the commit unchanged. Proof of a clean tree must exist as the route describes.
    Run: the route's build command, with the tree clean. Record the build revision in the notes right after it starts.
-   Proof: the build service says finished, and the route's read gives the full release identity, or as much of it as the route says that build has. This is not a store state. If it fails, show the first error and use Troubleshooting.
+   Proof: the build is finished, as the route file proves it (on `references/expo.md`, the build service says finished), and the route's read gives the full release identity, or as much of it as the route says that build has. This is not a store state. If it fails, show the first error and use Troubleshooting.
 
 9. **effective** Upload. Default and alternative: the route file. `references/testflight.md` says what follows.
    Check first: read the store for a build with this version and build number, or what the route says for a build with no number yet. If listed, skip the upload.
    Run: only after the reading came back, the route's upload command, for this exact build. Never put this command in the message that asks for the reading, not even as what comes next.
    Proof: the build is listed in TestFlight with a status from `references/statuses.md`, and not Invalid Binary, which is recorded as Step 13 says and goes back to Step 8. A finished upload command is not that. If still Processing, say so and stop; a rerun resumes here. On Missing Compliance, follow `references/export-compliance.md`. Record `targets.ios.status` per `references/statuses.md`; with a version on sale it stays `live`.
 
-10. **effective** TestFlight internal testing (only if the creator asks). Default: the route's group option. Alternative: App Store Connect, per `references/testflight.md`.
+10. **effective** TestFlight internal testing (only if the creator asks). Default: the route's group option, if it names one. Alternative: App Store Connect, per `references/testflight.md`.
     Check first: ask the creator whether this build is already in the internal group. Run, then ask for the build's status.
     Proof: Testing, or Ready to Test, for this identity. Internal testing reaches only the creator's own team and no reviewer. It is not a go-ahead.
 
-11. **go-ahead** External TestFlight (only if the creator asks). Each action below reaches a reviewer or someone outside the team, so each is its own block and its own proof, and a yes to one does not cover the next. Default: App Store Connect, per `references/testflight.md`. Alternative: none; `references/expo.md` forbids the automation.
+11. **go-ahead** External TestFlight (only if the creator asks). Each action below reaches a reviewer or someone outside the team, so each is its own block and its own proof, and a yes to one does not cover the next. Default: App Store Connect, per `references/testflight.md`. Alternative: none; the route file forbids the automation.
     Check first: ask for this build's status and every group that holds it, which testable builds each of those groups holds, what each group's Testers and Public Link sections show, and how many external testers the build's Individual Testers section lists; it may hold internal testers too. Only an action whose own proof already holds is skipped.
     Run: the block for the one action asked for, in its words below. After the yes, the creator clicks. Then ask for the reading its proof names.
     - "add this build to external TestFlight and submit it for TestFlight App Review", with "Automatically notify testers" left off. Proof: Waiting for Review or In Beta Review for this identity.
@@ -228,11 +229,11 @@ Then do Verify and Update state.
 |---|---|---|
 | `git` exits 72: "couldn't create cache file ... xcrun_db" | Seen in the 2026-11-02 eval runs: a sandboxed agent on macOS, where `/usr/bin/git` is an Xcode shim that cannot write its cache | Use a real git binary if one exists, such as `/opt/homebrew/bin/git`. If none exists, follow the Current rule: tell the creator git could not run, and ask for the commands' output when a step needs it |
 | The build shows Missing Compliance | No export compliance answer. Apple's page | Follow `references/export-compliance.md`. Do not rebuild only for this |
-| The version shows Invalid Binary | Apple's page: the build does not meet the binary requirements | Upload a new build with a new build number, or select one that meets them. Read the toolchain line in `references/expo.md` |
+| The version shows Invalid Binary | Apple's page: the build does not meet the binary requirements | Upload a new build with a new build number, or select one that meets them. Read the toolchain line in the route file |
 | App creation is refused until an agreement is signed | Apple's page: the Account Holder must sign the latest agreement first | Ask the Account Holder to sign it under Business. This is a human-only step |
 | The build stays Processing for more than 24 hours | Apple's page: there may be an issue | Submit a Feedback Assistant ticket or contact Apple, per `references/statuses.md` |
 | A build upload shows Failed | Apple's page | Read the errors on the build. The same build number can be reused for the next upload |
-| Route errors | Documented by Expo | The Troubleshooting table in `references/expo.md` |
+| Route errors | Documented by the route's vendors, or seen in a run | The Troubleshooting table in the route file |
 
 ## Update state
 
@@ -243,7 +244,7 @@ Read the whole frontmatter, change only these fields, and write the whole frontm
 - `accounts.apple_developer`: `has`, `missing`, or `pending`, from Step 1. Provided by the creator; never overwrite it without asking.
 - `tools.*`: only if the route chose one.
 - `provided.publish-ios.*`: env var names only, as the route file lists them.
-- `history`: append `{ skill: publish-ios, version: "0.1.1", date: <YYYY-MM-DD>, result: "<outcome>: app_store <asc_app_id> <version> (<build number>)" }`, with Apple's status text as the outcome, for example `"Waiting for Review: app_store 1234567890 1.0.0 (7)"`. For a stop before an identity exists, use `"stopped: <step>"`. Never edit a row.
+- `history`: append `{ skill: publish-ios, version: "0.2.0", date: <YYYY-MM-DD>, result: "<outcome>: app_store <asc_app_id> <version> (<build number>)" }`, with Apple's status text as the outcome, for example `"Waiting for Review: app_store 1234567890 1.0.0 (7)"`. For a stop before an identity exists, use `"stopped: <step>"`. Never edit a row.
 - Free text goes in the notes below the frontmatter: the build revision, its clean-tree record, the locale mapping, a release setting read after submission, a held App Privacy change, an Invalid Binary build, and why the run stopped.
 
 Tell the creator to commit `.app-creators/`; it holds no secrets, and the next run reads it.
@@ -262,4 +263,4 @@ Every fact is in a reference file, with its source and check date, except these.
 - [Apple: Overview of publishing your app on the App Store](https://developer.apple.com/help/app-store-connect/manage-your-apps-availability/overview-of-publishing-your-app-on-the-app-store/): up to 24 hours to go live, checked 2026-11-03.
 - [Expo: Create your first build](https://docs.expo.dev/build/setup/): Free plan and Expo account, checked 2026-11-03.
 - Git commands in Current follow `docs/STATE.md`. [Git pathspec, exclude magic](https://git-scm.com/docs/gitglossary), [git-status](https://git-scm.com/docs/git-status), [git-diff](https://git-scm.com/docs/git-diff), checked 2026-11-03.
-- Reference files, each with its own dated sources: `references/expo.md`, `references/accounts.md`, `references/statuses.md`, `references/export-compliance.md`, `references/testflight.md`, `references/listing.md`, `references/localizations.md`, `references/app-privacy.md`, `references/age-rating.md`, `references/release.md`, `references/review.md`.
+- Reference files, each with its own dated sources: `references/expo.md`, `references/flutter.md`, `references/xcode.md`, `references/accounts.md`, `references/statuses.md`, `references/export-compliance.md`, `references/testflight.md`, `references/listing.md`, `references/localizations.md`, `references/app-privacy.md`, `references/age-rating.md`, `references/release.md`, `references/review.md`.

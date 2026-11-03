@@ -42,12 +42,13 @@ Chinese ships with each skill rather than as a pass at the end.
   - Kyle: level 4 run of `store-listing` on a real app, recorded in `skills/store-listing/references/verified-runs.md`. It also checks whether the store counts a CJK name at the limit as `check-listing.py` does.
   - Kyle: at the level 4 run, check the minute estimates in `## What you must provide` of `skills/store-listing/SKILL.md`. They are estimates, marked "about".
   - Kyle: in Slice F, check the locale mapping: an `app.languages` key such as `zh-Hans` maps to zh and stays as the listing key, and the submission steps map it to App Store Connect and Play locales.
-- [ ] `p0` **publish-ios** `🔴 L` — Ship to the App Store from Expo, Flutter, or Xcode. **Requirements:** `docs/prds/prd-phase1-skills.md` The Expo route ships; the parent stays open until the Flutter and Xcode routes do.
+- [x] `p0` **publish-ios** `🔴 L` — Ship to the App Store from Expo, Flutter, or Xcode. **Requirements:** `docs/prds/prd-phase1-skills.md` All three routes ship, `unverified`, with level 3 open on each.
   - [x] `p0` **Account and signing** `🟡 M` — Apple Developer Program enrollment (individual vs organization, D-U-N-S), App Store Connect app record, bundle id registration, certificates and provisioning via EAS (default) or Xcode automatic signing (alternative).
-  - [ ] `p0` **Build and TestFlight** `🟡 M` — Produce a release build per framework (EAS Build, `flutter build ipa`, Xcode archive), upload, TestFlight internal testing, export compliance answer. The Expo route (EAS Build) is done; `flutter build ipa` and the Xcode archive are Slice G.
+  - [x] `p0` **Build and TestFlight** `🟡 M` — Produce a release build per framework (EAS Build, `flutter build ipa`, Xcode archive), upload, TestFlight internal testing, export compliance answer.
   - [x] `p0` **Submission** `🟡 M` — Fill App Store Connect metadata from `store-listing` output, pricing and availability, App Privacy nutrition labels from the readiness inventory, submit for review, read review status.
   - [x] `p0` **publish-ios zh** `🟡 M` — `skills/publish-ios/SKILL.zh.md`: same sections and verified date as the English skill, written as a Chinese engineer would write it, not a literal translation. Lint passes.
   - Kyle: create fixture Apple Developer and Expo accounts, then the level 3 run on `expo+app-store` can pass its first account step, which is where it stops today.
+  - Kyle: a full Xcode and a fixture Apple account, then the level 3 runs on `flutter+app-store` and `xcode+app-store` can start. They have not run.
   - Kyle: level 4 run of `publish-ios` on a real app, recorded in `skills/publish-ios/references/verified-runs.md`.
 - [ ] `p0` **publish-android** `🔴 L` — Ship to Google Play from Expo, Flutter, or Android Studio. **Requirements:** `docs/prds/prd-phase1-skills.md`
   - [ ] `p0` **Account and signing** `🟡 M` — Play Console account and identity verification, app creation, upload key and Play App Signing via EAS (default) or Gradle keystore (alternative), 20-tester closed-testing requirement for new personal accounts.

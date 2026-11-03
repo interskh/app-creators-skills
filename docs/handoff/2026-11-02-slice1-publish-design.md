@@ -966,3 +966,59 @@ Fixture repo worktree: branch `implement-loop/2026-11-02-slice1-publish-design`,
 **Fixture commit:** `de83d0f` on the fixtures branch, unpushed. The orchestrator reran `flutter test` (3 passed), `flutter analyze` (no issues), and `plutil -lint` on the Swift project (OK).
 
 **Orchestrator edit.** The global `privacy-scan` hook read template icon names with an at-sign, such as the 2x iOS icons, as email addresses, in paths and in `Contents.json`. A path cannot carry an allow comment, and `--no-verify` needs approval. So the Flutter asset catalog files use `-2x.png`, with `Contents.json` to match. `check-readiness.py` with the hand-written resolved file still passes on them.
+
+## Slice G / T2 routes
+
+Run `2026-11-02-slice1-publish-design`, task G/T2: Flutter and Xcode routes of `publish-ios`, 0.2.0. Uncommitted, for the orchestrator.
+
+**Decisions**
+- Defaults, each confirmed on today's pages, all kept: signing Xcode automatic, manual as alternative; Flutter build `flutter build ipa`, Xcode archive as alternative; Xcode build Xcode archive, `xcodebuild` as alternative; screenshots as `store-listing` says, `snapshot` on `xcode` only.
+- Upload default resolved to `xcrun altool`, the only documented Apple tool that takes the key; Organizer stays the alternative. Transporter is named with it on the no-key path, because Flutter's page lists it first.
+- Xcode default exports an `.ipa` (Custom, App Store Connect, Export), then `altool`. That costs one extra Organizer choice, and it gives the route a file to read before upload.
+- Close off a changed number on two layers: forbid the presets and the option, then read `CFBundleVersion` from the `.ipa`. A mismatch stops before upload. The read is the guard that holds on every path, because the option's default is unread.
+- Build number is committed, so `New build number` is edit, commit, Step 5, Step 8. A number is taken by an `Invalid Binary` line, a listing with no matching `Build` line, or a stale revision the store already lists. Step 9's "if listed, skip" is closed for a number from another commit.
+- No build record: notes line with `clean tree at build time`, then `; finished, clean tree after build, version, build, ipa, sha256`. The hash is how a resume proves the file on disk is this build.
+- Dirty after build: not this revision, commit, Step 5, rebuild with the same number. A second dirty build of the same files stops, so no loop. Flutter's config-only runs in Step 4, because `mac.dart` runs migrators and pods before its `configOnly` return, which moves most writes into that commit.
+- Signing moves the revision: Step 6, commit, Step 5, Step 6's check now holds, Step 7. One pass.
+- Workflow check keys on upload and reviewer settings, not on building: a CI job that only compiles is common and reaches no store. `ci_scripts/` asks one Xcode Cloud question with the next store reading, never with Step 1's ask.
+- Keys: `asc_key_id_env: ASC_KEY_ID`, `asc_issuer_id_env: ASC_ISSUER_ID`, optional `asc_key_dir_env: API_PRIVATE_KEYS_DIR`. `app-creators` 0.1.4. Other skills label-only, no version bump, as in Slice F. `publish-ios` parent and Build and TestFlight ticked on the roadmap; a Kyle line added for level 3.
+
+**Rejected**
+- `--build-number` for recovery: no project edit, so Step 8 stays clean, but one commit can then mean two builds and the identity no longer comes from the project (spec section 4.3).
+- Organizer's Upload as Xcode's default: no file exists to read before the number reaches the store.
+- App Store Connect API for store reads: documented, but needs a signed token and hand-written requests. Spec section 7 defers this.
+- `altool --build-status` as Step 9's proof: it reads one delivery, not TestFlight status.
+- A committed `ExportOptions.plist`: a temp file does not touch the revision.
+- Stopping on any CI file: it would stop ordinary test jobs. Stopping only on a CI caller of a Fastfile: the caller can live outside the repo.
+
+**Assumptions** (no Xcode here, so none ran)
+- `manageAppVersionAndBuildNumber` is a real export key and false stops the bump. Its name comes from the brief, and no page read lists it. Check: `xcodebuild -help`. The routes ask for that read first.
+- The `altool` flags from the mirror dated 2025-06-23 match installed Xcode, and `--list-providers` works as Step 7's check.
+- A `git status` after choosing a team shows the `project.pbxproj` change. No page names the file.
+
+**Deferred**
+- The `.ipa` hash and `unzip` steps have never run on a real `.ipa`. Safe: a failure stops before upload. Level 3 checks it.
+- No zh route files, per the brief: `SKILL.zh.md` already says to keep commands and say the rest in Chinese.
+
+**Facts left out or unverified**
+- Export option defaults; whether `-exportArchive` bumps the number with no option set; `altool` output fields; duplicate-number error text; `Application not configured for iOS` cause, marked unconfirmed in `flutter.md`. Source shows the null package paths; no Xcode was here to compare.
+- Whether a standalone Swift package can archive for the App Store: no page read shows it, so that shape stops. Roles for cloud-managed certificates: the roles page's table has image cells that the text read cannot parse, so the routes cite only the manual profile role.
+- Flutter's iOS floor differs by page: 13 on `deployment/ios` (dated 2026-07-31), 15 on supported platforms (dated 2026-09-22). `flutter.md` says both. The tool source's Xcode floor, 15, sits below Apple's, 26.
+- Failed fetches: Apple JSON 404 at `xcode/signing-and-capabilities`, `xcode/distributing-your-app-with-xcode-cloud`, `xcode/signing-your-app`, `xcode/configuring-the-app-sandbox`, `appstoreconnectapi/uploading-builds`; `help.apple.com/xcode/mac/current/` needs JavaScript; a guessed Xcode help page 404; `agvtool.8` mirror 404; `help/account/access/cloud-managed-distribution-certificates` returned no article. The Transporter guide's root needs JavaScript, and its `en.lproj/static.html` worked. `xcodebuild -help` unread.
+- Spot-checks by re-fetch: Apple's preset updating the build number and Xcode creating the record; `INFOPLIST_KEY_ITSAppUsesNonExemptEncryption`; Flutter's unique build number; Xcode 26 since April 28, 2026. All matched.
+
+**Expo reader, line by line in `SKILL.md`.** No line of `references/expo.md` changed, and the go-ahead block is unchanged (sha256 `d343dfb1` in both files).
+- Description, version, `history`, Sources: metadata; no instruction. `flutter` and `xcode` rows: not the Expo row.
+- What you must provide: the Expo sentence is verbatim; the added sentence names other route files. Sign-ins adds Xcode, which `expo.md`'s signing alternative already uses.
+- Step 2: heading keeps "Build service account and login"; check and ask are unchanged. Step 4: `expo.md` keeps no build number in the project on `remote`, so nothing is added. Step 6: the terminal stays the place unless the route says otherwise, and `expo.md`'s ask says the terminal.
+- Step 7: `eas submit:status` is a tool that can read, so upload and read both still run with no prompt. Step 8: the parenthesis keeps "the build service says finished" for this file. Step 10: `expo.md` names `--groups`, so the default stands.
+- Step 11 and both Troubleshooting rows: "the route file" is `references/expo.md` on this route, resolved by the route table. The vendor cell changes wording only.
+
+**T3 must check**
+- Evals: `framework.kind` names the route with the first-reply line, and a first run stops at Step 1 with the workflow check silent. Scaffold seeds still say `0.1.1` and `0.1.3` in `evals/publish-ios/lib/`; `evals/publish-ios/README.md` still lists these routes as absent.
+- Level 3, each route: Step 2's check stops on Command Line Tools. Then with Xcode: `xcodebuild -help` for the export key, `altool` flags, the `.ipa` read, the team commit round, a dirty build, `New build number`.
+- `verified-runs.md` and the README hold `not run yet` rows for T3 to replace.
+
+**Touches**
+- New: `skills/publish-ios/references/flutter.md`, `xcode.md`. Edited: `skills/publish-ios/SKILL.md`, `SKILL.zh.md`, `references/verified-runs.md`.
+- Shared surfaces: `skills/app-creators/SKILL.md`, `SKILL.zh.md` (0.1.4, routing, Expect). Label edits in `skills/publish-web`, `store-listing`, `publish-readiness`, en and zh. `README.md`, `llms.txt`, `.claude-plugin/plugin.json`, `marketplace.json`, `docs/launch/awesome-lists.md`, `docs/ROADMAP.md`. New `provided.publish-ios` key names; no schema change. Not touched: `evals/`, `references/expo.md`.
