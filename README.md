@@ -4,15 +4,17 @@ Open-source agent skills for creators who built an app with AI and now
 need to publish it. They install into Claude Code, Codex, and other
 coding agents that skills.sh supports.
 
-This is a pre-release. Four skills ship today, and none has been
+This is a pre-release. Five skills ship today, and none has been
 verified on a real account. `app-creators` detects the project and
 writes its state file. `publish-readiness` checks whether the app is
 ready for the App Store, Google Play, or the web, and reports each gap
 with its fix. `store-listing` writes App Store and Google Play listing
-copy in English and Chinese and plans the screenshots. `publish-web`
-deploys a web app to Vercel or Cloudflare Pages.
+copy in English and Chinese and plans the screenshots. `publish-ios` takes
+an Expo app to App Store review and release. `publish-web` deploys a web
+app to Vercel or Cloudflare Pages.
 
-Publishing to the App Store and Google Play, user acquisition, and
+App Store publishing covers Expo apps only today; the Flutter and Xcode
+routes have not shipped. Publishing to Google Play, user acquisition, and
 monetization are planned and have not shipped. See
 [docs/ROADMAP.md](docs/ROADMAP.md).
 
@@ -30,13 +32,13 @@ npx skills add interskh/app-creators-skills -a codex
 npx skills add interskh/app-creators-skills
 ```
 
-The Claude Code commands install all four skills for your user. Run the
+The Claude Code commands install all five skills for your user. Run the
 `npx skills` commands from your project root; by default they write to
 the project, under `.agents/skills/` for Codex.
 
 In a terminal, the `npx skills` CLI shows a picker. Select all the skills,
-because `publish-readiness`, `store-listing`, and `publish-web` read the
-state file that `app-creators` writes. When the CLI detects a coding agent, it installs
+because `publish-readiness`, `store-listing`, `publish-ios`, and
+`publish-web` read the state file that `app-creators` writes. When the CLI detects a coding agent, it installs
 them all without asking.
 With no terminal and no detected agent, it stops with "Nothing was
 installed"; add `-a <agent> -y`.
@@ -52,6 +54,7 @@ skills add no telemetry of their own.
 | `app-creators` | core | all | unverified |
 | `publish-readiness` | publish | all | unverified |
 | `store-listing` | publish | all | unverified |
+| `publish-ios` | publish | ios | unverified |
 | `publish-web` | publish | web | unverified |
 
 ### app-creators
@@ -61,7 +64,8 @@ It detects the framework and which destinations the project already has
 config for, asks the creator what they want now and where the app should
 go, writes `.app-creators/state.md`, and names the next skill. To publish,
 that is `publish-readiness`, then `publish-web` for the web, or
-`store-listing` for iOS and Android, whose platform skills have not shipped;
+`store-listing`, then `publish-ios` for iOS, whose Expo route is the only one
+shipped, or `store-listing` for Android, whose platform skill has not shipped;
 for anything else it says the skill has not shipped. Use it when the creator says start, where do I begin, set up app
 creators, what's next, or ship my app (开始, 从哪开始, 下一步, 发布我的应用),
 or when another App Creators skill reports that `state.md` is missing or
@@ -100,6 +104,23 @@ or character limits (商店文案, 上架文案, 应用描述, 关键词, 截图
 with `npx skills add interskh/app-creators-skills` or the Claude Code commands
 above; it needs `app-creators` installed too. Chinese version:
 [`SKILL.zh.md`](skills/store-listing/SKILL.zh.md).
+
+### publish-ios
+
+[`publish-ios`](skills/publish-ios/SKILL.md) takes an Expo app to App Store
+review and release: Apple Developer Program, App Store Connect app record,
+signing, EAS build and upload, TestFlight, App Privacy and age rating from
+the readiness report, and listing from `listing.md`. The Flutter and Xcode
+routes have not shipped, and a Kotlin app has no iOS route. It stops at every
+human step with one exact ask, and asks for a yes before anything reaches a
+reviewer or the public. The default path needs a paid Apple Developer Program
+membership and an Expo account. Use it when the creator says publish to the
+App Store, ship to iOS, TestFlight, submit for review, or App Store Connect
+(发布到 App Store, 上架 iOS, 上架苹果, 提交审核, 苹果开发者账号). Install it with
+`npx skills add interskh/app-creators-skills` or the Claude Code commands
+above; it needs `app-creators` installed too, and it names `publish-readiness`
+and `store-listing` when they are missing. Chinese version:
+[`SKILL.zh.md`](skills/publish-ios/SKILL.zh.md).
 
 ### publish-web
 
@@ -143,6 +164,7 @@ about another.
 | `store-listing` | flutter+google-play | unverified, level 3 open: no fixture yet |
 | `store-listing` | xcode+app-store | unverified, level 3 open: no fixture yet |
 | `store-listing` | kotlin+google-play | unverified, level 3 open: no fixture yet |
+| `publish-ios` | expo+app-store | unverified, level 3 open: no Apple or Expo fixture account |
 | `publish-web` | vite+vercel | unverified, no run recorded |
 | `publish-web` | nextjs+vercel | unverified, no run recorded |
 | `publish-web` | static+vercel | unverified, no run recorded |

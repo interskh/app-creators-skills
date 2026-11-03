@@ -4,7 +4,7 @@
 - 创作者要对照商店限制检查文案，或者说某个字段太长。
 - `app-creators` 或 `publish-readiness` 把本 skill 指定为 iOS 或 Android 的下一步。
 - 不适用：创作者问的是应用能不能发布，改用 `publish-readiness`。
-- 不适用：创作者要上传构建或提交审核，改用 `publish-ios` 或 `publish-android`（暂未提供）。
+- 不适用：创作者要上传构建或提交审核，改用 `publish-ios`（目前只支持 Expo 应用）或 `publish-android`（暂未提供）。
 
 ## 你需要准备
 
@@ -128,7 +128,7 @@
    预期：脚本的输出反映了这些回答；`result` 变了的话，`state.md` 多一行 `history`。
 
 9. 说出下一个 skill，然后停下。默认：下面的列表。备选：无。
-   执行：先做“验证”一节。然后请创作者提交 `.app-creators/`：里面没有 secret，下一个 skill 要读。然后说出下一个 skill：`app_store` 用 `publish-ios`，`google_play` 用 `publish-android`，两个都暂未提供。
+   执行：先做“验证”一节。然后请创作者提交 `.app-creators/`：里面没有 secret，下一个 skill 要读。然后说出下一个 skill：`app_store` 用 `publish-ios`（目前只支持 Expo 应用），`google_play` 用 `publish-android`（暂未提供）。
    预期：最后一条回复写清文件路径和 `result`。绝不说文案已经上线、已经提交或已经通过审核。
 
 ## 验证

@@ -631,3 +631,48 @@ implement-loop: slice E shipped c25ba17; remaining: [F, G, H, I, J]
 - `skills/store-listing/references/limits.md`: `## Not checked by the script` and `## Sources`. The limits table is unchanged.
 - `skills/store-listing/SKILL.md`, `SKILL.zh.md`: Steps 4, 5, 7, 8, the template, version 0.2.0.
 - `docs/specs/2026-11-02-slice1-publish-design.md`: §4.2 only.
+
+## Slice F / T2 publish-ios skill
+
+**Decisions**
+- Section 3.3 defaults all kept: EAS managed credentials, Xcode automatic signing as alternative, `eas build`, `--local` as alternative, `eas submit`, Xcode Organizer as alternative only for an Xcode archive (Expo names Transporter for an `.ipa`), creator-captured screenshots.
+- Build number choice: `cli.appVersionSource: remote` with `autoIncrement`, because a build then leaves the revision alone. Identity is read from the build record after Step 8, and confirmed by documented `eas build:list` filters.
+- Build revision: build record commit plus a clean-tree note written at build time. The default workflow uploads uncommitted files, so the commit alone proves nothing. No note means rebuild.
+- Project edits sit in one commit (Step 4), then Step 5 reruns `publish-readiness`, or continues under the stale rule. The inventory gate still blocks at Step 12, so no dead end and no bypass.
+- App record comes before the build (Step 3), so `ascAppId` joins that commit and `eas submit` never creates a record implicitly.
+- Limit gate fails closed: run the check in `store-listing`; if absent, stop with the install command. This skill ships no copy of the limits and no script.
+- `live` stays while a newer release moves through; progress goes to `history`, and steps bind to identity rather than the field.
+- Mixed screenshot rows: a `locale` row wins for that pair; a row with no `locale` goes on the primary language; inheritance is read per locale in App Store Connect.
+- Bare `zh` maps by the script of the copy; `en` maps to `en-US`. Mapping stays in the notes.
+- No submit tool: the creator clicks in App Store Connect after the yes, or the agent if it operates a browser session the creator signed into.
+- App Privacy Publish is a go-ahead only on a `live` app. Apple publishes it with the product page otherwise.
+- `store-listing` stays 0.2.0, `publish-web` and `publish-readiness` keep their versions: label-only. `app-creators` goes to 0.1.3.
+
+**Rejected**
+- `cli.requireCommit: true`: it would stop on `.app-creators/`, which the revision rule excludes.
+- `appVersionSource: local`: each build writes the project, so each build changes the revision.
+- `--auto-submit` and `npx testflight`: they skip the Step 9 check and the clean-tree record.
+- Expo Workflows `testflight` job with external groups: it reaches a reviewer with no yes.
+- Expo Metadata as default: beta, no screenshots, no App Privacy, and `advisory` defaults to least restrictive. Kept as an alternative with forbidden keys.
+- Submitting through the App Store Connect API: no sourced command, so the skill gives none.
+
+**Assumptions**
+- `eas build:view` and `eas submit:status` JSON field names are undocumented; read by meaning. Check at the level 3 run.
+- `eas submit:status` output holds enough status text. If not, the creator reports it.
+- CLI flags come from the current reference plus `eas-cli` 26.0.0 help; the npm before-date policy here blocked 27.2.0.
+
+**Deferred**
+- `SKILL.zh.md` is the template placeholder (with its `example.com` source line) so lint passes; T3 replaces it. T3 also adds evals and level 2/3 notes in `verified-runs.md`.
+- `store-review` skip statement: Slice I replaces it. Flutter and Xcode routes: Slice G.
+
+**Facts left out or unverified**
+- What a non-interactive `eas build` prints with no credentials: no page says; not tested under the no-account rule.
+- What `eas init` can write to a dynamic `app.config.js`: unverified, the route says to read the diff.
+- Whether Apple accepts a build from the Xcode 27.1 RC image: unverified.
+- TestFlight App Review time: not stated on pages read. Appeal form fields: page redirects to Apple sign-in.
+- Failed fetches: `developer.apple.com/app-store/review/`, `distribute/app-review/appeals/`, `distribute/app-review/contact/`, `reference/account-management/program-roles/`, two guessed build-status paths, three guessed Expo paths.
+
+**Touches**
+- New: `skills/publish-ios/`. Label edits: `publish-web`, `publish-readiness`, `store-listing` (en, zh). `app-creators` routing, Expect, 0.1.3 (en, zh).
+- Docs: `README.md`, `llms.txt`, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `docs/launch/awesome-lists.md`, `docs/ROADMAP.md`.
+- Shared surface for Slice G: `references/accounts.md`, `statuses.md`, `export-compliance.md`, `testflight.md`, `listing.md`, `localizations.md`, `app-privacy.md`, `age-rating.md`, `release.md`, `review.md`. No schema change.

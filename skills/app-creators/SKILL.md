@@ -12,7 +12,7 @@ license: MIT
 metadata:
   stage: core
   platform: all
-  version: "0.1.2"
+  version: "0.1.3"
   verified: "unverified"
   verified_version: ""
   zh: SKILL.zh.md
@@ -86,7 +86,7 @@ Check for `.app-creators/state.md` and take the matching branch:
    - `accounts.*`, `tools.*`, `monetization.model`, and every leaf of `provided`: `""`. Do not invent `missing` or `none`.
    - `app.slug`: kebab-case of `package.json` `name` (drop an `@scope/` prefix), else `pubspec.yaml` `name`, else the Expo `slug`, else the directory name.
    - `app.languages`: `[en]`, unless the project shows otherwise (for example an `i18n` or `locales` directory: list the locales it shows).
-   - `updated`: today. `history`: `[{ skill: app-creators, version: "0.1.2", date: <today>, result: ok }]`.
+   - `updated`: today. `history`: `[{ skill: app-creators, version: "0.1.3", date: <today>, result: ok }]`.
 
    Example for the Vite to-do fixture:
 
@@ -145,7 +145,7 @@ Check for `.app-creators/state.md` and take the matching branch:
        privacy_policy_url: ""
        support_email_env: ""
    history:
-     - { skill: app-creators, version: "0.1.2", date: 2026-10-26, result: ok }
+     - { skill: app-creators, version: "0.1.3", date: 2026-10-26, result: ok }
    ---
    ```
 
@@ -158,7 +158,7 @@ Check for `.app-creators/state.md` and take the matching branch:
    |---|---|---|
    | `publish` | any, before publishing | `publish-readiness`, then the platform skill below |
    | `publish` | web | `publish-web` |
-   | `publish` | iOS | `store-listing`, then `publish-ios` (not shipped yet) |
+   | `publish` | iOS | `store-listing`, then `publish-ios` (Expo apps today; the Flutter and Xcode routes are not shipped yet) |
    | `publish` | Android | `store-listing`, then `publish-android` (not shipped yet) |
    | `acquire` | any | `analytics-setup` (not shipped yet) first, then `launch-channels` (not shipped yet); also `growth-loops` and `paid-ua` (not shipped yet) |
    | `acquire` | iOS or Android | also `aso` (not shipped yet) |
@@ -166,7 +166,7 @@ Check for `.app-creators/state.md` and take the matching branch:
    | `monetize` | iOS or Android | `monetize-iap` (not shipped yet) |
    | `monetize` | web | `monetize-web` (not shipped yet) |
 
-   Expect: one final reply with the detected framework and its evidence, the recorded `goal` and intents, the path `.app-creators/state.md`, and "Next: run `publish-readiness`, then `publish-web`" for web, "Next: run `publish-readiness`, then `store-listing`, then `publish-ios` (not shipped yet)" for iOS, the same with `publish-android` for Android, or the routed names. For a skill that is not shipped yet, say so and what the creator can do meanwhile. Never perform a pipeline step and never claim an external outcome: never say the app is published, listed, or live.
+   Expect: one final reply with the detected framework and its evidence, the recorded `goal` and intents, the path `.app-creators/state.md`, and "Next: run `publish-readiness`, then `publish-web`" for web, "Next: run `publish-readiness`, then `store-listing`, then `publish-ios`" for iOS, the same with `publish-android` for Android, or the routed names. For a skill or route that is not shipped yet, such as `publish-android` or the Flutter and Xcode routes of `publish-ios`, say so and what the creator can do meanwhile. Never perform a pipeline step and never claim an external outcome: never say the app is published, listed, or live.
 
 ## Verify
 
@@ -194,7 +194,7 @@ Read the whole frontmatter first if the file exists, change only these fields, a
 - Detected facts, from this run's evidence: `framework.kind`, `framework.package_manager`, `framework.evidence`, `app.slug`, `app.languages`, `targets.*.detected`.
 - Provided facts, only from answers given in this run: `goal`, `targets.*.intent`, `app.name`, `app.description`.
 - `schema`: `"1.0"` on create only. On a rerun with major `1`, keep the existing value verbatim: a newer minor such as `"1.1"` stays, and so do the keys it added. Never downgrade the file. `updated`: today.
-- `history`: append `{ skill: app-creators, version: "0.1.2", date: <YYYY-MM-DD>, result: ok }`.
+- `history`: append `{ skill: app-creators, version: "0.1.3", date: <YYYY-MM-DD>, result: ok }`.
 
 On create, write every other field at its first-run value from step 4; `targets.*.status` is always `unknown` there. Never write `readiness.*`, `accounts.*`, `tools.*`, `monetization`, or `provided`: leave them at the first-run value on create and preserve them on a rerun.
 
