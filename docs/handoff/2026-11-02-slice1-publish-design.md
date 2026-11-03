@@ -1249,3 +1249,57 @@ Sources: a fresh reviewer (items 1, 2) and Codex (items 3, 4) on the follow-up d
 **Not rechecked:** no reviewer or Codex read the second follow-up round or the Expo line, by the one-recheck bound. No eval seeds an `Upload` line, so the resume walks are by reading only.
 
 implement-loop: slice G follow-up shipped; remaining: [H, I, J]
+
+
+## Slice H / T1 todo-kotlin fixture
+
+Fixture repo worktree, branch `implement-loop/2026-11-02-slice1-publish-design`, nothing committed. `todo-kotlin/` is hand-written to match the Empty Activity (Compose) template, unit-tested, and built to an unsigned release APK and AAB. Earlier entries that say "no JDK" are wrong for this machine: Android Studio's JBR 21 ran everything.
+
+**Decisions**
+- Template source: `android.googlesource.com` `platform/tools/base` rev `86ccf01729aee8bf416c0342c07cd30210e43ad8` (`wizard/template-impl`: `composeActivityMaterial3` is the "Empty Activity" Compose recipe) and `platform/tools/adt/idea` `mirror-goog-studio-main` (`android-npw` module recipes, `project_ignore`). Fetched 2026-11-03 ~11:00 UTC with `?format=TEXT`. Trees list as base64 too.
+- Versions, all fetched 2026-11-03: AGP 9.5.0 (release notes updated 2026-10-28: min Gradle 9.6.0, JDK 17, build-tools 36.0.0, max API 37); Gradle 9.8.2 (`services.gradle.org/versions/current`, cached, and Homebrew 9.5.1 is too old for AGP 9.5); Kotlin 2.4.21 (kotlinlang.org releases, cached); Compose BOM 2026.09.00, activity-compose 1.13.0, core-ktx 1.19.1, lifecycle-runtime-ktx 2.11.0 (Google Maven metadata); junit 4.13.2. The template pins BOM 2026.02.01: I used the current one.
+- Wrapper: `gradle wrapper --gradle-version 9.8.2 --distribution-type bin --gradle-distribution-sha256-sum <sha from services.gradle.org>` run with Homebrew Gradle 9.5.1. It downloaded no distribution; `./gradlew` then used the cached 9.8.2.
+- AGP 9 shape follows the recipe source: built-in Kotlin (no `kotlin.android` plugin), Kotlin Compose plugin only, `compileSdk { version = release(37) }` (checked against the AGP 9.5 `CompileSdkSpec` page), R8 `optimization { enable = true; packageScope = ... }` for AGP 9.4+, `keepRules/rules.keep`, no `android.useAndroidX`.
+- minSdk 24 is my choice (the template floor is 23). targetSdk 37 = compileSdk, latest API AGP 9.5 supports. Play requires 36 or higher for new apps (support page 11926878, fetched 2026-11-03).
+- Permission: `CAMERA`. Code asks `Manifest.permission.CAMERA` then launches `TakePicturePreview`. Gallery choice uses `PickVisualMedia`, no permission. Play's Photo and Video Permissions policy (answer 14115180, redirects to 16935362, fetched 2026-11-03) allows `READ_MEDIA_IMAGES/VIDEO` only when system pickers are not enough, so they are not declared. Added two `<uses-feature ... required="false">` lines because the `uses-feature` page (updated 2026-09-01) says Play otherwise filters on the CAMERA permission.
+- Icons: legacy PNG mipmaps from `todo-expo/assets/icon.png` with `sips -z` (48/72/96/144/192, `hasAlpha: no`). `icon-sizes` judges them (`PASS`, 5 files). A vector or adaptive icon would give `UNKNOWN`.
+- Persistence: `SharedPreferences` with a tab and URL-encoded line format in `Todos.kt` (pure Kotlin, unit-testable). Avoided `org.json` because the Android stub throws in plain unit tests.
+- Dropped from the template: `ExampleInstrumentedTest` and the `androidTest` dependencies. I cannot run instrumented tests here, and they add unused downloads.
+
+**Rejected**
+- Adaptive vector icon (template default): `check-readiness.py` gives `UNKNOWN`.
+- `READ_MEDIA_IMAGES` for the photo: Play restricts it.
+- `-Pandroid.builder.sdkDownload=false`: no fetched official page names the property (searched the AGP 9.5, 8.13, 8.2 release notes and the build overview). I listed `~/Library/Android/sdk` before and after instead: identical.
+- `org.json` or a JSON library for saving: stub in unit tests, or an extra dependency.
+
+**Assumptions**
+- Hand-written files equal what Studio would generate. Unchecked. Check: create a new Empty Activity project in Studio and diff. Known gaps: `foojay` plugin is only added by Studio when daemon JVM criteria are required (not set here), and the icon set differs on purpose.
+- The Gradle `.kotlin/` folder is not in the template `.gitignore`. It was empty after `./gradlew --stop`. If session files appear in `git status`, add `.kotlin/` to the ignore file.
+- Camera flow works on a device. Untested: no emulator run.
+
+**Deferred**
+- Signing, Play upload, a privacy policy, and `.app-creators/state.md`. Later Slice H tasks need them or can add them.
+- Target API check: it can read `targetSdkVersion` as below.
+- Running on an emulator: no system image use was authorized.
+
+**Command outcomes** (JAVA_HOME = Android Studio JBR 21, in `/tmp/cc-sliceH-t1*.sh`)
+- `./gradlew testDebugUnitTest`: 6 tests, 0 failures. Mutation battery on `Todos.kt` (trim, blank guard, toggle id, delete id, done flag on load, field-count guard): 6/6 caught, each by real test failures. Restored from a saved copy, checksum `cf595c26...` matches.
+- `./gradlew bundleRelease assembleRelease`: BUILD SUCCESSFUL. Outputs `app/build/outputs/apk/release/app-release-unsigned.apk` and `bundle/release/app-release.aab`. SDK folder listing identical before and after. Nothing else downloaded except Gradle libraries into `~/.gradle`.
+- `apkanalyzer manifest print <apk>` (cmdline-tools/latest): output saved to `/tmp/cc-sliceH-t1/apkanalyzer-manifest.xml`.
+- bundletool: the cached `bundletool-1.18.3.jar` is the library jar, so `java -jar` fails ("no main manifest attribute"). It runs with a classpath: `java -cp <bundletool-1.18.3.jar + protobuf, guava, dagger, javax.inject, bouncycastle, aapt2-proto, apksig, jose4j ... from ~/.gradle/caches> com.android.tools.build.bundletool.BundleToolMain dump manifest --bundle=app-release.aab`. Classpath saved in `/tmp/cc-sliceH-t1/bundletool-classpath.txt`. Output in `bundletool-manifest.xml`.
+- **targetSdkVersion of the built bundle: 37.** Command: `java -cp <that classpath> com.android.tools.build.bundletool.BundleToolMain dump manifest --bundle=app/build/outputs/bundle/release/app-release.aab --xpath=/manifest/uses-sdk/@android:targetSdkVersion` prints `37`. Also `apkanalyzer manifest target-sdk <apk>` prints `37`; `min-sdk` prints `24`; `application-id` prints `io.github.interskh.todo`.
+- `check-readiness.py <fixture> --platform android`, no `--resolved`: `PASS` app-name, `UNKNOWN` package, `PASS` icon-sizes (5 files), `PASS` permissions-declared (declared dangerous `CAMERA`, needed `CAMERA`), `UNKNOWN` privacy-policy-url. Exit 0.
+- With `--resolved` apkanalyzer file, and separately with the bundletool file: same, but `PASS` package `"io.github.interskh.todo"`. Both together: exit 2, "--resolved was given two android files" (as designed).
+
+**Real tool output versus the roadmap `Kyle:` assumption** (`package` on the root, `xmlns:android` declared, `@ref/...`)
+- apkanalyzer 2026-11-03: matches. Root `<manifest xmlns:android=... android:versionCode android:versionName android:compileSdkVersion ... package="io.github.interskh.todo" platformBuildVersionCode ...>`. `<application>` has `android:label="@ref/0x7f090003"`, `android:icon="@ref/0x7f080000"`, theme and rules as `@ref/0x...` hex ids. Booleans and enums print as hex (`android:windowSoftInputMode="0x10"`, `protectionLevel="0x2"`). One attribute per line, `<uses-sdk>` has `minSdkVersion` and `targetSdkVersion`. The script falls back to `src/main` for a `@ref` label, so `app-name` stays `PASS`.
+- bundletool 1.18.3: same root attributes (`package`, `xmlns:android`), but references print readable: `@string/app_name`, `@mipmap/ic_launcher`, `@xml/backup_rules`. Enums as `0x00000010`. Whitespace-only text nodes between elements.
+- Both add library entries the script does not need: a `<permission>` and a `<uses-permission>` named `io.github.interskh.todo.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` (from androidx core), `<uses-library>`, `<provider>`, `<receiver>`. `permissions-declared` ignores the app-private one, since it is not in `DANGEROUS`. No `android:debuggable` in either release manifest.
+- No mismatch found, so no change to `check-readiness.py`. That is two real outputs for one app; other AGP versions and flavors are unchecked.
+
+**Touches**
+- Fixtures repo: new `todo-kotlin/` (28 files not ignored, includes `gradle/wrapper/gradle-wrapper.jar`), and one bullet in `README.md`. Not touched: other fixtures.
+- Ignored and not committed: `local.properties` (holds `sdk.dir` with an absolute home path; `git check-ignore -v` shows `todo-kotlin/.gitignore:15`), `build/`, `app/build/`, `.gradle/`, `.kotlin/`. No home path in any tracked-to-be file (grep). No `@` in any file name.
+- Skills repo: this file only. No shared surface changed.
+
+**Fixture commit:** `a4c56a0` on the fixtures branch, unpushed. The orchestrator reran `./gradlew --offline testDebugUnitTest` (pass) and checked that `local.properties`, `build/`, and `.gradle/` are ignored.
