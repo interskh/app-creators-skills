@@ -51,7 +51,7 @@
 | 时机 | 输入 | 怎么做 |
 |---|---|---|
 | 现在 | readiness 在当前 revision 上是 `fail` | 停下。列出每个失败的检查项和 `readiness.md` 里它的 `fix`。 |
-| 现在 | readiness 是 `unknown`、不是当前的，或者没有 | 说“就绪结果未知，正在跑最小检查”，然后跑。结果要在每个 go-ahead block 里重申。不是当前的 `fail` 还要加一句：“上一份报告在较旧或未提交的 revision 上记录了 fail，请重跑 `publish-readiness`”。这个 skill 没装时，说出它的名字并给出 `npx skills add interskh/app-creators-skills --skill publish-readiness`。没有 git 读取时，记录的 `pass` 在 go-ahead block 里按未知处理。第 1 步提问时，第一次回复不索要 git 输出：第 1 步的问题是其中唯一的问题。 |
+| 现在 | readiness 是 `unknown`、不是当前的，或者没有 | 说“就绪结果未知，正在跑最小检查”，然后跑。结果要在每个 go-ahead block 里重申。不是当前的 `fail` 还要加一句：“上一份报告在较旧或未提交的 revision 上记录了 fail，请重跑 `publish-readiness`”。这个 skill 没装时，说出它的名字并给出 `npx skills add interskh/app-creators-skills --skill publish-readiness`。没有 git 读取时，记录的 `pass` 在 go-ahead block 里按未知处理。之后的 git 读取显示记录的 `fail` 是当前的时，按上一行停下。第 1 步提问时，第一次回复不索要 git 输出：第 1 步的问题是其中唯一的问题。 |
 | 第 11 步，Data safety 表单之前 | `data_inventory.confirmed` 不是 true，或者它的 `revision` 不是当前的 | 停下。这次会话有 shell、能写文件时，运行 `publish-readiness`；否则说出它，它没安装时再加上上面的安装命令。不问任何隐私问题，不提议清单内容或 Data safety 答案，也绝不设置 `confirmed`：这些都由 `publish-readiness` 来做。不描述它会问哪些问题，也不指向任何文件、商品详情文字或条目，暗示答案。 |
 | 第 11 步 | 没有 `listing.md`，或者某项限制不通过 | 停下。这次会话有 shell、能写文件时，运行 `store-listing`；否则说出它，它没安装时再加上 `npx skills add interskh/app-creators-skills --skill store-listing`。限制检查见下。 |
 | 第 12 步和第 15 步 | listing 的 `revision` 不是当前的 | 随 go-ahead block 完整展示文案和图片，每个语言的每个字段都要有，并问它们是否还和应用相符。 |
@@ -132,7 +132,7 @@ Reply "yes" to do this for exactly this release. Anything else stops here.
 
 9. 从 bundle 读取目标 API 级别和发布身份。默认：路线的读取方式，按 `references/target-api.md`。备选：创作者在 Android Studio 的 APK Analyzer 里读。
    执行：从构建出的 bundle 里读包名、版本名、版本代码和 `targetSdkVersion`。包名、版本名或版本代码和项目或构建记录不一致时，停在这里，把两边都列出来。
-   预期：目标 API 不低于 Google 对这个应用要求的数字；这个数字在本次会话里从 `references/target-api.md` 读取，绝不凭记忆。进入任何下一步之前，先说出读到的数字和要求的数字。低于时，在任何上传之前停下，说出读到的数字、要求的数字和路线给的修复方法。这次停下不给出任何上传途径，修复之后的步骤也不预告。读不到时，按 `references/target-api.md` 处理，并在每个 block 里重申。
+   预期：目标 API 不低于 Google 对这个应用要求的数字；这个数字在本次会话里从 `references/target-api.md` 读取，绝不凭记忆。进入任何下一步之前，先说出读到的数字和要求的数字。低于时，在任何上传之前停下，说出读到的数字、要求的数字和路线给的修复方法。这次停下不给出任何上传途径，也不把上传途径当作修复之后的预告给出。读不到时，按 `references/target-api.md` 处理，并在每个 block 里重申。
 
 10. **effective** 上传，作为不触达任何人的草稿（draft）。默认和备选：路线文件。每条路线的第一次上传都在 Play Console 里做。
     先查：请创作者在 All app bundles（所有 app bundle）里查这个版本代码。然后在任何上传之前，看路线文件里的 `Upload:` 备注行和续传规则。已经列出、而且对应这个 commit，就跳过。

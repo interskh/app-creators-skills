@@ -43,14 +43,14 @@
 
 每条命令都在项目根目录运行。
 
-**当前（current）。** `git status --porcelain -- . ':(exclude).app-creators'` 没有输出，并且 `git diff --quiet <revision> HEAD -- . ':(exclude).app-creators'` 退出码为 0，这个 revision 才算当前。`revision` 为空或命令失败，都算不是当前。两个 revision 之间这条 `git diff` 退出码为 0，就算一致。`git` 在这里跑不了时，用一句话说明。在拿到读取结果之前，所有 revision 都算不是当前、也不一致：第一次遇到要看 revision 是否当前来决定停下或重新构建的关口或步骤时，请创作者在自己的终端里，对这一步需要的每个已记录 revision 运行这些命令，并报告输出。这个输出就是一次读取，和商店状态一样。步骤用不到时不要问：第 1 步的问题仍然单独成一条消息。第 1 步提问时，第一次回复不索要 git 输出，也不让创作者运行任何命令。
+**当前（current）。** `git status --porcelain -- . ':(exclude).app-creators'` 没有输出，并且 `git diff --quiet <revision> HEAD -- . ':(exclude).app-creators'` 退出码为 0，这个 revision 才算当前。`revision` 为空或命令失败，都算不是当前。两个 revision 之间这条 `git diff` 退出码为 0，就算一致。`git` 在这里跑不了时，用一句话说明。在拿到读取结果之前，所有 revision 都算不是当前、也不一致：第一次遇到要看 revision 是否当前来决定停下或重新构建的关口或步骤时，请创作者在自己的终端里，对这一步需要的每个已记录 revision 运行这些命令，并报告输出。这个输出就是一次读取，和商店状态一样。步骤用不到时不要问：第 1 步的问题仍然单独成一条消息。第 1 步提问时，第一次回复不索要 git 输出。
 
 **关口。** 每一行只在它写的时机生效。readiness、listing 或 state 已经记下的，绝不再问。挡住同一步的关口，放在一条消息里全部说明。停在关口上，这一步就结束：不出 go-ahead block，预览也不出，也不出填写清单。
 
 | 时机 | 输入 | 怎么做 |
 |---|---|---|
 | 现在 | readiness 在当前 revision 上是 `fail` | 停下。列出每个失败的检查项和 `readiness.md` 里它的 `fix`。 |
-| 现在 | readiness 是 `unknown`、不是当前的，或者没有 | 说“就绪结果未知，正在跑最小检查”，然后跑。结果要在每个 go-ahead block 里重申。不是当前的 `fail` 还要加一句：“上一份报告在较旧或未提交的 revision 上记录了 fail，请重跑 `publish-readiness`”。这个 skill 没装时，说出它的名字并给出 `npx skills add interskh/app-creators-skills --skill publish-readiness`。 |
+| 现在 | readiness 是 `unknown`、不是当前的，或者没有 | 说“就绪结果未知，正在跑最小检查”，然后跑。结果要在每个 go-ahead block 里重申。不是当前的 `fail` 还要加一句：“上一份报告在较旧或未提交的 revision 上记录了 fail，请重跑 `publish-readiness`”。这个 skill 没装时，说出它的名字并给出 `npx skills add interskh/app-creators-skills --skill publish-readiness`。之后的 git 读取显示记录的 `fail` 是当前的时，按上一行停下。 |
 | 第 12 步，隐私表单之前 | `data_inventory.confirmed` 不是 true，或者它的 `revision` 不是当前的 | 停下。这次会话有 shell、能写文件时，运行 `publish-readiness`；否则说出它，它没安装时再加上上面的安装命令。重跑会保留已确认的条目，只问新增的。在这个 skill 里，不问任何隐私问题，不提议清单内容或 App Privacy 答案，也绝不设置 `confirmed`：这些都由 `publish-readiness` 来做。 |
 | 第 12 步 | 没有 `listing.md`，或者某项限制不通过 | 停下。这次会话有 shell、能写文件时，运行 `store-listing`；否则说出它，它没安装时再加上 `npx skills add interskh/app-creators-skills --skill store-listing`。限制检查见下。 |
 | 第 13 步 | listing 的 `revision` 不是当前的 | 随 go-ahead block 完整展示文案和截图，每个语言的每个字段都要有，并问它们是否还和应用相符。 |

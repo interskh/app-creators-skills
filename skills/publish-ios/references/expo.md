@@ -52,7 +52,7 @@ With a dynamic `app.config.js` or `app.config.ts`, what `eas init` can write is 
 
 `[eas skip]` in a commit message skips only that push [29], so it does not count. With no automatic trigger, a workflow runs only when someone starts it, with `eas workflow:run` [29]; this skill never does.
 
-Then every other CI file: the file list, the three rules, and their sources in the workflow check of `references/flutter.md`, unchanged and on this repo, with `fastlane/Fastfile`, `ios/fastlane/Fastfile`, and a `Deliverfile` beside either included. Match by meaning, in any CI file. On this route, `eas submit`, or `eas build` with `--auto-submit` or `--auto-submit-with-profile`, also counts as an upload there [1][3].
+Then every other CI file: the file list, the three rules, and their sources in the workflow check of `references/flutter.md`, unchanged and on this repo, with `fastlane/Fastfile`, `ios/fastlane/Fastfile`, and a `Deliverfile` beside either included. Match by meaning, in any CI file. On this route, `eas submit`, `eas build` with `--auto-submit`, `-s`, or `--auto-submit-with-profile`, or `npx testflight` also counts as an upload there [1][3][9]. A CI step that starts a workflow from `.eas/workflows/` counts as an upload when that workflow submits, whatever its own trigger says.
 
 ## Release identity
 
