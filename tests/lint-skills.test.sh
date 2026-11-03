@@ -64,6 +64,7 @@ cp -R "$root/templates/skill" "$tmp/repo/templates/skill"
 bash "$tmp/repo/scripts/new-skill.sh" good-skill > /dev/null
 good="$tmp/repo/skills/good-skill"
 edit 's/__STAGE__/core/;s/__PLATFORM__/all/' "$good/SKILL.md"
+printf '# Test\n\n## Verification per route\n\n| skill | route | status |\n|---|---|---|\n| `good-skill` | all frameworks | unverified, no run recorded |\n' > "$tmp/repo/README.md"
 
 mutant() {
   m="$tmp/mutants/$1/good-skill"
@@ -428,6 +429,171 @@ expect_rule secret-like-url-encoded-bearer secret-like "$m"
 mutant task-management-word
 printf '\nSee the %s%s guide.\n' "task-management-skill-" "$(long_text 30 | tr ' ' '-')" >> "$m/references/verified-runs.md"
 expect_clean "task-management-skill word is not a secret" "$m"
+
+rr_new() {
+  rr="$tmp/rr/$1"
+  mkdir -p "$tmp/rr"
+  cp -R "$tmp/repo" "$rr"
+}
+
+rr_readme() {
+  { printf '# Test\n\n## Verification per route\n\n| skill | route | status |\n|---|---|---|\n'; printf '%s\n' "$@"; } > "$rr/README.md"
+}
+
+rr_row() {
+  printf '| `good-skill` | %s | %s |' "$1" "$2"
+}
+
+rr_run() {
+  printf '| %s | %s | %s | %s | none | %s | note |\n' "$@" >> "$rr/skills/good-skill/references/verified-runs.md"
+}
+
+rr_scan() {
+  local label="$1" want="$2" re="${3:-}"
+  total=$((total + 1))
+  set +e
+  out="$(cd "$rr" && bash scripts/lint-skills.sh 2>&1)"
+  code=$?
+  set -e
+  if [ "$code" -ne "$want" ]; then
+    fail "$label" "want exit $want, got $code: $out"
+  elif [ "$want" -eq 0 ] && [ "$out" != "lint: 1 skills clean" ]; then
+    fail "$label" "want clean, got: $out"
+  elif [ "$want" -eq 1 ] && ! printf '%s\n' "$out" | grep -qE -- "$re"; then
+    fail "$label" "want /$re/ in: $out"
+  elif [ "$want" -eq 1 ] && printf '%s\n' "$out" | grep -qvE '^[^:]+:[0-9]+: [a-z-]+: .+$'; then
+    fail "$label" "malformed finding line in: $out"
+  else
+    pass=$((pass + 1))
+  fi
+}
+
+rs_pre='^README\.md:[0-9]+: readme-route-status: '
+
+rr_new route-agree
+rr_readme "$(rr_row a 'unverified, level 3 open: free text: more after the colon')" "$(rr_row b 'verified: shipped')" "$(rr_row c 'verified at an earlier version')" "$(rr_row d 'unverified, level 4 fail')" "$(rr_row e 'unverified, no run recorded')"
+rr_run 2026-10-01 3 0.1.0 a open
+rr_run 2026-10-01 4 0.1.0 b live
+rr_run 2026-10-01 4 0.0.9 c live
+rr_run 2026-10-01 4 0.1.0 d fail
+rr_scan "route status agrees with verified-runs" 0
+
+rr_new route-head-differs
+rr_readme "$(rr_row a 'verified: it works')"
+rr_run 2026-10-01 3 0.1.0 a open
+rr_scan "route head differs" 1 "${rs_pre}status head for good-skill a is \"verified\".*derives \"unverified, level 3 open\""
+
+rr_new route-no-readme-row
+rr_readme "$(rr_row a 'unverified, level 3 open')"
+rr_run 2026-10-01 3 0.1.0 a open
+rr_run 2026-10-01 3 0.1.0 b open
+rr_scan "route in runs without README row" 1 "^README\.md:0: readme-route-status: route b of good-skill has no README row"
+
+rr_new route-no-runs
+rr_readme "$(rr_row a 'unverified, level 3 open')"
+rr_scan "README route without rows claims level 3 open" 1 "${rs_pre}.*derives \"unverified, no run recorded\""
+
+rr_new route-verified-no-l4
+rr_readme "$(rr_row a verified)"
+rr_run 2026-10-01 3 0.1.0 a live
+rr_scan "README verified without a level 4 row" 1 "${rs_pre}.*derives \"unverified, level 3 live\""
+
+rr_new route-l4-current
+rr_readme "$(rr_row a 'unverified, level 4 live')"
+rr_run 2026-10-01 4 0.1.0 a live
+rr_scan "level 4 at current version requires verified" 1 "${rs_pre}.*derives \"verified\""
+
+rr_new route-l4-older
+rr_readme "$(rr_row a verified)"
+rr_run 2026-10-01 4 0.0.9 a live
+rr_scan "level 4 at an older version refuses plain verified" 1 "${rs_pre}.*derives \"verified at an earlier version\""
+
+rr_new route-l4-fail
+rr_readme "$(rr_row a verified)"
+rr_run 2026-10-01 4 0.1.0 a fail
+rr_scan "level 4 fail does not verify" 1 "${rs_pre}.*derives \"unverified, level 4 fail\""
+
+rr_new route-l4-open
+rr_readme "$(rr_row a verified)"
+rr_run 2026-10-01 4 0.1.0 a open
+rr_scan "level 4 open does not verify" 1 "${rs_pre}.*derives \"unverified, level 4 open\""
+
+rr_new route-latest-date
+rr_readme "$(rr_row a verified)"
+rr_run 2026-10-02 4 0.0.9 a live
+rr_run 2026-10-01 4 0.1.0 a live
+rr_scan "latest level 4 row by date wins over file order" 1 "${rs_pre}.*derives \"verified at an earlier version\""
+
+rr_new route-latest-date-plain
+rr_readme "$(rr_row a 'unverified, level 2 live')"
+rr_run 2026-10-02 3 0.1.0 a open
+rr_run 2026-10-01 2 0.1.0 a live
+rr_scan "latest row by date wins over file order" 1 "${rs_pre}.*derives \"unverified, level 3 open\""
+
+rr_new route-tie-later
+rr_readme "$(rr_row a 'verified at an earlier version')"
+rr_run 2026-10-01 4 0.0.9 a live
+rr_run 2026-10-01 4 0.1.0 a live
+rr_scan "date tie goes to the lower row (level 4)" 1 "${rs_pre}.*derives \"verified\""
+
+rr_new route-tie-later-plain
+rr_readme "$(rr_row a 'unverified, level 2 live')"
+rr_run 2026-10-01 2 0.1.0 a live
+rr_run 2026-10-01 3 0.1.0 a open
+rr_scan "date tie goes to the lower row" 1 "${rs_pre}.*derives \"unverified, level 3 open\""
+
+rr_new route-tie-earlier-ok
+rr_readme "$(rr_row a verified)"
+rr_run 2026-10-01 4 0.0.9 a live
+rr_run 2026-10-01 4 0.1.0 a live
+rr_scan "date tie, newer version lower: verified" 0
+
+rr_new skill-no-row
+rr_readme
+rr_scan "skill missing from the table" 1 "^README\.md:0: readme-route-status: skill good-skill has no row"
+
+rr_new row-no-dir
+rr_readme "$(rr_row a 'unverified, no run recorded')" '| `ghost-skill` | a | unverified, no run recorded |'
+rr_scan "README row for a skill with no directory" 1 "^README\.md:[0-9]+: readme-route-status: row names skill ghost-skill with no directory"
+
+rr_new row-duplicate
+rr_readme "$(rr_row a 'unverified, no run recorded')" "$(rr_row a 'unverified, no run recorded')"
+rr_scan "duplicate README row" 1 "^README\.md:8: readme-route-status: duplicate row for good-skill a"
+
+rr_new section-missing
+printf '# Test\n\n## Other\n\n| skill | route | status |\n|---|---|---|\n' > "$rr/README.md"
+rr_scan "README section missing" 1 "^README\.md:0: readme-route-status: missing section"
+
+rr_new header-missing
+printf '# Test\n\n## Verification per route\n\nnothing here\n' > "$rr/README.md"
+rr_scan "README table header missing" 1 "^README\.md:0: readme-route-status: missing table header"
+
+rr_new readme-missing
+rm "$rr/README.md"
+rr_scan "README missing" 1 "^README\.md:0: readme-route-status: README\.md missing"
+
+bad_n=0
+for bad in "2026-10-01|3|0.1.0|a|none|open" "10-01-2026|3|0.1.0|a|none|open|n" "2026-10-01|x|0.1.0|a|none|open|n" "2026-10-01|3|0.1.0||none|open|n"; do
+  bad_n=$((bad_n + 1))
+  rr_new "runs-row-$bad_n"
+  rr_readme "$(rr_row a 'unverified, no run recorded')"
+  printf '| %s |\n' "$(printf '%s' "$bad" | sed 's/|/ | /g')" >> "$rr/skills/good-skill/references/verified-runs.md"
+  rr_scan "malformed verified-runs row ($bad)" 1 "^skills/good-skill/references/verified-runs\.md:[0-9]+: verified-runs-row: "
+done
+
+rr_new explicit-dir
+printf '# Test\n' > "$rr/README.md"
+rr_scan "no-arg scan reads the README" 1 "^README\.md:0: readme-route-status: missing section"
+total=$((total + 1))
+run_lint "$rr/skills/good-skill"
+if [ "$code" -eq 0 ]; then pass=$((pass + 1)); else fail "explicit dir skips the README" "got $code: $out"; fi
+
+total=$((total + 1))
+set +e
+out="$(cd "$root" && bash scripts/lint-skills.sh 2>&1)"
+code=$?
+set -e
+if [ "$code" -eq 0 ]; then pass=$((pass + 1)); else fail "real repo no-arg scan" "got $code: $out"; fi
 
 if [ "$pass" -eq "$total" ]; then
   echo "PASS $pass/$total"

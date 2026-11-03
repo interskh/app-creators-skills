@@ -339,6 +339,70 @@ lint_skill() {
   check_secrets "$dir"
 }
 
+route_manifest() {
+  local d ver
+  for d in ${dirs[@]+"${dirs[@]}"}; do
+    [ -f "$d/SKILL.md" ] || continue
+    ver="$(parse_frontmatter "$d/SKILL.md" | awk -F'\t' '$1 == "metadata.version" { print $3; exit }')"
+    printf '%s\t%s\t%s\n' "$(basename "$d")" "$ver" "$d/references/verified-runs.md"
+  done
+}
+
+check_route_status() {
+  local f n r m
+  if [ ! -f README.md ]; then
+    report README.md 0 readme-route-status "README.md missing; it holds the '## Verification per route' table"
+    return
+  fi
+  while IFS=$'\t' read -r f n r m; do
+    report "$f" "$n" "$r" "$m"
+  done < <(awk -v rule=readme-route-status -v man=<(route_manifest) '
+    function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
+    function out(f, n, r, m) { printf "%s\t%s\t%s\t%s\n", f, n, r, m }
+    function cells(l, c,  n, i) { n = split(l, c, "|"); for (i = 1; i <= n; i++) c[i] = trim(c[i]); return n }
+    BEGIN {
+      while ((getline l < man) > 0) {
+        split(l, p, "\t"); ns++; name[ns] = p[1]; ver[p[1]] = p[2]; isdir[p[1]] = 1; ln = 0
+        while ((getline l < p[3]) > 0) {
+          ln++
+          if (l !~ /^\|/ || l ~ /^\|[-| :]*$/) continue
+          n = cells(l, c)
+          if (c[2] == "date") continue
+          if (n < 9 || c[2] !~ /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/ || c[3] !~ /^[0-9]$/ || c[5] == "") {
+            out(p[3], ln, "verified-runs-row", "unreadable row; need | date | level | skill_version | route | account | outcome | notes |")
+            continue
+          }
+          k = p[1] SUBSEP c[5]
+          if (!(k in seen)) { seen[k] = 1; keys[++nk] = k; ks[k] = p[1]; kr[k] = c[5] }
+          if (!(k in ld) || c[2] >= ld[k]) { ld[k] = c[2]; ll[k] = c[3]; lo[k] = c[7] }
+          if (c[3] == "4" && c[7] != "open" && c[7] != "fail" && (!(k in d4) || c[2] >= d4[k])) { d4[k] = c[2]; v4[k] = c[4] }
+        }
+        close(p[3])
+      }
+    }
+    /^## / { sec = ($0 == "## Verification per route"); found = found || sec; next }
+    sec && $0 == "| skill | route | status |" { hdr = 1; next }
+    sec && hdr && /^\|/ && $0 !~ /^\|[-| :]*$/ {
+      cells($0, c); s = c[2]; gsub(/`/, "", s); k = s SUBSEP c[3]
+      if (k in rl) { out("README.md", NR, rule, "duplicate row for " s " " c[3]); next }
+      h = c[4]; sub(/:.*/, "", h)
+      rl[k] = NR; rh[k] = trim(h); rs[s] = 1; rk[++nr] = k; rsk[k] = s; rrt[k] = c[3]
+    }
+    END {
+      if (!found) { out("README.md", 0, rule, "missing section ## Verification per route"); exit }
+      if (!hdr) { out("README.md", 0, rule, "missing table header | skill | route | status |"); exit }
+      for (i = 1; i <= nr; i++) {
+        k = rk[i]; s = rsk[k]
+        if (!(s in isdir)) { out("README.md", rl[k], rule, "row names skill " s " with no directory under skills/"); continue }
+        want = (k in d4) ? (v4[k] == ver[s] ? "verified" : "verified at an earlier version") : (k in ld) ? "unverified, level " ll[k] " " lo[k] : "unverified, no run recorded"
+        if (rh[k] != want) out("README.md", rl[k], rule, "status head for " s " " rrt[k] " is \"" rh[k] "\"; verified-runs.md derives \"" want "\"")
+      }
+      for (i = 1; i <= nk; i++) { k = keys[i]; if (!(k in rl) && (ks[k] in rs)) out("README.md", 0, rule, "route " kr[k] " of " ks[k] " has no README row") }
+      for (i = 1; i <= ns; i++) if (!(name[i] in rs)) out("README.md", 0, rule, "skill " name[i] " has no row in the table")
+    }
+  ' README.md)
+}
+
 dirs=()
 if [ "$#" -gt 0 ]; then
   for arg in "$@"; do
@@ -367,6 +431,10 @@ for d in ${dirs[@]+"${dirs[@]}"}; do
   fi
   lint_skill "$d"
 done
+
+if [ "$#" -eq 0 ]; then
+  check_route_status
+fi
 
 if [ "$findings" -gt 0 ]; then
   exit 1

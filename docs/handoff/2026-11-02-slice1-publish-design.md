@@ -533,3 +533,28 @@ implement-loop: slice D follow-up shipped; remaining: [E, F, G, H, I, J]
 - Diagnosis reruns: `evals/results/2026-11-03T01-45-43-272Z` overlimit 1.00 and 1.00, $0.41; `evals/results/2026-11-03T01-48-09-946Z` copy 1.00 and 1.00, $0.59.
 - Orchestrator edits: Step 6 now rewrites on exit 1 even when the creator only asked for a check; zh copy uses full-width punctuation, after a run wrote a half-width comma; `ran-check-script` names Python and the script in either order.
 - Final run after those edits: `evals/results/2026-11-03T01-51-54-082Z`, 6/6 at 1.00, $1.29.
+
+## Slice E / T3 route status lint
+
+**Decisions**
+- One awk pass in `check_route_status` reads the manifest (skill, metadata.version, runs path; via process substitution) and README on stdin; it emits tab-separated findings that the shell passes to `report`.
+- Runs via `getline` in BEGIN so an empty or missing runs file cannot shift file counting. Missing runs file is skipped (the `verified-runs-present` rule already reports it).
+- Dirs without SKILL.md stay out of the manifest: the existing "dir without SKILL.md" test expects exactly one finding.
+- Date and level regexes use no `{n}` intervals (old mawk lacks them). Row needs 9 `|`-split fields (7 cells plus both edge pipes).
+- Skill with no README row gets one finding; its routes do not also get per-route "no row" findings.
+- Findings point at `README.md` (line of the row, else 0) or the runs file for `verified-runs-row`.
+
+**Rejected**
+- Per-skill awk calls and a shell-side join: more lines and more process spawns than one pass.
+- Reusing `fm_get` for the version: it depends on the global `fm` for the current skill; a separate `parse_frontmatter | awk` is cleaner here.
+
+**Assumptions**
+- README table head is the text before the first `:` in the status cell. Real README rows agree with the derivation as is; README.md and verified-runs.md are untouched.
+- Table cells never contain `|`. Check: the scan reports a head mismatch if one does.
+
+**Deferred**
+- Fenced code blocks in README are not excluded from the section scan; the table is plain markdown, so this is safe now.
+
+**Touches**: `scripts/lint-skills.sh` (new function plus a no-arg-only call before the exit), `tests/lint-skills.test.sh` (README for the temp repo, `rr_*` helpers and about 30 cases). No other rule changed.
+
+**Evidence**: tests 104/104 under /bin/bash 3.2, PATH bash 5.3, and PATH mawk 1.3.4. Mutations: 8/8 caught.
