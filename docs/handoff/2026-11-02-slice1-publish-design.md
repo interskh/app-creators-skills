@@ -1118,3 +1118,34 @@ Run `2026-11-02-slice1-publish-design`, task G/T3. Uncommitted, for the orchestr
 - `skills/publish-ios/references/flutter.md`, `skills/publish-ios/references/xcode.md`, `evals/publish-ios/README.md`, four `*-upload-check-*/case.yaml` prompts. `SKILL.md`, `SKILL.zh.md`, `expo.md`, and graders unchanged. No shared schema change.
 
 **Orchestrator notes on this round.** Item R9 of the review: the Expo 0.2.0 row in `verified-runs.md` and a Kyle line on the roadmap record the upload-preview miss. Two corrections to earlier entries, which stay as written: the T3 eval sum was $9.96, not $9.75. The T1 entry says 18 iOS icon slots; the fixture commit holds 15 PNGs in that set, because the set's `Contents.json` lists some files twice.
+
+## Slice G / gate fix round 2
+
+**Decisions**
+- 1 Number ownership: a listed number is this revision's only with an `Upload` line whose commit matches the current tree. Step 9 writes `started` before the upload and `finished` after. Step 8 treats a non-matching `Upload` line as taken and does not build.
+- 1 "Matches" uses the Current rule's commit comparison, not string equality, because `.app-creators` commits move HEAD without moving the revision.
+- 1 A different-commit `Upload` line in any state goes to **New build number**: raising is always safe, and it avoids waiting on a failed-or-processing guess.
+- 1 A creator-reported upload gets the same line at that moment; a commit they cannot name is written `commit unknown`, which matches nothing.
+- 2 Before Upload, the creator reports the Version and Build Organizer shows; a difference stops and archives again. The guard sits in Step 9's alternative, so a resume passes it too.
+- 3 The `no ipa` branch now runs `git status`, and a dirty result goes to **A dirty tree after a build**.
+- 4 `xcode.md:43` now says raise the literal and the setting together.
+- 5 `git check-ignore` exit 1 now says not ignored, and names `/build/` in `.gitignore` plus untracking as the fix.
+- 6 Read list ends with any other CI configuration file. The automatic-trigger list gains a job in any other CI file that starts with no manual step, or the wider read list would catch nothing there.
+- 7 New source [49]: Flutter's `Info.plist.tmpl`, `project.pbxproj.tmpl`, and `.gitignore.tmpl`, fetched 2026-11-03. [11] is back to `--help` output only.
+
+**Rejected**
+- A finished `Build` line as ownership proof: Step 8 writes it before Step 9 reads the store, which is the false certification.
+- Reading `Info.plist` inside the `.xcarchive`: no fetched page shows where the archive holds these values.
+- Treating `started` with a different commit as resumable: its binary may have arrived, and that binary is another revision's.
+- A source claim per extra CI vendor: the brief asks for the meaning rule only.
+
+**Assumptions**
+- Organizer shows Version and Build for an archive: no fetched page states it, and no Xcode ran here. Check on the first real Organizer upload. If it shows neither, the creator cannot report them and the guard stops.
+- Notes written before this rule hold no `Upload` line, so a listed number there costs one raised number. That is safe but not free.
+
+**Deferred**
+- Eval rows in `verified-runs.md` and the roadmap wording: left for the orchestrator by the brief.
+- No eval seeds an `Upload` line, so the listed-and-owned branch and the different-commit stop are traced by reading only.
+
+**Touches**
+- `skills/publish-ios/references/flutter.md`, `skills/publish-ios/references/xcode.md`. New notes line form `Upload:`, route files only. `SKILL.md`, `SKILL.zh.md`, `expo.md`, and `evals/` unchanged.
