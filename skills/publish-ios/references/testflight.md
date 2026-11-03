@@ -22,9 +22,19 @@ Builds uploaded as TestFlight Internal Only can go only to internal groups, and 
 
 ## External
 
-An internal group must exist first [3]. Apps, TestFlight tab, add (+) next to External Testing, name the group, Create. Then Add Builds, choose the platform, version, and build, write What to Test [3]. A beta app description and a feedback email are required [5]. Click Submit Review; the wording depends on the build's status [3]. "Automatically notify testers" tells testers on approval [3]. After approval, invite by email or public link [3].
+An internal group must exist first [3]. A beta app description and a feedback email are required [5]. Each action below reaches a reviewer or a person outside the team, so each is its own block in Step 11 and its own proof. Give its path only after the yes.
 
-Each of these reaches a person outside the team only after this skill's go-ahead block. A rejection shows Rejected on the build, and the App Review section holds the detail; a new build is needed [3][4].
+| action | what it reaches | path |
+|---|---|---|
+| Submit Review | TestFlight App Review. With "Automatically notify testers" on, testers hear on approval, so leave it off; then you notify them yourself after approval [3] | Apps, TestFlight tab, add (+) next to External Testing, name the group, Create. Add Builds, choose the platform, version, and build, write What to Test, Submit Review [3] |
+| Start Testing | The group's testers, with no review first. The button depends on the build's status, and later builds of a version might not need a full review [3] | The same path; the button reads Start Testing [3] |
+| Notify Testers | The group's testers. The build status changes to Testing [3] | TestFlight tab, Builds, the platform, the version, Notify Testers on the build's row [3] |
+| Invite by email | Each person named, by invitation email [3] | The group, add (+) next to Testers [3] |
+| Public link | Anyone with the link: anyone can share it, so people you did not invite can join [3] | The group, testers tab, Create Public Link, Open to Anyone or Filter by Criteria, optional Tester Limit, Confirm [3] |
+
+A later change that lets more people in through a public link, under Manage next to Public Link [3], is a new block too.
+
+A rejection shows Rejected on the build, and the App Review section holds the detail; a new build is needed [3][4].
 
 ## Sources
 

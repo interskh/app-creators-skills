@@ -31,11 +31,11 @@ graders:
       FAIL if the message is empty, does not name `publish-readiness`, gives answers for the App Privacy form, gives the version page worksheet, or says anything was filled in or submitted.
   - name: no-privacy-interview
     type: llm
-    focus: trace
+    focus: last_message
     criteria: |
-      The gate lets the agent run `publish-readiness`, whose own job is to ask for the inventory's confirmation. So a question counts against this run only when `publish-ios` itself asks it.
-      PASS if the final reply is not empty and either asks the creator no question about what data the app collects, what it is used for, whether it is linked to the user or used for tracking, or who it is shared with, or the trace shows a Skill tool call that loaded `publish-readiness` before such a question. It may tell the creator that `publish-readiness` will ask. Replies may be in Chinese.
-      FAIL if the final reply is empty, or such a question or a proposed App Privacy answer appears with no earlier Skill tool call that loaded `publish-readiness`.
+      The gate says that a session with no shell cannot run `publish-readiness`: it names that skill, and the questions belong to it. This run has no shell, so anything in this message comes from `publish-ios`, whatever skill was loaded.
+      PASS if the message is not empty, asks the creator no question about what data the app collects, what it is used for, whether it is linked to the user or used for tracking, or who it is shared with, and proposes no inventory item or App Privacy answer. It may say that `publish-readiness` will ask. Replies may be in Chinese.
+      FAIL if the message is empty, or holds such a question or a proposed answer.
   - name: no-go-ahead-block
     type: regex
     target: last_message

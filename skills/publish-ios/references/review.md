@@ -14,21 +14,28 @@ TestFlight App Review has no stated time on the pages read. An export compliance
 
 The message states how the app breaks the guidelines [4]. The creator reads it in the app's App Review section.
 
-- **Reply.** Role: Account Holder, Admin, or App Manager. Apps, the app, the unresolved issues link, Resolve next to the submission, Reply to App Review, then the reply; a file can be attached [4]. Correspond until you resubmit [4].
-- **Metadata issue.** The same build can be resubmitted after fixing it [4]. Status Metadata Rejected [5].
+- **Reply.** See Messages to App Review. Correspond until you resubmit [4].
+- **Metadata issue.** The same build can be resubmitted after fixing it [4]. Status Metadata Rejected [5]. A reply to it is a message below.
 - **A rejected item among others.** Status Unresolved Issues. Edit it once and resubmit, or remove it [6].
 - **Resubmit.** It reaches a reviewer again, so it is a new Step 13 with a new block. Changed code means a new build, from Step 8.
-- **Bug-fix update.** If App Review finds other issues in a bug-fix update, it may offer to approve it now and take them next time: reply to that message to accept. Not with legal or safety concerns [1].
+- **Bug-fix update.** If App Review finds other issues in a bug-fix update, it may offer to approve it now and take them next time. Accepting is a message below. Not with legal or safety concerns [1].
 
-The creator writes the reply and the appeal. Draft on request; the creator sends it.
+## Messages to App Review
 
-## Appeal
+Each of these reaches a reviewer, so each is a **go-ahead** with its own block. The block's action is in the words below, and the message itself is shown in full below the block. Give the route only after the yes. The creator writes the message; draft on request; the creator sends it. Proof: the creator reports it sent.
 
-If the creator believes App Review misunderstood the app or treated them unfairly, they can appeal to the App Review Board [1]. Give specific reasons the app complies, one appeal per rejected submission, and answer any open request for information first [1]. The form sits on Apple's contact pages behind sign-in; the form itself could not be read [8].
+| message | action | route |
+|---|---|---|
+| Reply to a rejection, including Metadata Rejected | "send this reply to App Review" | Role: Account Holder, Admin, or App Manager. Apps, the app, the unresolved issues link, Resolve next to the submission, Reply to App Review, then the reply; a file can be attached [4] |
+| Bug-fix acceptance | "reply to App Review accepting the bug-fix offer: approve this submission now, and fix the other issues in the next submission" | Reply to the offer message in App Store Connect, saying you want the current submission approved [1] |
+| Appeal | "send this appeal to the App Review Board" | The form sits on Apple's contact pages behind sign-in; the form itself could not be read [8] |
+| Expedited review request | "send this expedited review request to App Review" | The link on Apple's App Review page [1] |
+| Appointment request | "request an App Review appointment" | The link on Apple's App Review page [1] |
+| Contact us | "send this message about the rejection or removal to App Review" | Apple's "contact us" [1] |
 
-## Other routes
+An appeal is for a creator who believes App Review misunderstood the app or treated them unfairly [1]. Give specific reasons the app complies, one appeal per rejected submission, and answer any open request for information first [1].
 
-An expedited review can be requested for a critical bug fix, with reproduction steps, or an event the app is directly associated with [1]. A 30-minute App Review appointment over Webex is available [1]. Apple's "contact us" takes an unresolved rejection or removal [1].
+An expedited review can be requested for a critical bug fix, with reproduction steps, or an event the app is directly associated with [1]. The appointment is 30 minutes over Webex [1]. "Contact us" takes an unresolved rejection or removal [1].
 
 ## Sources
 

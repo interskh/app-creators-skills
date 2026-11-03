@@ -735,3 +735,45 @@ implement-loop: slice E shipped c25ba17; remaining: [F, G, H, I, J]
 **Other evals.** `store-listing-*` at 0.2.0: `03-50-02-787Z`, $1.30, 5 of 6 at 1.00. `expo-readiness-fail-zh` 0.67 on a reply that stopped and gave the fix, judges FAIL FAIL FAIL; the reason is not recorded. `04-06-37-880Z`, $0.31: 2 reruns at 1.00. `app-creators-vite-*` at 0.1.3: `04-07-31-637Z`, $0.23, 1.00 and 1.00. One run at `03-56-06-347Z`, $0.23, omitted its `--allow-tools Write` by my error.
 
 All evals in this slice so far: $11.25.
+
+## Slice F / gate fix round 1
+
+**Decisions**
+- Every Step 13 and Step 15 reading pairs the app status with the build number in the Build section. A status held by a different build stops and names both. A different build at Ready for Distribution sends the release to a new version number, Step 4.
+- `Accepted`, `Waiting for Export Compliance`, `Processing for Distribution`, and `Pending Apple Release` reuse Step 13, because each comes after a submission. `Invalid Binary` and the three rejected statuses do not.
+- Added an `On sale` definition to `SKILL.md`: Ready for Distribution in this session's version list. Live-app rules key on it. No reading in the session means ask first.
+- Live-app blocks name the version on sale in `Release:`, and `Build revision:` may read `not recorded`. The block template itself is unchanged, so its bytes stay equal in both files.
+- Availability, Remove App From Sale, and price are go-aheads from Apple's "immediately" and "within 24 hours" text. Trader status is a go-ahead because Apple publishes it on the product page, with no timing stated.
+- Copyright and App Review information are marked editable, but they sit on a version page, so Step 12 enters them on the new version's page and the skill gives no path for the version on sale. Category, support URL, and content rights are not marked editable: ordinary Step 12.
+- App Privacy on a live app: Apple says responses reflect only the version on sale, and no page says when to change them for an upcoming build. So the skill states no rule: it shows both lists, the creator decides now or after release, and the block names the version on sale and each changed data type.
+- Local EAS builds: no page gives the number before upload. Step 9's check names the version alone, and the new number in the store's list completes the identity after upload, with the creator confirming.
+- Currency with no `git`: the ask comes at the first gate or step whose stop or rebuild depends on currency. A recorded `pass` does not need it, so `expo-first-run` keeps its one ask. Unconfirmed inventory stops either way, so it needs no git ask.
+- Step 13 running the Step 12 gates made the limit gate reachable in a no-shell session. Not in the brief: a no-shell session now asks the creator to run `check-listing.py`, and the `expo-submit-goahead` prompt reports that output. Without this the block was unreachable.
+- Workflow check forbids every automatic `on` key, not only `push`, because each starts a run with no check. Item 4 named `push`; the syntax page lists the others.
+- Not in the brief: expedited review, appointment, and "contact us" are go-aheads too, and so is uploading export compliance documentation, because the promise says "anything reaches a reviewer".
+- `expo-release-goahead` seeds readiness `pass` and a current listing, so the suite has one block where `pass` is right on the reported readings. Its grader does not fix those two values.
+
+**Rejected**
+- Reading the number from the `.ipa` or `eas build:inspect`: no page documents it for this purpose. `eas build:version:get` after a local build: no page says `--local` moves the remote number.
+- `[eas skip]` as the way to disable a workflow: it skips one push, so the next push runs the job.
+- Letting the creator keep a scheduled or automatic release "outside this skill": it goes public with no further yes. The skill shows no block with one set.
+- A fixed rule to publish privacy responses only after the new version is on sale: the page does not settle it, per the brief.
+- Asking for a Phased Release reading on a first release: Apple offers phased release only for a version update, and the question would block `expo-release-goahead` for nothing.
+- Keeping the combined `block-names-the-release-and-stale-readiness` grader: the revisions need `focus: trace`, the listing check needs the final reply.
+
+**Assumptions**
+- A judge with `focus: trace` sees `state.md` and `readiness.md` within the first 12 and last 12 messages. Check in the eval verdicts on `block-revisions-come-from-the-files`.
+- Apple's "Start Testing" means no review stands before testers. The page says only that the button depends on the build's status. Check at a level 4 run.
+- The email-invite proof, "the Testers section shows them", may lag until a tester accepts; the page describes details appearing on acceptance.
+
+**Deferred**
+- Eval runs and `verified-runs.md` numbers for `publish-ios`: the orchestrator.
+- Spec §3.5 lists submit, promote, and rollout as go-aheads; its general rule covers the new ones. No spec edit, as the brief did not ask for one.
+- Expo's GitHub App build triggers are outside the repo, so Step 4's workflow check cannot see them. Not fetched, and not claimed.
+- No eval reaches Step 4's workflow check, Step 11, Step 16, or a live-app go-ahead. The README says so.
+
+**Touches**
+- `skills/publish-ios/SKILL.md`, `SKILL.zh.md`; `references/expo.md`, `statuses.md`, `release.md`, `review.md`, `testflight.md`, `app-privacy.md`, `export-compliance.md`.
+- `evals/publish-ios/lib/scaffold.sh`, new `lib/notes-past-review.md`, `expo-submit-goahead-*`, `expo-upload-check-*`, `expo-unconfirmed-inventory-*`, new `expo-release-goahead-*`, `README.md`.
+- `skills/store-listing/references/verified-runs.md`: two rows' wording only.
+- Shared surface for Slice G: the `On sale` paragraph and the live-app section in `release.md`; Flutter and Xcode routes need their own workflow-style check at Step 4 if they have one, and must list their key env names for Step 7. `scaffold_expo_*` gains `write_readiness_confirmed_unknown` and `record_review`. No schema change.

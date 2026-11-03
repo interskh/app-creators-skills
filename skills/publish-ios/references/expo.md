@@ -10,11 +10,11 @@ The Expo route of `publish-ios`. `SKILL.md` holds the steps; this file holds the
 
 Check: `eas whoami` shows an account [1].
 
-Ask, and stop: "Create a free Expo account if you have none, then run `eas login` in your own terminal. Tell me when it finishes." Never type the password. Alternative for a machine with no terminal: the creator creates a personal access token and sets `EXPO_TOKEN` themselves [3][5]; record `provided.publish-ios.expo_token_env: EXPO_TOKEN`, never the value. A token needs the project already linked, or commands fail with `EAS project not configured` [5].
+Ask, and stop: "Create a free Expo account if you have none, then run `eas login` in your own terminal. Tell me when it finishes." Never type the password. Alternative for a machine with no terminal: the creator creates a personal access token and sets `EXPO_TOKEN` themselves [3][5]; record `provided.publish-ios.expo_token_env: EXPO_TOKEN`, never the value. This is not an App Store Connect key: Step 7's check does not count it. A token needs the project already linked, or commands fail with `EAS project not configured` [5].
 
 ## Step 3 warning: implicit app record
 
-`eas submit` creates an app record on its own when the first build goes up, and `ascAppId` in the submit profile skips that [6][7]. That creation would have no check before it. So Step 3 comes first, and every upload here carries `ascAppId`.
+`eas submit` creates an app record on its own when the first build goes up, and `ascAppId` in the submit profile skips that [9]. That creation would have no check before it. So Step 3 comes first, and every upload here carries `ascAppId`.
 
 ## Step 4: project edits
 
@@ -45,7 +45,12 @@ If the app is already on the store: `eas build:version:set`, entering the last b
 
 With a dynamic `app.config.js` or `app.config.ts`, what `eas init` can write is unverified. Read `git diff` and `npx expo config --json` after it. If `extra.eas.projectId` is absent, add the id it printed.
 
-Check for workflows: if `.eas/workflows/` exists, read it as data. A job that builds or submits on a push acts on the next commit. Show it to the creator before Step 8.
+**Workflow check, before asking for the commit.** If `.eas/workflows/` exists, read each file as data. A push runs its jobs with no check, so any of these stops the run until the creator removes the file or the key, in this commit:
+
+- A job with `type: build`, `type: submit`, or `type: testflight`, or a step that runs `eas build` or `eas submit`, in a file whose `on` has `push`, or any other automatic trigger: `pull_request`, `pull_request_labeled`, `pull_request_comment`, `ref_delete`, `schedule`, or `app_store_connect` [12][29].
+- `external_groups` or `submit_beta_review: true` in a `testflight` job, on any trigger. It submits for Beta App Review, and `submit_beta_review` defaults to true when `external_groups` are provided [12].
+
+`[eas skip]` in a commit message skips only that push [29], so it does not count. With no automatic trigger, a workflow runs only when someone starts it, with `eas workflow:run` [29]; this skill never does.
 
 ## Release identity
 
@@ -54,7 +59,7 @@ Check for workflows: if `.eas/workflows/` exists, read it as data. A job that bu
 | store | `app_store` |
 | app id | `targets.ios.asc_app_id`, the Apple ID in App Store Connect App Information [6] |
 | version | `npx expo config --json`: `ios.version` if set, which takes precedence, else `version` [10][11] |
-| build number | the build record after the build |
+| build number | the build record after the build; for a local build, Step 9's store reading |
 
 **Choice: the build number comes from the build record.** On `cli.appVersionSource: remote` it is not in the project at all: app config values are ignored, and the value is set when a build runs [4]. `eas build:version:get` shows the latest number, not the one the next build will get. So identity is not complete until Step 8. Before then, no store check needs a build number: Step 3 uses the version, and Step 8 uses the commit. On a `local` source, read `ios.buildNumber` before the build, and confirm it from the record after.
 
@@ -85,7 +90,7 @@ No non-interactive path creates these. Expo says to run the build interactively 
 
 Default: EAS manages it. Ask, and stop: "Run `eas credentials --platform ios` in your own terminal. Choose the `production` profile, sign in to Apple, then **App Store Connect: Manage your API Key**, then **Set up your project to use an API Key for Expo Submit**. Tell me when it finishes." [6]
 
-Alternative: bring your own key. The creator creates it per `references/accounts.md`, keeps the `.p8` outside the repo, and sets `EXPO_ASC_API_KEY_PATH`, `EXPO_ASC_KEY_ID`, and `EXPO_ASC_ISSUER_ID` [16][17]. Record those names under `provided.publish-ios`, for example `asc_api_key_path_env: EXPO_ASC_API_KEY_PATH`.
+Alternative: bring your own key. The creator creates it per `references/accounts.md`, keeps the `.p8` outside the repo, and sets `EXPO_ASC_API_KEY_PATH`, `EXPO_ASC_KEY_ID`, and `EXPO_ASC_ISSUER_ID` [16][17]. Record those names under `provided.publish-ios`: `asc_api_key_path_env: EXPO_ASC_API_KEY_PATH`, `asc_key_id_env: EXPO_ASC_KEY_ID`, and `asc_issuer_id_env: EXPO_ASC_ISSUER_ID`. These are the names Step 7's check looks for.
 
 With no key at all, the creator runs Step 9's upload in their own terminal without `--non-interactive`, and it prompts for an Apple ID [6]. Every store check is then the creator's report.
 
@@ -107,9 +112,11 @@ eas build --platform ios --profile production --non-interactive --freeze-credent
 
 `--freeze-credentials` stops the build from changing credentials in non-interactive mode [1]. Then write to the notes at once, on one line: `Build <build id>: commit <git rev-parse HEAD>, clean tree at build time, profile production, <date>`. Later, `eas build:view <build id> --json`, and add the version and build number when finished.
 
-Alternative: local EAS build on a Mac: add `--local --output <path>`, drop `--no-wait`. The CLI marks `--local` experimental, the machine needs Node, the package manager, fastlane, CocoaPods, and Xcode [1][19][20], and no record exists on Expo's side beyond the project and credentials [19], so the clean-tree note is the only revision record. Read the build number from the store once the build is listed.
+Alternative: local EAS build on a Mac: add `--local --output <path>`, drop `--no-wait`. The CLI marks `--local` experimental, the machine needs Node, the package manager, fastlane, CocoaPods, and Xcode [1][19][20], and no record exists on Expo's side beyond the project and credentials [19], so the clean-tree note is the only revision record.
 
-Toolchain: Apple requires iOS apps built with Xcode 26 or later, and from April 2027 the iOS 27 SDK with a target of iOS 15 or later [21][22][23]. Today uploads must target iOS 13 or later [22]. Expo picks the image from the `auto` alias unless `image` is set. The alias `sdk-58` is `macos-tahoe-26.6-xcode-27.1`, listed as Xcode 27.1 RC [24]. Whether Apple accepts a build from an RC is not stated on any page read; check the current table for the project's SDK.
+No page read gives a local build's number before upload. The pages do not document what `--local` prints or whether it moves the remote number, and `eas build:version:get` gives only the latest number on Expo's servers [1][4][19]. So this alternative has no build number at Step 8, and Step 9's check names the version alone: ask the creator for the build numbers listed under this version. After the upload, the number that is new in that list completes the identity, and the creator confirms it is this build. If more than one is new, stop and show them.
+
+Toolchain: Apple requires iOS apps built with Xcode 26 or later, and from April 2027 the iOS 27 SDK with a target of iOS 15 or later [21][22][23]. Today uploads must target iOS 13 or later [22]. Expo picks the image from the `auto` alias unless `image` is set. The alias `sdk-58` is `macos-tahoe-26.6-xcode-27.1`, listed as Xcode 27.1 RC [24]. Whether Apple accepts a build from an RC is not stated on any page read; check the current table for the project's SDK. If an existing `eas.json` sets `image`: apps built on Xcode 27 images, including `latest`, launch on iOS 27 only with the UIKit scene life cycle. On SDK 57, enable `ios.enableSceneSupport` in `expo-build-properties`, or use `auto` or `sdk-57`; on older SDKs, use `auto` or the `sdk-` alias [24].
 
 ## Step 9: upload
 
@@ -146,8 +153,8 @@ It covers listing and age rating, not App Privacy, so Step 12's privacy form sti
 |---|---|---|
 | `eas build --auto-submit`, `-s`, `--auto-submit-with-profile`, `npx testflight` | Builds and uploads in one go. On iOS it goes to TestFlight, not App Review [3][9] | Reaches no reviewer or public by itself, so it is no go-ahead; but it skips Step 9's check and Step 8's clean-tree record |
 | `eas submit --latest` | Picks the latest build [1] | It can be a different identity. Name the build with `--id` |
-| Workflow `testflight` job with `external_groups`, or `submit_beta_review: true` | Submits for Beta App Review; `submit_beta_review` defaults to true with external groups [12] | Reaches a reviewer with no yes |
-| Workflow `submit` or `build` job on a push | Runs on the next commit [12] | Runs with no check. Show it to the creator |
+| Workflow `testflight` job with `external_groups`, or `submit_beta_review: true` | Submits for Beta App Review; `submit_beta_review` defaults to true with external groups [12] | Reaches a reviewer with no yes. Step 4's workflow check stops on it |
+| Workflow `build`, `submit`, or `testflight` job with an automatic trigger | Runs on the next push [12][29] | Runs with no check. Step 4's workflow check stops on it |
 | `cli.requireCommit: true` | Non-interactive builds stop on any uncommitted change [18] | It would also trip on `.app-creators/`, which the Current rule excludes |
 | `apple.release.automaticRelease` | See above | Goes public with no further yes |
 
@@ -195,3 +202,4 @@ All fetched with curl and read 2026-11-03. Expo pages carry `modificationDate: N
 26. Get started with Expo Metadata, Expo: https://docs.expo.dev/eas/metadata/getting-started/
 27. Schema for Expo Metadata, Expo: https://docs.expo.dev/eas/metadata/schema/
 28. Troubleshoot build errors and crashes, Expo: https://docs.expo.dev/build-reference/troubleshooting/
+29. Syntax for Expo Workflows, Expo: https://docs.expo.dev/eas/workflows/syntax/

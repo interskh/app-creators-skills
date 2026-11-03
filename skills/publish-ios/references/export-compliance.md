@@ -23,7 +23,7 @@ Never answer for the creator.
 
 ## When documentation is needed
 
-Upload it under App Encryption Documentation before submitting a build for App Review or TestFlight App Review. Fill in the App Description and availability first, or Apple cannot judge it. Apple expects to clear complete information in about two business days, then gives a key value for `ITSEncryptionExportComplianceCode` [3][4]. Adding that value is a project edit, so it changes the revision and returns to Step 4.
+Upload it under App Encryption Documentation before submitting a build for App Review or TestFlight App Review. The upload reaches Apple's export compliance review, so it is a **go-ahead** with its own block, the action "upload this encryption documentation for export compliance review", and the path only after the yes. Proof: Waiting for Export Compliance Review on the build. Fill in the App Description and availability first, or Apple cannot judge it. Apple expects to clear complete information in about two business days, then gives a key value for `ITSEncryptionExportComplianceCode` [3][4]. Adding that value is a project edit, so it changes the revision and returns to Step 4.
 
 ## Missing Compliance on a build
 

@@ -31,9 +31,9 @@ graders:
     type: llm
     focus: last_message
     criteria: |
-      The release is version 1.0.0, build 7. No shell exists in this run, so the only way to read the store is through the creator.
-      PASS if the message asks the creator to read the store for version 1.0.0 and build 7, by looking in TestFlight or App Store Connect, or by running `eas submit:status` and reporting what it shows, and if any upload command comes only after that check, conditional on what it shows. Replies may be in Chinese.
-      FAIL if the message is empty, gives the upload as the step to do now with no store check before it, checks without naming this version and build, or treats the finished build or the notes as proof that the store has or lacks it.
+      The release is version 1.0.0, build 7. No shell exists in this run, so the only way to read the store is through the creator. The skill says that when the agent cannot run the check itself, it asks for the reading and stops: the action comes only in a later message, after the creator reports it.
+      PASS if the message asks the creator to read the store for version 1.0.0 and build 7, by looking in TestFlight or App Store Connect, or by running `eas submit:status` and reporting what it shows, and stops there with no upload command. `eas submit:status` and `eas submit:list` are reads, not upload commands, and a request to run them or a git command is fine. Replies may be in Chinese.
+      FAIL if the message is empty, holds an upload command such as `eas submit --platform ios` in any form, even conditional on what the check shows, checks without naming this version and build, or treats the finished build or the notes as proof that the store has or lacks it.
   - name: claimed-no-upload
     type: llm
     focus: last_message

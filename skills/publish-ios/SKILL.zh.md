@@ -8,7 +8,7 @@
 
 | `framework.kind` | 怎么做 |
 |---|---|
-| `expo` | 继续。路线文件是 `references/expo.md`。 |
+| `expo` | 继续。路线文件是 `references/expo.md`。第一次回复里说一次：这是 Expo 应用，走 EAS 构建和上传这条路线。 |
 | `flutter`、`xcode` | 说明这条路线暂未提供，然后停下。 |
 | `kotlin` | 说明 Kotlin 应用没有 iOS 路线，说出 `publish-android`（暂未提供），然后停下。 |
 | `unknown` | 先运行 `app-creators` 再回来。 |
@@ -40,7 +40,7 @@
 
 每条命令都在项目根目录运行。
 
-**当前（current）。** `git status --porcelain -- . ':(exclude).app-creators'` 没有输出，并且 `git diff --quiet <revision> HEAD -- . ':(exclude).app-creators'` 退出码为 0，这个 revision 才算当前。`revision` 为空或命令失败，都算不是当前。两个 revision 之间这条 `git diff` 退出码为 0，就算一致。`git` 根本跑不了时，用一句话说明，把所有 revision 都当作不是当前、也不一致，并且不为这件事向创作者要任何东西。
+**当前（current）。** `git status --porcelain -- . ':(exclude).app-creators'` 没有输出，并且 `git diff --quiet <revision> HEAD -- . ':(exclude).app-creators'` 退出码为 0，这个 revision 才算当前。`revision` 为空或命令失败，都算不是当前。两个 revision 之间这条 `git diff` 退出码为 0，就算一致。`git` 在这里跑不了时，用一句话说明。在拿到读取结果之前，所有 revision 都算不是当前、也不一致：第一次遇到要看 revision 是否当前来决定停下或重新构建的关口或步骤时，请创作者在自己的终端里，对这一步需要的每个已记录 revision 运行这些命令，并报告输出。这个输出就是一次读取，和商店状态一样。步骤用不到时不要问：第 1 步的问题仍然单独成一条消息。
 
 **关口。** 每一行只在它写的时机生效。readiness、listing 或 state 已经记下的，绝不再问。挡住同一步的关口，放在一条消息里全部说明。停在关口上，这一步就结束：不出 go-ahead block，预览也不出，也不出填写清单。
 
@@ -55,15 +55,19 @@
 
 **最小检查**，用于 `unknown` 或过期的情况，它不算审查。路线解析出的配置里有应用名、bundle id 和版本号；配置指向的图标文件存在；`provided.publish-readiness.privacy_policy_url` 已设置。命令见路线文件。每项结果都要报告；缺了哪项，需要它的那一步就停下。
 
-**限制关口。** 本 skill 不带 `check-listing.py`，自己也不存任何限制：限制会变，归 `store-listing` 管。运行 `store-listing` 的检查步骤，它会跑自己的 `check-listing.py`。那个 skill 没装时按不通过处理：停下，给出安装命令。它不需要账号，这次停下只多花一条命令。`FAIL` 或退出码 2 就停在这里。`UNKNOWN` 不停，只有一种例外：必填的截图行 `path` 为空，这时通过 `store-listing` 请创作者补截图。
+**限制关口。** 本 skill 不带 `check-listing.py`，自己也不存任何限制：限制会变，归 `store-listing` 管。运行 `store-listing` 的检查步骤，它会跑自己的 `check-listing.py`。那个 skill 没装时按不通过处理：停下，给出安装命令。它不需要账号，这次停下只多花一条命令。会话没有 shell 时，请创作者在自己的终端里运行，并报告输出，这一步等这次读取。`FAIL` 或退出码 2 就停在这里。`UNKNOWN` 不停，只有一种例外：必填的截图行 `path` 为空，这时通过 `store-listing` 请创作者补截图。
 
 **发布身份。** 商店（`app_store`）、应用 id（`targets.ios.asc_app_id`）、版本号和 build number。怎么读取见路线文件。每个有副作用的步骤都绑定这个身份。商店里的旧版本在任何检查里都不算数，也不能复用任何一步。
 
 **构建 revision。** 构建来自的 commit，按路线文件说的方式读取，写进 frontmatter 下方的备注：`history` 的四个键不变。只有它和当前代码树一致，这个构建才算当前。只有 `readiness.ios.revision` 和构建的 revision 一致，这份评估才对这个构建有效。当前的评估绝不能代替另一个构建的评估。
 
-**读取商店。** 能读 App Store Connect 的命令由路线文件给出。没有的话，请创作者去看，并报告准确的状态文字。这项检查绝不跳过。命令成功不等于商店状态。Apple 的状态名以及每个状态能复用什么，见 `references/statuses.md`。
+**读取商店。** 能读 App Store Connect 的命令由路线文件给出。没有的话，请创作者去看，并报告准确的状态文字。这项检查绝不跳过。命令成功不等于商店状态。Apple 的状态名以及每个状态能复用什么，见 `references/statuses.md`。版本的 app status 不包含 build：要同时从这个版本的 Build 部分读取 build number。
 
-**go-ahead block。** 每个 **go-ahead** 步骤之前，填好下面这段，放在消息的最后；只有它说明“shown in full below”的 listing 可以排在它后面。字段名和最后一行都照英文原样写，这样两种语言里读到的 block 相同：
+**在售。** 本次会话按第 3 步的方式读到的版本列表里，某个版本是 Ready for Distribution，它就是在售版本。所有针对线上应用的规则都看这次读取，绝不看 `targets.ios.status`。本次会话还没读过的话，动手之前先问。
+
+**对有在售版本的应用做改动。** App Privacy 的 Publish、App Availability、价格和 trader 身份都不经过新版本就会直接面向公众，所以每一项都是 **go-ahead**，单独出 block。Apple 对每一项的说法，以及每个动作的写法，见 `references/release.md`。这种 block 里，`Release:` 写读取到的在售版本和它的 build；备注里没有记录时，`Build revision:` 写 `not recorded`。
+
+**go-ahead block。** 每个 **go-ahead** 步骤之前，填好下面这段，放在消息的最后；只有它说明“shown in full below”的 listing 或发给 App Review 的消息可以排在它后面。字段名和最后一行都照英文原样写，这样两种语言里读到的 block 相同：
 
 ```text
 GO-AHEAD NEEDED
@@ -94,17 +98,18 @@ Reply "yes" to do this for exactly this release. Anything else stops here.
 
 3. **effective** 应用记录和版本记录。默认：创作者在 App Store Connect 里操作。备选：无；工具会隐式创建记录，警告见路线文件。
    先查：请创作者打开 Apps，报告有没有这个 bundle id 的应用、它的 Apple ID 和版本列表。`targets.ios.bundle_id` 从项目里取。
-   执行：没有记录时，给出 `references/accounts.md` 里的值和路径：iOS、`listing.md` 里的名称、`references/localizations.md` 里的主要语言、bundle id、SKU。角色和协议也在那个文件里。应用已 `live` 要发新版本时，版本记录按 `references/accounts.md` 建，版本号来自第 4 步。
-   证据：创作者报告 Apple ID 和版本，状态是 Prepare for Submission 或更靠后的状态。记下 `targets.ios.asc_app_id`、`targets.ios.bundle_id`，以及按 `references/statuses.md` 写的 `ready` 状态。创作者报告还没有记录时，记 `none`，然后停下。
+   执行：没有记录时，给出 `references/accounts.md` 里的值和路径：iOS、`listing.md` 里的名称、`references/localizations.md` 里的主要语言、bundle id、SKU。角色和协议也在那个文件里。应用有在售版本、要发新版本时，版本记录按 `references/accounts.md` 建，版本号来自第 4 步。
+   证据：创作者报告 Apple ID 和版本，状态是 Prepare for Submission 或更靠后的状态，并说明列表里有没有在售版本。记下 `targets.ios.asc_app_id` 和 `targets.ios.bundle_id`。`targets.ios.status`：有在售版本时按“更新状态”写 `live`，否则按 `references/statuses.md` 写 `ready`。创作者报告还没有记录时，记 `none`，然后停下。
 
 4. 项目改动。默认和具体改动：路线文件。备选：无。
-   执行：构建之前，把路线要求的改动全部做完，放进一个 commit：配置、项目关联、`targets.ios.asc_app_id`、新版本的版本号、加密标记。加密先读项目，项目里已有答案就不问；没有的话按 `references/export-compliance.md` 问一次，只按创作者的回答改。把 diff 给创作者看，请创作者 commit。
+   执行：构建之前，把路线要求的改动全部做完，放进一个 commit：配置、项目关联、`targets.ios.asc_app_id`、新版本的版本号、加密标记。加密先读项目，项目里已有答案就不问；没有的话按 `references/export-compliance.md` 问一次，只按创作者的回答改。请创作者 commit 之前，先做路线的 workflow 检查：出现路线禁止的 job，就停下，直到创作者把它删掉或停用。把 diff 给创作者看，请创作者 commit。
    预期：`git status --porcelain -- . ':(exclude).app-creators'` 没有输出。这些改动会改变 revision，所以后面接第 5 步。
 
 5. 重新绑定就绪结果。默认：`publish-readiness`。备选：“开始之前”里的过期规则。
    先查：`readiness.ios.revision` 是当前的吗？是就到第 6 步。
    执行：`publish-readiness`。它重新评估这个 commit，只问改动的部分，这样第一次完整运行不会卡死在第 12 步的关口。它没装时，用安装命令说出它，按过期规则继续；在它跑过之前，第 12 步仍然会停。
-   预期：`readiness.ios` 在当前 revision 上，或者已经说明适用过期规则。commit `.app-creators/`，这不会改变 revision。
+   这次运行得到 `fail` 就停在这里，和第一个关口一样：列出每个失败的检查项和它的 `fix`。
+   预期：`readiness.ios` 在当前 revision 上，而且不是 `fail`，或者已经说明适用过期规则。commit `.app-creators/`，这不会改变 revision。
 
 6. **human-only** 签名。默认和备选：路线文件。
    先查：路线里检查签名是否存在的方式。
@@ -112,53 +117,67 @@ Reply "yes" to do this for exactly this release. Anything else stops here.
    预期：创作者报告已完成。路线指定了工具才记 `tools.*`。
 
 7. **human-only** App Store Connect API key。默认和备选：路线文件。有了这个 key，路线上传和读取商店都不用人工介入。
-   先查：state 里有 `provided.publish-ios`，或者路线的检查通过。
+   先查：路线的检查通过，或者 `provided.publish-ios` 里有路线列出的 App Store Connect key 环境变量名。那里的其他名字，比如构建服务的 token，都不算。
    问完就停：路线文件里那句话，命令和菜单名原样保留，其余用中文说。角色见 `references/accounts.md`。绝不查看 key：只记环境变量名。
    预期：路线的检查通过，或者创作者选了路线里不用 key 的走法。
 
 8. **effective** 构建。默认和备选：路线文件。
    先查：按路线的方式查这个 revision 有没有已完成或进行中的构建。有就复用。旧构建不算。代码树干净的证明必须按路线文件说的方式存在。
    执行：代码树干净时，运行路线的构建命令。构建一开始就把构建 revision 写进备注。
-   证据：构建服务显示已完成，并且路线的读取方式能给出完整的发布身份。这不是商店状态。失败时，给出第一条错误，再看“排查”。
+   证据：构建服务显示已完成，并且路线的读取方式能给出完整的发布身份，或者路线说明的、这个构建此时能有的那部分身份。这不是商店状态。失败时，给出第一条错误，再看“排查”。
 
 9. **effective** 上传。默认和备选：路线文件。之后怎么走见 `references/testflight.md`。
-   先查：在商店里查这个版本号和 build number 的构建。已经列出就跳过上传。
-   执行：路线的上传命令，指定这个构建。
-   证据：这个构建列在 TestFlight 里，状态来自 `references/statuses.md`，且不是 Invalid Binary。上传命令跑完不算。还在 Processing 时，说明情况后停下；重跑会从这里继续。遇到 Missing Compliance，按 `references/export-compliance.md` 处理。按 `references/statuses.md` 记 `targets.ios.status`。
+   先查：在商店里查这个版本号和 build number 的构建；还没有 build number 的构建，按路线说的查。已经列出就跳过上传。
+   执行：读取结果回来之后，才给路线的上传命令，指定这个构建。请创作者读取的那条消息里绝不放这条命令，当作“下一步”预告也不行。
+   证据：这个构建列在 TestFlight 里，状态来自 `references/statuses.md`，且不是 Invalid Binary。上传命令跑完不算。还在 Processing 时，说明情况后停下；重跑会从这里继续。遇到 Missing Compliance，按 `references/export-compliance.md` 处理。按 `references/statuses.md` 记 `targets.ios.status`；有在售版本时保持 `live`。
 
 10. **effective** TestFlight 内部测试（创作者要求才做）。默认：路线的 group 选项。备选：App Store Connect，见 `references/testflight.md`。
     先查：问创作者这个构建是否已经在内部组里。执行之后，问这个构建的状态。
     证据：这个身份的状态是 Testing 或 Ready to Test。内部测试只到创作者自己的团队，不经过任何审核人员，不算 go-ahead。
 
-11. **go-ahead** 外部 TestFlight（创作者要求才做）：它会进入 TestFlight App Review。默认：App Store Connect，见 `references/testflight.md`。备选：无；`references/expo.md` 禁止用自动化。
-    先查：问这个构建的状态和所在的组。在外部组里，状态是 Waiting for Review、In Beta Review、Ready to Test 或 Testing，就复用这一步。
-    执行：出 block，动作写 "add this build to external TestFlight and submit it for TestFlight App Review"。得到 yes 之后，由创作者点击。然后问状态。
-    证据：这个身份的状态是 Waiting for Review 或 In Beta Review。
+11. **go-ahead** 外部 TestFlight（创作者要求才做）。下面每个动作都会触达审核人员或团队之外的人，所以各自单独出 block、各有证据，对一个动作说的 yes 不覆盖下一个。默认：App Store Connect，见 `references/testflight.md`。备选：无；`references/expo.md` 禁止用自动化。
+    先查：问这个构建的状态和所在的外部组，以及每个组的 Testers 和 Public Link 部分显示什么。只有证据已经满足的动作才跳过。
+    执行：只为要做的那一个动作出 block，动作按下面的原文写。得到 yes 之后，由创作者点击。然后问证据要求的读取结果。
+    - "add this build to external TestFlight and submit it for TestFlight App Review"，不勾选 "Automatically notify testers"。证据：这个身份的状态是 Waiting for Review 或 In Beta Review。
+    - "start external TestFlight testing of this build in group <group>"，用于 App Store Connect 显示 Start Testing 的情况，这时测试人员之前没有审核。证据：这个身份在这个组里的状态是 Ready to Test 或 Testing。
+    - "notify the testers of group <group> about this build"。证据：这个身份的状态是 Testing。
+    - "invite <number> testers by email to group <group>"。证据：这个组的 Testers 部分显示了他们。
+    - "create a public TestFlight link for group <group>"，动作里写明对所有人开放还是按条件筛选，以及人数上限（如果有）。证据：这个组显示了这条 Public Link。
 
 12. **effective** 填写版本页面。默认：创作者照你给的工作表粘贴到 App Store Connect。备选：路线文件指定的元数据工具（如果有）。
     先查：运行“开始之前”里第 12 步的关口。问创作者每一部分现在显示什么，已经相符的不动。
     执行：给一份工作表，按下面的顺序。绝不访谈：答案都来自下面这些文件，文件没给出的字段标出来，让创作者在表单里自己定。
     - 每种语言的文案和按行 `locale` 分的截图：`references/listing.md`，读 `listing.md`。
-    - App Privacy，取 `platforms` 含 `ios` 的 `data_inventory` 条目：`references/app-privacy.md`。应用已 `live` 时改成 **go-ahead**：点 Publish 会立刻更新线上产品页，所以先出 block，动作写 "publish these App Privacy responses on the live product page"。
+    - App Privacy，取 `platforms` 含 `ios` 的 `data_inventory` 条目：`references/app-privacy.md`。有在售版本时，这不是工作表里的一行：清单描述的是这个构建，表单描述的是在售版本，所以按那个文件里相应的一节做。那里的 Publish 是 **go-ahead**。
     - 年龄分级，取 `age_rating.answers`：`references/age-rating.md`。
     - 隐私政策 URL，取 `provided.publish-readiness.privacy_policy_url`。
-    - “你需要准备”里由创作者直接填写的内容：价格和供应地区、类别、支持 URL、版权、内容权利、trader 身份、App Review 信息。
+    - “你需要准备”里由创作者直接填写的内容：价格和供应地区、类别、支持 URL、版权、内容权利、trader 身份、App Review 信息。有在售版本时，改供应地区、价格或 trader 身份是 **go-ahead**：见 `references/release.md`。
     - Build：这个身份的构建，加到这个版本上。
     - App Store Version Release：选 "Manually release this version"。任何自动选项都禁止：`references/release.md`。
     证据：创作者报告每一部分都已保存。请创作者把 Build 和 App Store Version Release 两部分念回来。
 
 13. **go-ahead** 提交审核。默认：创作者在 App Store Connect 里操作。备选：无；原因见 `references/release.md`，没有工具做这件事。
-    先查：运行第 13 步的关口。问这个版本的 app status。这个身份的状态是 Waiting for Review 或 In Review，或者按 `references/statuses.md` 更靠后的状态，就记下并到第 14 步。Ready for Review 不算已提交。然后比较 revision：构建的 revision 不是当前的，就从第 8 步重新构建。创作者拒绝重新构建时，把就绪结果当作过期，并在 block 里说明。
+    先查：运行第 12 步和第 13 步的关口。然后请创作者念回这个版本的 app status、Build 部分的 build number，以及 App Store Version Release 设置。只说“每一部分都保存了”不算这次读取。
+    - Waiting for Review、In Review、Accepted、Waiting for Export Compliance、Pending Developer Release、Processing for Distribution、Pending Apple Release 或 Ready for Distribution，并且是这个身份的构建：已提交。记下并到第 14 步。
+    - 这些状态之一，但是另一个构建：停下，说出两个构建，并说明这里的 yes 到不了这个构建。如果是 Ready for Distribution，在售的就是那个构建，这次发布要换新的版本号：回到第 4 步。
+    - Prepare for Submission、Ready for Review、Invalid Binary、Rejected、Metadata Rejected 或 Developer Rejected：未提交，继续。
+    - Build 部分是另一个构建，或者设置不是 "Manually release this version"：请创作者改好并保存，再念回一次，然后才能出 block。
+    然后比较 revision：构建的 revision 不是当前的，就从第 8 步重新构建。创作者拒绝重新构建时，把就绪结果当作过期，并在 block 里说明。
     执行：出 block，动作写 "submit for App Review, App Store Version Release set to Manually release this version"。得到 yes 之后，给出 `references/release.md` 里的路径。如果你操作的是创作者已登录的浏览器会话，就由你点击；否则由创作者点击。
-    证据：创作者报告这个身份的状态是 Waiting for Review 或 In Review。记 `targets.ios.status: review`。
+    证据：创作者报告这个身份的状态是 Waiting for Review 或 In Review。记 `targets.ios.status: review`；有在售版本时保持 `live`。
 
 14. 读取审核结果。默认：创作者报告状态。备选：Apple 的状态邮件。
-    执行：说出 `references/review.md` 里 Apple 给的时间，然后停下。之后的会话询问状态，按 `references/statuses.md` 对应。被拒时读 `references/review.md`：回复途径、申诉途径，以及重新提交是一次新的第 13 步，要出新的 block。`store-review` 暂未提供，要说明。
+    执行：说出 `references/review.md` 里 Apple 给的时间，然后停下。之后的会话询问状态，按 `references/statuses.md` 对应。被拒时读 `references/review.md`：重新提交是一次新的第 13 步，要出新的 block。回复、接受 bug 修复的提议、申诉，以及发给 App Review 的其他消息，都会到审核人员手里，所以每一项都是 **go-ahead**，单独出 block，动作按那个文件的原文写，途径要等 yes 之后才给。证据：创作者报告已发出。`store-review` 暂未提供，要说明。
 
 15. **go-ahead** 向公众发布。默认：从 Pending Developer Release 手动发布。备选：版本更新用分阶段发布，见 `references/release.md`。
-    先查：问这个版本的 app status。这个身份已是 Ready for Distribution，就复用这一步。只有 Pending Developer Release 才往下走。
-    执行：出 block，动作写 "release this version to the App Store"，或 "release this version in phases over 7 days"。构建之后代码树变过的话，就绪结果写过期。得到 yes 之后，给出 `references/release.md` 里的路径。
-    证据：创作者报告这个身份的状态是 Ready for Distribution。记 `targets.ios.status: live`。最多可能要 24 小时才显示出来。
+    先查：问这个版本的 app status 和 Build 部分的 build number。版本更新时，还要问 Phased Release for Automatic Updates 部分显示什么。
+    - Ready for Distribution，并且是这个身份的构建：复用这一步。
+    - Ready for Distribution，但是另一个构建：在售的是那个构建，这个构建从未发布。停下并说明。这次发布要换新的版本号：回到第 4 步。
+    - Pending Developer Release，并且是这个身份的构建：往下走。
+    - Pending Developer Release，但是另一个构建：停下，说出两个构建，并说明这里的 yes 发布的会是另一个构建。
+    - 其他状态都不往下走。
+    执行：出 block，动作写 "release this version to the App Store"，或 "release this version in phases over 7 days"。动作必须和 Phased Release 部分显示的一致：不一致就请创作者改好并保存，再念回一次，然后才能出 block。构建之后代码树变过的话，就绪结果写过期。得到 yes 之后，给出 `references/release.md` 里的路径。
+    证据：创作者报告这个身份的状态是 Ready for Distribution；分阶段发布时，状态后面还要带 "Phased Release"。对分阶段说了 yes 却没有这个后缀时，告诉创作者商店没有显示分阶段发布。记 `targets.ios.status: live`。最多可能要 24 小时才显示出来。创作者留到这个版本再改的 App Privacy，现在单独出 block。
 
 16. **go-ahead** 更改分阶段发布（创作者要求才做）：暂停、恢复，或发布给所有用户。每一项都会改变谁能收到更新。默认：App Store Connect，见 `references/release.md`。备选：无。
     先查：问这个版本的 Phased Release 部分显示什么。已经是要求的样子就跳过。
@@ -179,7 +198,7 @@ Reply "yes" to do this for exactly this release. Anything else stops here.
 
 | 现象 | 原因 | 解决 |
 |---|---|---|
-| `git` 退出码 72：“couldn't create cache file ... xcrun_db” | 2026-11-02 的 eval 运行里出现过：macOS 上 agent 在沙箱里运行，`/usr/bin/git` 是 Xcode 的转发程序，写不了缓存 | 有真正的 git 可执行文件就用它，例如 `/opt/homebrew/bin/git`。没有就把每个 revision 都当作不是当前的，并告诉创作者 git 跑不起来 |
+| `git` 退出码 72：“couldn't create cache file ... xcrun_db” | 2026-11-02 的 eval 运行里出现过：macOS 上 agent 在沙箱里运行，`/usr/bin/git` 是 Xcode 的转发程序，写不了缓存 | 有真正的 git 可执行文件就用它，例如 `/opt/homebrew/bin/git`。没有就按“当前”那条规则：告诉创作者 git 跑不起来，步骤需要时再请创作者提供命令输出 |
 | 构建显示 Missing Compliance | 没有回答出口合规问题。Apple 的页面 | 按 `references/export-compliance.md` 处理。不要只为这个重新构建 |
 | 版本显示 Invalid Binary | Apple 的页面：构建不符合二进制要求 | 上传新构建，或者选一个符合要求的。读 `references/expo.md` 里工具链那一行 |
 | 签署最新协议之前不能创建应用 | Apple 的页面：Account Holder 必须先签署最新协议 | 请 Account Holder 在 Business 下签署。这是 human-only 步骤 |

@@ -82,6 +82,11 @@ write_readiness_confirmed() {
   sed "s|__REV__|$1|g;s|__RESULT__|pass|g;s|__INV_CHECK__|pass|g;s|__INV_EVIDENCE__|confirmed by the creator|g;s|__CONFIRMED__|true|g;s|__ITEMS__|[]|g" "$lib_dir/readiness-expo.md" > .app-creators/readiness.md
 }
 
+# $1 revision. The inventory is confirmed, and one check could not run, so the result is unknown.
+write_readiness_confirmed_unknown() {
+  sed "s|__REV__|$1|g;s|__RESULT__|unknown|g;s|__INV_CHECK__|pass|g;s|__INV_EVIDENCE__|confirmed by the creator|g;s|__CONFIRMED__|true|g;s|__ITEMS__|[]|g" "$lib_dir/readiness-expo.md" | sed 's|{ id: icon-alpha, result: pass, evidence: "[^"]*", fix: "" }|{ id: icon-alpha, result: unknown, evidence: "no PNG reader ran on ./assets/icon.png", fix: "" }|' > .app-creators/readiness.md
+}
+
 # $1 revision. publish-readiness writes unknown while the inventory is not confirmed.
 write_readiness_unconfirmed() {
   local item='{ data_type: "photos", platforms: [ios], evidence: "expo-image-picker in package.json", purpose: "", linked_to_user: unknown, used_for_tracking: unknown, shared_with: [], optional: unknown }'
@@ -133,6 +138,12 @@ record_upload() {
   append_history "{ skill: publish-ios, version: \"0.1.0\", date: 2026-11-03, result: \"Ready to Submit: app_store $asc_app_id 1.0.0 (7)\" }"
 }
 
+# Past review: the submission is reported, and the notes hold a standing yes to release, which never counts.
+record_review() {
+  cat "$lib_dir/notes-past-review.md" >> .app-creators/state.md
+  append_history "{ skill: publish-ios, version: \"0.1.0\", date: 2026-11-03, result: \"Waiting for Review: app_store $asc_app_id 1.0.0 (7)\" }"
+}
+
 scaffold_expo_first_run() {
   local rev
   extract_fixture todo-expo ff71355
@@ -153,11 +164,20 @@ scaffold_expo_upload_check() {
 }
 
 scaffold_expo_submit_goahead() {
-  seed_past_build testflight pass
+  seed_past_build testflight unknown
+  write_readiness_confirmed_unknown "$seed_rev"
+  write_listing ""
+  record_upload
+  commit_all "record readiness, listing, the build, and the upload"
+}
+
+scaffold_expo_release_goahead() {
+  seed_past_build review pass
   write_readiness_confirmed "$seed_rev"
   write_listing "$seed_rev"
   record_upload
-  commit_all "record readiness, listing, the build, and the upload"
+  record_review
+  commit_all "record readiness, listing, the build, the upload, and the review"
 }
 
 scaffold_expo_no_listing() {

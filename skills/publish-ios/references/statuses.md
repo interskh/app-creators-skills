@@ -1,14 +1,14 @@
 # App Store Connect statuses
 
-Apple's status names as fetched, what each one proves, and what `targets.ios.status` it writes. Apple's words are shown exactly. Read a status only for this release identity: an older release's status proves nothing. Bracketed numbers point to `## Sources`.
+Apple's status names as fetched, what each one proves, and what `targets.ios.status` it writes. Apple's words are shown exactly. Read a status only for this release identity: an older release's status proves nothing. A version's app status names no build, so read it with the build number in the version's Build section. Bracketed numbers point to `## Sources`.
 
 ## Which status proves which step
 
 | step | proof, for this identity | not proof |
 |---|---|---|
 | Upload | The build is listed under TestFlight, Builds, iOS [3], with a build status below other than Invalid Binary, and its build upload state is not Processing or Failed [2] | A finished upload command. An older build. |
-| Submit for review | App status Waiting for Review or In Review, or a later status from the table [1] | Ready for Review, which means added but not submitted [1]. Rejected or Developer Rejected, which need a new go-ahead. |
-| Release | App status Ready for Distribution. In a phased release it has "Phased Release" appended [1][4] | Pending Developer Release. Processing for Distribution, which is on its way. A yes. |
+| Submit for review | App status Waiting for Review, In Review, Accepted, Waiting for Export Compliance, Pending Developer Release, Processing for Distribution, Pending Apple Release, or Ready for Distribution [1], with this identity's build in the Build section | Prepare for Submission. Ready for Review, which means added but not submitted [1]. Invalid Binary. Rejected, Metadata Rejected, or Developer Rejected, which need a new go-ahead. Any status with a different build, which proves nothing for this one. |
+| Release | App status Ready for Distribution, with this identity's build in the Build section [1]. For a release in phases, that status must have "Phased Release" appended [4] | Pending Developer Release. Processing for Distribution, which is on its way. A yes. For a release in phases, Ready for Distribution with no suffix. |
 | Phased change | The version's Phased Release for Automatic Updates section shows the change [4] | The click alone. |
 
 ## App status (the version)
@@ -27,7 +27,7 @@ Apple's status names as fetched, what each one proves, and what `targets.ios.sta
 | Pending Apple Release | Apple is holding it until an operating system version releases | `review` |
 | Ready for Distribution | Accepted and ready for distribution; agreements must be in effect | `live` |
 | Rejected | Not accepted | from the build's status |
-| Metadata Rejected | Metadata not accepted; edit it and reply | from the build's status |
+| Metadata Rejected | Metadata not accepted; edit it and reply. The reply reaches a reviewer: a go-ahead, per `references/review.md` | from the build's status |
 | Developer Rejected | You removed it from review | from the build's status |
 
 `review` here means the version is in Apple's hands or waiting for the creator's release, not on sale. Removal from review is possible from Waiting for Export Compliance, Waiting for Review, In Review, Pending Developer Release, and Pending Apple Release [5].
