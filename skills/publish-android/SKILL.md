@@ -105,7 +105,7 @@ GO-AHEAD NEEDED
 Action: <one action, in the words of the step>
 Release: google_play, package <package>, version <version name>, version code <version code>, track <track>
 Build revision: <commit>
-Assessed revision: <the revision in readiness.md, whatever its result; none only when readiness.md or its revision is absent>
+Assessed revision: <the revision in readiness.md when it has a platforms.android block, whatever its result; none when it has no such block or the revision is empty>
 Readiness: <pass | unknown | stale>. <when unknown or stale: "publish-readiness did not assess this build. Minimal checks only: <each check and its result>.">
 Target API: <n, read from the bundle; Google requires m | unknown: <why>>
 Listing: <current at <commit> | not current: shown in full below. Does it still match the app?>

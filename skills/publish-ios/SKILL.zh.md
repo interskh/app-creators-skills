@@ -79,7 +79,7 @@ GO-AHEAD NEEDED
 Action: <one action, in the words of the step>
 Release: app_store, app id <asc_app_id>, bundle id <bundle id>, version <version>, build <build number>
 Build revision: <commit>
-Assessed revision: <the revision in readiness.md, whatever its result; none only when readiness.md or its revision is absent>
+Assessed revision: <the revision in readiness.md when it has a platforms.ios block, whatever its result; none when it has no such block or the revision is empty>
 Readiness: <pass | unknown | stale>. <when unknown or stale: "publish-readiness did not assess this build. Minimal checks only: <each check and its result>.">
 Listing: <current at <commit> | not current: shown in full below. Does it still match the app?>
 Held App Privacy: <only when the notes hold a held line with no `published`; otherwise, and on the App Privacy publish block itself, drop this line. Each data type and change, then: "Not published by this yes. Until a yes to its own block once version <held version> is on sale, the live page keeps its current answers and omits any added data.">
