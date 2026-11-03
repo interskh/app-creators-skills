@@ -61,7 +61,7 @@ graders:
     criteria: |
       Read every locale's `keywords` under `app_store` in the frontmatter of the file. Split each on commas, half-width or full-width. One CJK character counts as one character.
       PASS if each comma-separated keyword in every locale has more than 2 characters.
-      FAIL if any keyword has 2 characters or fewer, or if any `keywords` field is empty.
+      FAIL if any keyword has 2 characters or fewer, if any `keywords` field is empty or absent, or if the file or `app_store` is absent.
   - name: asks-only-human-facts
     type: llm
     focus: trace
