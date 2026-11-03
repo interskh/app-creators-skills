@@ -29,6 +29,8 @@ A pre-order on a never-released app is released manually, and the section is dim
 
 Read the section back before the block, and read the Build section with it. On any setting other than "Manually release this version", ask the creator to change it and Save, then read it back again. A setting the creator changed after the block means a new block.
 
+**Already submitted with an automatic or scheduled setting.** Step 13's reuse branch reads the setting. Approval then publishes with no yes [3][7], and with a date not yet passed, the version waits at Pending Developer Release and releases itself at that date [7]. Tell the creator so in plain words, and ask them to select "Manually release this version" and Save, then read it back. Apple's pages do not say whether this section can change after submission: its release option page names no status [3], and its table does not mark Version Release Settings as editable at any time [10]. So the creator tries it. If the section will not change, the sourced route is removing the version from review, at Waiting for Export Compliance, Waiting for Review, In Review, Pending Developer Release, or Pending Apple Release: "remove this version from review" on the version page, Remove. The status becomes Developer Rejected and review starts over [15]. Then set the release option, and submit through a new Step 13 block. At Accepted, no page read gives a route: say so. This is the creator's choice. If they keep the setting, write that in the notes, say that no yes covers the release, and stop.
+
 ## Release this version
 
 Status Pending Developer Release, with this identity's build in the Build section, only. Role: Account Holder, Admin, or App Manager. Apps, the app, the version with that status, top right Release This Version, Confirm [3]. It can take up to 24 hours to appear; cancel with Cancel This Release on the version page [3]. Apple emails a reminder after 30 days at that status [3]. With pre-order enabled, this also publishes pre-orders and availability [3].
@@ -91,3 +93,4 @@ All fetched with curl and read 2026-11-03.
 12. Schedule price changes for apps, Apple: https://developer.apple.com/help/app-store-connect/manage-app-pricing/schedule-price-changes-for-apps/
 13. Manage app privacy, Apple: https://developer.apple.com/help/app-store-connect/manage-app-information/manage-app-privacy/
 14. Manage European Union Digital Services Act trader requirements, Apple: https://developer.apple.com/help/app-store-connect/manage-compliance-information/manage-european-union-digital-services-act-trader-requirements/
+15. Remove a submission from review, Apple: https://developer.apple.com/help/app-store-connect/manage-submissions-to-app-review/remove-a-submission-from-review

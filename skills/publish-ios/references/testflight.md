@@ -28,9 +28,9 @@ An internal group must exist first [3]. A beta app description and a feedback em
 |---|---|---|
 | Submit Review | TestFlight App Review. With "Automatically notify testers" on, testers hear on approval, so leave it off; then you notify them yourself after approval [3] | Apps, TestFlight tab, add (+) next to External Testing, name the group, Create. Add Builds, choose the platform, version, and build, write What to Test, Submit Review [3] |
 | Start Testing | The group's testers, with no review first. The button depends on the build's status, and later builds of a version might not need a full review [3] | The same path; the button reads Start Testing [3] |
-| Notify Testers | The group's testers. The build status changes to Testing [3] | TestFlight tab, Builds, the platform, the version, Notify Testers on the build's row [3] |
-| Invite by email | Each person named, by invitation email [3] | The group, add (+) next to Testers [3] |
-| Public link | Anyone with the link: anyone can share it, so people you did not invite can join [3] | The group, testers tab, Create Public Link, Open to Anyone or Filter by Criteria, optional Tester Limit, Confirm [3] |
+| Notify Testers | Testers of every group holding this build: the action is on the build's row, with no choice of group, and the build status changes to Testing [3]. Ask which groups hold the build, and name them all in the action | TestFlight tab, Builds, the platform, the version, Notify Testers on the build's row [3] |
+| Invite by email | Each person named, by invitation email, into the group. Every tester in a group has access to its builds [6], so ask which testable builds the group holds, and name the group and all of them in the action | The group, add (+) next to Testers [3] |
+| Public link | Anyone with the link: anyone can share it, so people you did not invite can join [3]. The link belongs to the group, and every tester in a group has access to its builds [6], so ask which testable builds the group holds, and name the group and all of them in the action | The group, testers tab, Create Public Link, Open to Anyone or Filter by Criteria, optional Tester Limit, Confirm [3] |
 
 A later change that lets more people in through a public link, under Manage next to Public Link [3], is a new block too.
 
@@ -45,3 +45,4 @@ All fetched with curl and read 2026-11-03.
 3. Invite external testers, Apple: https://developer.apple.com/help/app-store-connect/test-a-beta-version/invite-external-testers/
 4. App build statuses, Apple: https://developer.apple.com/help/app-store-connect/reference/app-uploads/app-build-statuses
 5. TestFlight, Expo: https://docs.expo.dev/submit/testflight/
+6. Add testers to builds, Apple: https://developer.apple.com/help/app-store-connect/test-a-beta-version/add-testers-to-builds/

@@ -18,19 +18,16 @@ Role: Account Holder, Admin, or App Manager. Apps, the app, App Privacy, Get Sta
 
 ## An app with a version on sale
 
-"On sale" is the reading in `SKILL.md`, not `targets.ios.status`. Apple says two things that apply here:
-
-- If the app is currently available, your responses reflect the data collected only from that app version [2].
-- Publish updates the product page: a removed data type's responses are removed from it, and updated responses are published on it [2]. Answers can change at any time, with no app update [1].
-
-No page read says when to change responses for a version not yet on sale, whether a data type the new build stops or starts collecting changes before or after that build goes on sale. So state no rule, and the creator decides:
+"On sale" is the reading in `SKILL.md`, not `targets.ios.status`. Apple's rule decides this section: if the app is currently available, your responses reflect the data collected only from that app version [2]. Publish changes the product page itself [2]. So while another version is on sale, this build's changes are not published, whether they add or remove a data type: a removal now would drop a disclosure the version on sale still needs, and an addition now would declare data it does not collect. No page read gives an exception.
 
 1. Ask what the form shows now. Name the version on sale and its build from the reading.
 2. Compare with this build's `data_inventory` items for `ios`, and list each data type added, removed, or answered differently. With no difference, nothing is published.
-3. With a difference, show both lists, Apple's two points above, and that no page read settles the timing. Ask whether to publish now or after the new version is on sale, and stop.
-4. On "now", show the block with `Release:` naming the version on sale and its build, and the action "publish these App Privacy responses on the live product page of version <version on sale>, build <its build>: <each data type added, removed, or changed>". On "after", write it in the notes: after Step 15's proof, the block names the version then on sale.
+3. With a difference, and this build's version not on sale: show no block. Write it in the notes right away, on one line: `Held App Privacy change for <version> (<build>): <each data type and change>`. Tell the creator it is held, and why.
+4. Once that version is on sale, Step 15, in its proof and in its reuse branch, reads the notes. For a held line with no `published` on it, show the block with `Release:` naming that version and build, and the action "publish these App Privacy responses on the live product page of version <version>, build <build>: <each data type and change>".
 
-Give the path only after the yes. Proof: the creator reports the Product Page Preview now shows those responses [2].
+Give the path only after the yes. Proof: the creator reports the Product Page Preview now shows those responses [2]. Then add `published <date>` to the held line.
+
+A first release with no version on sale is not this section: responses publish when the product page goes live [2].
 
 ## Data types
 

@@ -777,3 +777,45 @@ All evals in this slice so far: $11.25.
 - `evals/publish-ios/lib/scaffold.sh`, new `lib/notes-past-review.md`, `expo-submit-goahead-*`, `expo-upload-check-*`, `expo-unconfirmed-inventory-*`, new `expo-release-goahead-*`, `README.md`.
 - `skills/store-listing/references/verified-runs.md`: two rows' wording only.
 - Shared surface for Slice G: the `On sale` paragraph and the live-app section in `release.md`; Flutter and Xcode routes need their own workflow-style check at Step 4 if they have one, and must list their key env names for Step 7. `scaffold_expo_*` gains `write_readiness_confirmed_unknown` and `record_review`. No schema change.
+
+## Slice F / gate fix round 2
+
+**Decisions**
+- The workflow check moved to `## Before you start`: every run, before any step. The route file still holds the keys, because a `.app-creators/` commit pushed at Step 5 runs the same job.
+- Step 13 reads the store first. The gates run only on the not-submitted branch, so a moved tree no longer hides In Review.
+- The reuse branch reads the release setting and writes it to the notes. Apple's release option page names no status for changing it, and its property table does not mark Version Release Settings as editable at any time, so the creator tries it. If it will not change, the sourced route is removal from review, at the five statuses Apple lists, then a new Step 13 block. At Processing for Distribution and Ready for Distribution the warning no longer applies.
+- Invalid Binary stops with no block and goes to a new build from Step 8. Apple also allows selecting another build; that is a different identity, so the skill does not offer it here.
+- The "now" option for a live app is gone, for additions and removals. Apple's sentence, on the page re-read today: if the app is currently available, responses reflect the data collected only from that version. The page gives no exception for an upcoming build.
+- The hold is written to the notes when it happens, as one greppable line. Step 15's proof and its reuse branch both read it, so a later session sees it after the 24-hour window. `published <date>` on the line stops a repeat.
+- Public link and invite actions name the group and every testable build in it. Notify Testers names every group holding the build, because Apple's control is on the build's row with no group choice.
+- Choose File is now behind the export compliance block; Manage stays an answer with no block.
+- `expo-release-goahead`'s prompt also reports the release setting. Not in the brief: a resume may pass through Step 13's reuse branch, which now asks for it, and with no report the run would stop short of the block.
+
+**Against spec §4.1.** "A privacy disclosure must describe the build being submitted" fits a first release, where the form publishes when the product page goes live. On an app with a version on sale, Apple's rule ties the published form to the version on sale, so the form can differ from the build under review until release. The sentence still binds the inventory: Step 12's gate requires it confirmed at the current revision, so the held change does describe the submitted build, and it reaches the form once that build is on sale. The spec is unedited.
+
+**Rejected**
+- Keeping "now" with a warning: the creator would be choosing against Apple's stated rule, and scenario 7-versus-8 removes a disclosure that build 7 still needs.
+- Blocking Step 13 until a held change is published: the change cannot publish before the version is on sale.
+- Reading the release setting at Step 15 too: not asked, and Step 13's reuse branch sits before it on any resume in step order.
+- Treating Remove from Review as a go-ahead: it reaches no reviewer or public. It stays the creator's choice.
+
+**Assumptions**
+- Notify Testers reaches every group holding the build. The page shows the control on the build's row and no group choice, but does not state this outright. Check at a level 4 run.
+- `expo-no-listing` and `expo-unconfirmed-inventory` still stop at Step 12's gates, because the prompt says fill in first. Check in the eval verdicts that no run jumps to Step 13's store reading instead.
+
+**Deferred**
+- A held addition leaves the version on sale undisclosed for that data type between release and Publish. Apple's page is silent on the gap. The block comes at the first reading of Ready for Distribution.
+- No eval seeds a forbidden workflow, a non-manual setting after submission, Invalid Binary, or a held change. The README says so.
+
+**Touches**
+- `skills/publish-ios/SKILL.md`, `SKILL.zh.md`; `references/expo.md`, `release.md`, `app-privacy.md`, `testflight.md`, `export-compliance.md`.
+- `evals/publish-ios/expo-upload-check-*`, `expo-release-goahead-*` (prompts only), `README.md`. `lib/scaffold.sh` is unchanged.
+- Shared surface for Slice G: the workflow check paragraph in `SKILL.md` calls the route's check, so each new route must define one or say it has none. The notes line format `Held App Privacy change for ...`.
+
+## Slice F / gate rounds, orchestrator notes
+
+- Round 1 evals: `evals/results/2026-11-03T04-38-30-761Z`, $2.08, and `04-46-52-431Z`, $2.06, 11 of 12 at 1.00. Orchestrator edits from them: the `expo` route row names the route in the first reply (`named-the-expo-route` failed when the reply was only the Step 1 ask), and Step 9 keeps the upload command out of the message that asks for the reading.
+- `04-56-23-551Z`, $0.57: go-ahead zh 0.92, judges split on a correct reply, likely counting a reference file's click path in the trace. The consent graders now say tool results are not assistant messages. This run overlapped the round 2 edits, so it proves little.
+- Round 2 evals: `05-03-43-191Z`, $2.15, 11 of 12 at 1.00. Go-ahead en 0.88: the reply left zh fields as "in listing.md". The grader is right; the Step 13 gate row now says every field of every locale.
+- All evals in this slice: $18.11, plus any recorded in the gate result below.
+- Codex's first re-review failed with a capacity error from the service. Retried once on the same model, per the run policy.

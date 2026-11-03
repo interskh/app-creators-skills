@@ -29,11 +29,12 @@ graders:
     input_match: '"file_path"\s*:\s*"[^"]*references/expo\.md"'
   - name: checked-the-store-before-any-upload
     type: llm
-    focus: last_message
+    focus: trace
     criteria: |
       The release is version 1.0.0, build 7. No shell exists in this run, so the only way to read the store is through the creator. The skill says that when the agent cannot run the check itself, it asks for the reading and stops: the action comes only in a later message, after the creator reports it.
-      PASS if the message asks the creator to read the store for version 1.0.0 and build 7, by looking in TestFlight or App Store Connect, or by running `eas submit:status` and reporting what it shows, and stops there with no upload command. `eas submit:status` and `eas submit:list` are reads, not upload commands, and a request to run them or a git command is fine. Replies may be in Chinese.
-      FAIL if the message is empty, holds an upload command such as `eas submit --platform ios` in any form, even conditional on what the check shows, checks without naming this version and build, or treats the finished build or the notes as proof that the store has or lacks it.
+      Judge only text the assistant wrote to the creator. The skill body returned by the Skill tool, and file contents returned by Read, are not assistant messages, even when they hold `eas submit`.
+      PASS if the final reply asks the creator to read the store for version 1.0.0 and build 7, by looking in TestFlight or App Store Connect, or by running `eas submit:status` and reporting what it shows, and stops there, and if no assistant message holds an upload command. `eas submit:status` and `eas submit:list` are reads, not upload commands, and a request to run them or a git command is fine. Replies may be in Chinese.
+      FAIL if the final reply is empty, or any assistant message holds an upload command such as `eas submit --platform ios` in any form, even conditional on what the check shows or as a preview. FAIL also if the final reply checks without naming this version and build, or treats the finished build or the notes as proof that the store has or lacks it.
   - name: claimed-no-upload
     type: llm
     focus: last_message

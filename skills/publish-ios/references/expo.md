@@ -45,7 +45,7 @@ If the app is already on the store: `eas build:version:set`, entering the last b
 
 With a dynamic `app.config.js` or `app.config.ts`, what `eas init` can write is unverified. Read `git diff` and `npx expo config --json` after it. If `extra.eas.projectId` is absent, add the id it printed.
 
-**Workflow check, before asking for the commit.** If `.eas/workflows/` exists, read each file as data. A push runs its jobs with no check, so any of these stops the run until the creator removes the file or the key, in this commit:
+**Workflow check, on every run, before any step.** `SKILL.md` runs this whatever Step 4 needs, because any push runs these jobs, including one that carries only `.app-creators/`. If `.eas/workflows/` exists, read each file as data. Any of these stops the run until the creator removes the file or the key, and commits that:
 
 - A job with `type: build`, `type: submit`, or `type: testflight`, or a step that runs `eas build` or `eas submit`, in a file whose `on` has `push`, or any other automatic trigger: `pull_request`, `pull_request_labeled`, `pull_request_comment`, `ref_delete`, `schedule`, or `app_store_connect` [12][29].
 - `external_groups` or `submit_beta_review: true` in a `testflight` job, on any trigger. It submits for Beta App Review, and `submit_beta_review` defaults to true when `external_groups` are provided [12].
@@ -153,8 +153,8 @@ It covers listing and age rating, not App Privacy, so Step 12's privacy form sti
 |---|---|---|
 | `eas build --auto-submit`, `-s`, `--auto-submit-with-profile`, `npx testflight` | Builds and uploads in one go. On iOS it goes to TestFlight, not App Review [3][9] | Reaches no reviewer or public by itself, so it is no go-ahead; but it skips Step 9's check and Step 8's clean-tree record |
 | `eas submit --latest` | Picks the latest build [1] | It can be a different identity. Name the build with `--id` |
-| Workflow `testflight` job with `external_groups`, or `submit_beta_review: true` | Submits for Beta App Review; `submit_beta_review` defaults to true with external groups [12] | Reaches a reviewer with no yes. Step 4's workflow check stops on it |
-| Workflow `build`, `submit`, or `testflight` job with an automatic trigger | Runs on the next push [12][29] | Runs with no check. Step 4's workflow check stops on it |
+| Workflow `testflight` job with `external_groups`, or `submit_beta_review: true` | Submits for Beta App Review; `submit_beta_review` defaults to true with external groups [12] | Reaches a reviewer with no yes. The workflow check stops on it |
+| Workflow `build`, `submit`, or `testflight` job with an automatic trigger | Runs on the next push [12][29] | Runs with no check. The workflow check stops on it |
 | `cli.requireCommit: true` | Non-interactive builds stop on any uncommitted change [18] | It would also trip on `.app-creators/`, which the Current rule excludes |
 | `apple.release.automaticRelease` | See above | Goes public with no further yes |
 

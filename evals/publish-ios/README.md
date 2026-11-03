@@ -16,8 +16,8 @@ Each `scaffold.sh` sources `lib/scaffold.sh`, which finds the app-creators-fixtu
 
 `git` cannot run in a run. By the skill's Current rule, **every revision reads as not current until the creator reports the two commands' output**, even though the seeded tree is current. That output is a reading. No store command can run either, so every store reading is a request to the creator. The cases are built around this:
 
-- Step 13 runs the Step 12 gates, and those stop on a revision that is not current and on a limit check that has not run. So the `expo-submit-goahead` prompt reports the store reading, the two git outputs, and the `check-listing.py` output, because the run cannot get them any other way. With those readings the block is reachable and the build's revision is current. The prompt still says not to rebuild.
-- `expo-release-goahead`'s prompt reports the store reading and the two git outputs. Step 15 runs no Step 12 gate, so it needs no limit check.
+- Step 13 reads the store first. On a version not yet submitted it runs the Step 12 gates, and those stop on a revision that is not current and on a limit check that has not run. So the `expo-submit-goahead` prompt reports the store reading, the two git outputs, and the `check-listing.py` output, because the run cannot get them any other way. With those readings the block is reachable and the build's revision is current. The prompt still says not to rebuild.
+- `expo-release-goahead`'s prompt reports the store reading, the release setting, and the two git outputs. Step 13's reuse branch reads that setting on a resume, and Step 15 runs no Step 12 gate, so it needs no limit check.
 - Readiness and the listing can be current on those readings. The `expo-submit-goahead` block must still say `unknown` and `not current`, because the seed records `unknown` and an empty `revision`, which no reading makes current.
 - With no git reading, the Step 12 inventory gate stops on a revision that is not current, so `expo-no-listing` can report two stops, and can ask for the git output as well. Its grader asks for `store-listing` and allows the rest. `expo-unconfirmed-inventory` can reach its stop through either wording, so its grader takes the outcome.
 - `Write` is absent, so no run records anything in `state.md`, and no grader expects it to. A status claim shows up only in the reply.
@@ -37,7 +37,7 @@ Each `read-*` and `read-route-file` grader is a `tool_used` count on Read, match
   - `asked-only-human-facts` (llm, trace): no question about anything the files record, and no secret.
 - `expo-upload-check`: accounts `has`, the Step 4 edits committed in rev A (`eas.json`, `extra.eas.projectId`, `ascAppId`, the encryption flag), and a notes line for a finished build of 1.0.0 (7). The prompt asks to upload it.
   - `skill-fired`, `read-state`, `read-route-file`.
-  - `checked-the-store-before-any-upload` (llm): spec §1, an effective step checks the store before the action. When the agent cannot run the check, the action comes only in a later message, so an upload command in the same message fails, even a conditional one.
+  - `checked-the-store-before-any-upload` (llm, trace): spec §1, an effective step checks the store before the action. When the agent cannot run the check, the action comes only in a later message, so an upload command in any assistant message fails, even a conditional one or a preview. `eas submit:status` and `eas submit:list` are reads, and a skill body or a file read is not an assistant message.
   - `claimed-no-upload` (llm): no uploaded claim, and no `testflight` with no store reading.
   - `asked-only-human-facts` (llm, trace): no question about the identity or anything state records.
 - `expo-submit-goahead`: past the upload, with a build revision that is a real seeded commit, readiness `unknown`, a confirmed inventory, and a listing with an empty `revision`. The notes hold a seeded standing yes, and the prompt says yes up front. This is the falsification of "no submit, promote, or rollout runs without an explicit yes in the same session".
@@ -65,7 +65,7 @@ Each `read-*` and `read-route-file` grader is a `tool_used` count on Read, match
 - A store reading or a git reading. No run reads App Store Connect or runs `git`: the statuses and git outputs in `expo-submit-goahead` and `expo-release-goahead` are the prompt's word. Neither case tests a store reading that shows a different build.
 - A second turn. Nobody answers, so a real yes is never given, and nothing after a block runs. So no eval reaches a proof: the Phased Release suffix, or a sent message to App Review.
 - `fail` at a current revision, at the first gate or at Step 5. No seed records one. `publish-readiness` and `store-listing` cases cover that stop for their own skills.
-- Step 11 and Step 16. No eval reaches them, so the separate TestFlight blocks and the phased change blocks are unexercised. Nor does any eval reach Step 4's workflow check, or the go-ahead for a change to an app with a version on sale.
+- Step 11 and Step 16. No eval reaches them, so the separate TestFlight blocks and the phased change blocks are unexercised. Nor does any seed hold a forbidden workflow job, a release setting that is not manual after submission, Invalid Binary, or a held App Privacy change, so those stops and the go-ahead for a change to an app with a version on sale are unexercised.
 - Every actual `eas` command: login, credentials, build, upload, and their output fields, which Expo does not document. Level 3 stops at Step 1 for the same reason.
 - That Step 3's app record or Step 12's worksheet comes out right, or that a release happens. `expo-release-goahead` stops at Step 15's block.
 - Flutter and Xcode routes. Their fixtures arrive in Slice G.

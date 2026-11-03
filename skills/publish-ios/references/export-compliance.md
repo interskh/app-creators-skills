@@ -27,7 +27,7 @@ Upload it under App Encryption Documentation before submitting a build for App R
 
 ## Missing Compliance on a build
 
-Click Manage or Choose File next to the build in App Store Connect and answer [5]. Answering there needs no new build, and internal testing and submission wait until it is done. Set the flag only if the answer is no, so the next upload skips the question. That edit is committed for the next build, and does not change this one.
+Click Manage next to the build in App Store Connect and answer [5]. Choose File next to the build uploads documentation [5], which is the **go-ahead** above: the block comes first, and that path only after the yes. Answering there needs no new build, and internal testing and submission wait until it is done. Set the flag only if the answer is no, so the next upload skips the question. That edit is committed for the next build, and does not change this one.
 
 ## Sources
 
