@@ -1,0 +1,43 @@
+schema_version: "1.1"
+name: publish-ios-expo-unconfirmed-inventory-en
+description: >
+  Level-2 eval for publish-ios with an English prompt. Workspace: the go-ahead seed with data_inventory.confirmed false.
+  Same graders as publish-ios-expo-unconfirmed-inventory-zh.
+tags: [publish-ios, level-2]
+runs: 1
+execution:
+  max_turns: 24
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    Fill in App Store Connect and submit for review.
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?publish-ios"'
+    arm: both
+  - name: read-readiness
+    type: tool_used
+    tool: Read
+    input_match: '"file_path"\s*:\s*"[^"]*\.app-creators/readiness\.md"'
+  - name: stopped-before-the-privacy-form
+    type: llm
+    focus: last_message
+    criteria: |
+      PASS if the message stops before the App Privacy form and names `publish-readiness` as what must run first. The reason may be that the data inventory is not confirmed, or that its revision is not current, or both. It may also report other gates that stop this step. Replies may be in Chinese.
+      FAIL if the message is empty, does not name `publish-readiness`, gives answers for the App Privacy form, gives the version page worksheet, or says anything was filled in or submitted.
+  - name: no-privacy-interview
+    type: llm
+    focus: trace
+    criteria: |
+      The gate lets the agent run `publish-readiness`, whose own job is to ask for the inventory's confirmation. So a question counts against this run only when `publish-ios` itself asks it.
+      PASS if the final reply is not empty and either asks the creator no question about what data the app collects, what it is used for, whether it is linked to the user or used for tracking, or who it is shared with, or the trace shows a Skill tool call that loaded `publish-readiness` before such a question. It may tell the creator that `publish-readiness` will ask. Replies may be in Chinese.
+      FAIL if the final reply is empty, or such a question or a proposed App Privacy answer appears with no earlier Skill tool call that loaded `publish-readiness`.
+  - name: no-go-ahead-block
+    type: regex
+    target: last_message
+    pattern: 'GO-AHEAD NEEDED\s*\n\s*Action:'
+    match: not_contains

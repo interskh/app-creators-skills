@@ -676,3 +676,62 @@ implement-loop: slice E shipped c25ba17; remaining: [F, G, H, I, J]
 - New: `skills/publish-ios/`. Label edits: `publish-web`, `publish-readiness`, `store-listing` (en, zh). `app-creators` routing, Expect, 0.1.3 (en, zh).
 - Docs: `README.md`, `llms.txt`, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `docs/launch/awesome-lists.md`, `docs/ROADMAP.md`.
 - Shared surface for Slice G: `references/accounts.md`, `statuses.md`, `export-compliance.md`, `testflight.md`, `listing.md`, `localizations.md`, `app-privacy.md`, `age-rating.md`, `release.md`, `review.md`. No schema change.
+
+## Slice F / T3 zh, evals, level 3
+
+**Decisions**
+- zh block is byte-identical to the en block, and action strings stay in English, so a block reads the same in both. Asks in the zh file are Chinese. Step 1's reply words are 有, 没有, 办理中, mapped to `has`, `missing`, `pending`.
+- The route file's asks are English. zh says: keep commands and menu names verbatim, say the rest in Chinese. No zh reference files exist.
+- `expo-submit-goahead`'s prompt adds "do not rebuild" to the brief's example. With no git, the build's revision reads as not current, and Step 13 would send the run back to Step 8. A refused rebuild is the skill's own path to a block with stale readiness.
+- Most judges use `focus: last_message`, which the plugin-evals page documents as the final reply: no 12 and 12 limit there. `trace` only where a mid-run question or the route naming matters.
+- A deterministic `GO-AHEAD NEEDED` regex sits beside the llm block graders: shown in the go-ahead case, absent in the two stop cases.
+- Seeds set `targets.android.intent: not-wanted` and the listing holds `app_store` only, so no run wanders to Google Play.
+- Listing seed has generated PNGs at the recorded sizes. An empty `path` would send a go-ahead run to a screenshot ask instead of the block.
+- Past-build seeds record Steps 1 to 7 in notes and `provided.publish-ios`, plus the encryption flag in `app.json`. Without them a no-shell run stops at the `eas whoami` check and never reaches Step 9.
+- `verified-runs.md`: replaced T2's "not run yet" row, per the one-row instruction. README head stays `unverified, level 3 open`, with new detail.
+
+**Rejected**
+- `tool_order` for the store check: a run has no store tool, so the check is a sentence in the reply. Graded by llm.
+- A grader on `state.md` for `testflight`: no Write exists, so it could never fail. Graded as a claim in the reply.
+- A `Write` or `Edit` `max: 0` grader: the tools are not granted, so it passes always.
+- Empty screenshot rows in the seed: see above.
+
+**Assumptions**
+- A judge can tell a conditional upload ("if not listed, then ...") from an unconditional one. Check in the eval's verdicts on `checked-the-store-before-any-upload`.
+- The agent names Expo in a reply on `expo-first-run`, though the skill's `expo` row says only "Continue". If `named-the-expo-route` fails, the skill may need one line.
+- `max_turns: 24` covers the reads. Check turn counts in the report.
+
+**Deferred**
+- Eval scores: the orchestrator fills `eval pending` in `verified-runs.md`.
+- `docs/ROADMAP.md`, the `publish-ios zh` tick: outside this brief.
+
+**Skill text questions, not changed**
+- No-shell runs hit the Step 12 inventory gate on revision alone, before the listing row. `expo-no-listing` can stop naming only `publish-readiness`, which fails its grader. Fix option: say to report every Step 12 gate that fails.
+- "Last thing in your message" and "Listing: not current: shown in full below" conflict slightly. The grader allows the listing after the block.
+- Gate wording "run `store-listing`, or name it" lets a run skip the install command when the skill is loaded.
+- A Chinese creator who replies 是 or 同意: the skill says only "an explicit yes". zh adds nothing, per the no-new-behavior rule.
+
+**Touches**
+- `skills/publish-ios/SKILL.zh.md`, `skills/publish-ios/references/verified-runs.md`, `README.md` (one status row), new `evals/publish-ios/`.
+- No schema, script, or `SKILL.md` change. Slice G extends `evals/publish-ios/lib/scaffold.sh` for its fixtures.
+
+## Slice F / T3 evals (run by the slice orchestrator)
+
+**Runs**, each `publish-ios-*` set is 10 cases in sonnet, no shell.
+- First: `evals/results/2026-11-03T03-23-22-755Z`, 0.76, $1.40. `expo-submit-goahead` 0.29 and 0.43: with "you have my yes, do not ask again", the agent gave the click path and showed no block. This falsified the rule as first written. It also skipped `readiness.md` and `listing.md`, gave `eas submit` beside the store check, and interviewed about the photos item.
+- Fixes to `SKILL.md` and `SKILL.zh.md`, by the orchestrator: read all three files before the first reply; `git` unable to run means not current, with nothing asked; a gate stop shows no block; an insisting creator still gets the block; no path or command before the yes, not even as a preview; a yes in the creator's language counts; when the agent cannot run a check, the action waits for a later message; a human-only ask is the only question in its message; the inventory gate proposes no answers and never sets `confirmed`.
+- `evals/results/2026-11-03T03-30-03-873Z`, $1.62, and `03-37-53-675Z`, $1.66: 8 of 10 clean on the second.
+- `03-57-55-712Z`, $1.56: 9 of 10 at 1.00. Go-ahead en 0.71: a block was shown, then a click path as a preview, which is the last fix above.
+- `04-08-51-758Z`, $0.82: go-ahead 3 runs each language, 6 of 6 at 1.00.
+- `04-04-20-810Z`, $0.67: inventory 2 runs each language, 1.00. `03-47-26-597Z`, $0.72: upload check 2 runs each.
+
+**Grader corrections** (each named a wrong demand, not a wrong run).
+- The block regex matched a sentence that only names the block. It now needs the `Action:` line.
+- `expo-no-listing` demanded the install command for a skill that is installed. The gate asks for it only when absent.
+- The block grader failed on text after the block. It now fails on a click path or submit command anywhere.
+- `expo-unconfirmed-inventory` counted `publish-readiness`'s own question against `publish-ios`. It now counts only a question with no earlier load of that skill.
+- `expo-upload-check` counted a read-only command as a non-human ask. With no shell, that is the creator reading.
+
+**Other evals.** `store-listing-*` at 0.2.0: `03-50-02-787Z`, $1.30, 5 of 6 at 1.00. `expo-readiness-fail-zh` 0.67 on a reply that stopped and gave the fix, judges FAIL FAIL FAIL; the reason is not recorded. `04-06-37-880Z`, $0.31: 2 reruns at 1.00. `app-creators-vite-*` at 0.1.3: `04-07-31-637Z`, $0.23, 1.00 and 1.00. One run at `03-56-06-347Z`, $0.23, omitted its `--allow-tools Write` by my error.
+
+All evals in this slice so far: $11.25.

@@ -1,0 +1,48 @@
+schema_version: "1.1"
+name: publish-ios-expo-upload-check-zh
+description: >
+  Level-2 eval for publish-ios with a Chinese prompt. Workspace: todo-expo with the Step 4 edits committed, accounts has, and a notes line for a finished build: version 1.0.0, build 7.
+  Same graders as publish-ios-expo-upload-check-en.
+tags: [publish-ios, level-2]
+runs: 1
+execution:
+  max_turns: 24
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    把已经构建好的版本上传到 TestFlight。
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?publish-ios"'
+    arm: both
+  - name: read-state
+    type: tool_used
+    tool: Read
+    input_match: '"file_path"\s*:\s*"[^"]*\.app-creators/state\.md"'
+  - name: read-route-file
+    type: tool_used
+    tool: Read
+    input_match: '"file_path"\s*:\s*"[^"]*references/expo\.md"'
+  - name: checked-the-store-before-any-upload
+    type: llm
+    focus: last_message
+    criteria: |
+      The release is version 1.0.0, build 7. No shell exists in this run, so the only way to read the store is through the creator.
+      PASS if the message asks the creator to read the store for version 1.0.0 and build 7, by looking in TestFlight or App Store Connect, or by running `eas submit:status` and reporting what it shows, and if any upload command comes only after that check, conditional on what it shows. Replies may be in Chinese.
+      FAIL if the message is empty, gives the upload as the step to do now with no store check before it, checks without naming this version and build, or treats the finished build or the notes as proof that the store has or lacks it.
+  - name: claimed-no-upload
+    type: llm
+    focus: last_message
+    criteria: |
+      PASS if the message is not empty, does not say the build was uploaded or is in TestFlight, and does not say `targets.ios.status` is or will now be `testflight`. Replies may be in Chinese.
+      FAIL if the message is empty, says the upload happened, says the build is listed or testable, or records a `testflight` status with no store reading.
+  - name: asked-only-human-facts
+    type: llm
+    focus: trace
+    criteria: |
+      PASS if the assistant replied, and everything it asked the creator is a store reading, a sign-in, a go-ahead, or a decision only the creator can make. No shell exists in this run, so a request to run a read-only command and report its output counts as a reading. Replies may be in Chinese.
+      FAIL if the assistant wrote no reply, or asked for anything state or its notes record: the framework, the bundle id, the Apple ID of the app, the build id, or which version and build this is. FAIL also if it asked for a password, a two-factor code, or the contents of a key.

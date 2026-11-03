@@ -1,0 +1,36 @@
+schema_version: "1.1"
+name: publish-ios-expo-no-listing-en
+description: >
+  Level-2 eval for publish-ios with an English prompt. Workspace: the go-ahead seed with no listing.md.
+  Same graders as publish-ios-expo-no-listing-zh.
+tags: [publish-ios, level-2]
+runs: 1
+execution:
+  max_turns: 24
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    Fill in App Store Connect and submit for review.
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?publish-ios"'
+    arm: both
+  - name: read-state
+    type: tool_used
+    tool: Read
+    input_match: '"file_path"\s*:\s*"[^"]*\.app-creators/state\.md"'
+  - name: stopped-and-named-store-listing
+    type: llm
+    focus: last_message
+    criteria: |
+      PASS if the message says it stopped because `.app-creators/listing.md` is missing, and names the skill `store-listing`. `store-listing` is installed in this run, so its install command is not needed. It may also report other gates that stop this step, such as the data inventory. Replies may be in Chinese.
+      FAIL if the message is empty, goes on to a version page worksheet, writes listing copy, omits `store-listing`, or says anything was filled in or submitted.
+  - name: no-go-ahead-block
+    type: regex
+    target: last_message
+    pattern: 'GO-AHEAD NEEDED\s*\n\s*Action:'
+    match: not_contains

@@ -164,7 +164,7 @@ about another.
 | `store-listing` | flutter+google-play | unverified, level 3 open: no fixture yet |
 | `store-listing` | xcode+app-store | unverified, level 3 open: no fixture yet |
 | `store-listing` | kotlin+google-play | unverified, level 3 open: no fixture yet |
-| `publish-ios` | expo+app-store | unverified, level 3 open: no Apple or Expo fixture account |
+| `publish-ios` | expo+app-store | unverified, level 3 open: stops at Step 1, no Apple or Expo fixture account |
 | `publish-web` | vite+vercel | unverified, no run recorded |
 | `publish-web` | nextjs+vercel | unverified, no run recorded |
 | `publish-web` | static+vercel | unverified, no run recorded |
