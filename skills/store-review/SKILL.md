@@ -26,7 +26,7 @@ metadata:
 
 ## When to use
 
-- Before a submission to the App Store or Google Play: `publish-ios` Step 13 or `publish-android` Step 15 runs this skill's pre-submit review, or the creator asks whether the app will pass review.
+- Before a submission to the App Store or Google Play: `publish-ios` Step 13, or `publish-android` Step 12 or 15, runs this skill's pre-submit review, or the creator asks whether the app will pass review.
 - After a rejection: the creator pastes an App Review message from App Store Connect, or a Google Play email or Policy status text, and asks what it means or what to do.
 - The creator wants a reply to App Review, a bug-fix acceptance, or an appeal drafted.
 - Not this skill: the creator asks whether the app is ready to publish, or about icons, permission strings, App Privacy, or Data safety. Use `publish-readiness`.
@@ -45,7 +45,7 @@ Never ask for or accept a password, demo account credentials, a two-factor or au
 
 ## Before you start
 
-Read `.app-creators/state.md`. If the file is missing, run `app-creators` first and come back; if it is not installed, ask the creator to run `npx skills add interskh/app-creators-skills --skill app-creators`. If `schema` has a different major version than `1`, stop and ask the creator to run `app-creators`.
+Read `.app-creators/state.md`. If the file is missing, run `app-creators` and come back if this session has a shell and can write files; otherwise name it. If it is not installed, ask the creator to run `npx skills add interskh/app-creators-skills --skill app-creators`. If `schema` has a different major version than `1`, stop and ask the creator to run `app-creators`.
 
 | field | set by |
 |---|---|
@@ -67,7 +67,7 @@ This skill needs only Read, Glob, and Grep. It runs no command, writes no file, 
 
 ## Steps
 
-No step here is **effective**: nothing reaches a store. Messages to a reviewer are **go-ahead** steps: the creator sends them after an explicit yes. Pre-submit review is Steps 2 to 5. Rejection reading is Steps 6 to 10.
+This skill itself reaches no store. Messages to a reviewer are **go-ahead** steps: the creator sends them after an explicit yes, and Step 9 first has the creator check the store for an earlier send. Pre-submit review is Steps 2 to 5. Rejection reading is Steps 6 to 10.
 
 1. Choose the mode and the store. Default: the request. Alternative: none.
    Run: a pasted rejection message, or a question about one, is a rejection reading: go to Step 6. Otherwise it is a pre-submit review. The store is the one the calling skill or the request names. With none named, it is each store whose `targets.*.intent` is `wanted`, one review block each, `app_store` first. With neither, ask which store and stop.
@@ -98,7 +98,7 @@ No step here is **effective**: nothing reaches a store. Messages to a reviewer a
    - Ids and short names come from the reference table. Lines go flags first, then notes, then clears. `Result:` is `stop: N flags` when any `flag` exists, otherwise `clear, N notes`.
    - The fix for a sign-in `flag` asks the creator to enter the account in the store's form and report "saved". It never asks for the account.
 
-   A calling skill stops before its go-ahead block on any `flag`, and shows the `note` lines with its block. Run on your own, after the block, list each fix in one message and stop. With `clear`, name the next step: `publish-ios` Step 13 or `publish-android` Step 15. Never say the app will pass review.
+   A calling skill stops before its go-ahead block on any `flag`, and shows the `note` lines with its block. Run on your own, after the block, list each fix in one message and stop. With `clear`, name the next step: `publish-ios` Step 13, or `publish-android` Step 12 for a testing track or Step 15 for production. Never say the app will pass review.
    Expect: one block per store, as the last thing in the message apart from that list.
 
 5. After a fix. Default: rerun Steps 2 to 4. Alternative: none.
@@ -125,11 +125,15 @@ No step here is **effective**: nothing reaches a store. Messages to a reviewer a
    Route: <one route from the reference>: <who acts next>
    ```
 
-   A resubmission is never this skill's: hand it to `publish-ios` Step 13 or `publish-android` Step 15, from Step 8 when code changed, because a new build needs a new build number or version code. A sign-in fix is the creator typing the account into the store's form and reporting "saved", never into this chat. State the review time from the reference.
+   The `Route:` line is the route kind and who acts, as the reference's Response routes table words them, such as "reply: this skill's message block". It names no control, click path, form, or link: those come only after a yes, in Step 10.
+   A resubmission is never this skill's: hand it to `publish-ios` Step 13, or to `publish-android`'s send-for-review step for the rejected release's track: Step 12 for a testing track, Step 15 for production. The track comes from the message, or from state's notes. Start from Step 8 when code changed, because a new build needs a new build number or version code. A sign-in fix is the creator typing the account into the store's form and reporting "saved", never into this chat. State the review time from the reference.
    Expect: every item has a fix and one route.
 
 9. **go-ahead** Draft the message. Default: this skill writes the draft from the reference's "What to write". Alternative: the creator's own text.
-   Check first: if the creator reported in this session that this message was sent for this submission, stop: never send it twice. Ask nothing else before the block.
+   Check first, one question per message, each the only question in it; stop until the answer comes:
+   - Earlier send: unless the creator reported it in this session, ask them to read the App Review thread (Apple) or the Policy status page (Google) and say whether a reply or appeal was already sent on this submission. Sent: stop; never send it twice.
+   - Store-side fix: when the draft states a fix made in the store, such as a demo account entered, the block waits for the creator's report in this session that it is saved. Without it, ask for that report alone, never for the account.
+   Ask nothing else before the block, apart from a missing `Submission:` value, below.
    Run: when the route is a reply, a bug-fix acceptance, a call request, an expedite request, or an appeal, write the draft. Fill and show this block, then the message in full below it, as the last thing in your message:
 
    ```text
@@ -146,7 +150,7 @@ No step here is **effective**: nothing reaches a store. Messages to a reviewer a
 
 10. Send. Default: the creator, on the route in the reference's Messages table. Alternative: none.
     Run: only after the yes, give the route for that action from the reference file. The creator sends it.
-    Proof: the creator reports it sent. Then say what comes next, from the reference: a reply from the store, its review time, and that a resubmission goes through the publish skill's own block.
+    Proof: the creator reports it sent. This skill writes nothing, so say plainly that the send is not recorded unless a calling publish skill notes it. Then say what comes next, from the reference: a reply from the store, its review time, and that a resubmission goes through the publish skill's own block.
 
 Then do Verify.
 

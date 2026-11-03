@@ -1,6 +1,6 @@
 ## 何时使用
 
-- 提交 App Store 或 Google Play 之前：`publish-ios` 第 13 步或 `publish-android` 第 15 步会运行本 skill 的提交前审查；创作者自己问应用能不能过审，也是这个场景。
+- 提交 App Store 或 Google Play 之前：`publish-ios` 第 13 步，或 `publish-android` 第 12 步或第 15 步，会运行本 skill 的提交前审查；创作者自己问应用能不能过审，也是这个场景。
 - 被拒之后：创作者贴来 App Store Connect 里 App Review 的消息，或者 Google Play 的邮件、Policy status 页面上的文字，问这是什么意思、该怎么办。
 - 创作者要起草给 App Review 的回复、接受 bug 修复提议的回复，或者申诉。
 - 不适用：创作者问的是应用能不能发布，或者问图标、权限说明文字、App Privacy、Data safety，改用 `publish-readiness`。
@@ -19,7 +19,7 @@
 
 ## 开始之前
 
-先读 `.app-creators/state.md`。文件不存在时，先运行 `app-creators` 再回来；它还没安装的话，请创作者运行 `npx skills add interskh/app-creators-skills --skill app-creators`。`schema` 的主版本号不是 `1` 时，停下来，请创作者运行 `app-creators`。
+先读 `.app-creators/state.md`。文件不存在时：这次会话有 shell、能写文件，就运行 `app-creators` 再回来；否则说出它。它还没安装的话，请创作者运行 `npx skills add interskh/app-creators-skills --skill app-creators`。`schema` 的主版本号不是 `1` 时，停下来，请创作者运行 `app-creators`。
 
 | 字段 | 由谁写入 |
 |---|---|
@@ -41,7 +41,7 @@
 
 ## 步骤
 
-这里没有 **effective** 步骤：什么都不会到达商店。发给审核人员的消息是 **go-ahead** 步骤：创作者明确说 yes 之后，由他自己发出。提交前审查是第 2 到 5 步，被拒解读是第 6 到 10 步。
+本 skill 自己不会到达任何商店。发给审核人员的消息是 **go-ahead** 步骤：创作者明确说 yes 之后，由他自己发出；第 9 步会先请创作者在商店里查一下是否已经发过。提交前审查是第 2 到 5 步，被拒解读是第 6 到 10 步。
 
 1. 选模式和商店。默认：按请求。备选：无。
    执行：创作者贴来一条被拒消息，或者问的是被拒消息，就是被拒解读：到第 6 步。否则是提交前审查。商店是调用方 skill 或请求里点名的那个。都没点名时，就是 `targets.*.intent` 为 `wanted` 的每个商店，每个一个审查 block，`app_store` 在前。两样都没有，就问是哪个商店，然后停下。
@@ -72,7 +72,7 @@
    - id 和简称取自参考文件的表。顺序是先 flag，再 note，最后 clear。有任何 `flag` 时 `Result:` 写 `stop: N flags`，否则写 `clear, N notes`。
    - 登录那一行 `flag` 的修复办法，是请创作者把账号填进商店的表单，再回报 "saved"（已保存）。绝不索要账号。
 
-   调用方 skill 遇到任何 `flag`，都在它的 go-ahead block 之前停下；`note` 行和它的 block 一起展示。单独运行时，在 block 之后用一条消息列出每个修复办法，然后停下。结果是 `clear` 时，说出下一步：`publish-ios` 第 13 步或 `publish-android` 第 15 步。绝不说应用会通过审核。
+   调用方 skill 遇到任何 `flag`，都在它的 go-ahead block 之前停下；`note` 行和它的 block 一起展示。单独运行时，在 block 之后用一条消息列出每个修复办法，然后停下。结果是 `clear` 时，说出下一步：`publish-ios` 第 13 步；或者 `publish-android`，测试轨道是第 12 步，正式版是第 15 步。绝不说应用会通过审核。
    预期：每个商店一个 block，除了那份修复列表，它是消息里的最后一项。
 
 5. 修复之后。默认：重跑第 2 到 4 步。备选：无。
@@ -99,11 +99,15 @@
    Route: <one route from the reference>: <who acts next>
    ```
 
-   重新提交从来不归本 skill：交给 `publish-ios` 第 13 步或 `publish-android` 第 15 步；改了代码就从它们的第 8 步开始，因为新构建要有新的 build number 或 version code。登录相关的修复，是创作者把账号填进商店的表单，再回报 "saved"，绝不填进这个对话。说出参考文件里写的审核时间。
+   `Route:` 这一行只写途径的类别和由谁来做，按参考文件 Response routes 表的写法，比如 "reply: this skill's message block"。它不写任何按钮、点击路径、表单或链接：这些只在 yes 之后，在第 10 步给出。
+   重新提交从来不归本 skill：交给 `publish-ios` 第 13 步，或者交给 `publish-android` 里被拒版本所在轨道的送审步骤：测试轨道是第 12 步，正式版是第 15 步。轨道看消息，或者 state 的备注。改了代码就从它们的第 8 步开始，因为新构建要有新的 build number 或 version code。登录相关的修复，是创作者把账号填进商店的表单，再回报 "saved"，绝不填进这个对话。说出参考文件里写的审核时间。
    预期：每一条都有一个修复办法和一条途径。
 
 9. **go-ahead** 起草消息。默认：本 skill 按参考文件的 "What to write" 写草稿。备选：创作者自己写的文字。
-   先查：创作者在本次会话里说过，这次提交的这条消息已经发出，就停下：绝不发两次。出 block 之前不问别的。
+   先查。每条消息只问一个问题，而且是这条消息里唯一的问题；问完停下，等回答：
+   - 之前发过没有：创作者在本次会话里还没说过时，请他去看 App Review 的消息记录（Apple）或 Policy status 页面（Google），告诉你这次提交是否已经发过回复或申诉。已经发过：停下，绝不发两次。
+   - 商店那边的修复：草稿里说某个修复已经在商店里做了，比如填了演示账号，block 就要等创作者在本次会话里说它已保存。还没说时，只问这一句，绝不索要账号。
+   出 block 之前不问别的，下面缺的 `Submission:` 值除外。
    执行：途径是回复、接受 bug 修复提议、请求通话、请求加急审核或申诉时，写草稿。填好并展示下面这段 block，消息全文放在它下面，作为整条消息的最后部分：
 
    ```text
@@ -120,7 +124,7 @@
 
 10. 发送。默认：创作者按参考文件 Messages 表里的途径发送。备选：无。
     执行：只有拿到 yes 之后，才按参考文件给出这个动作的途径。由创作者发送。
-    证据：创作者报告已发出。然后按参考文件说明接下来会怎样：商店会回复、它的审核时间，以及重新提交要走发布 skill 自己的 block。
+    证据：创作者报告已发出。本 skill 什么都不写，所以要直接说明：除非调用它的发布 skill 记下来，这次发送不会有记录。然后按参考文件说明接下来会怎样：商店会回复、它的审核时间，以及重新提交要走发布 skill 自己的 block。
 
 然后做“验证”。
 

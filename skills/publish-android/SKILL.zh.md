@@ -55,7 +55,7 @@
 | 第 11 步，Data safety 表单之前 | `data_inventory.confirmed` 不是 true，或者它的 `revision` 不是当前的 | 停下。这次会话有 shell、能写文件时，运行 `publish-readiness`；否则说出它，它没安装时再加上上面的安装命令。不问任何隐私问题，不提议清单内容或 Data safety 答案，也绝不设置 `confirmed`：这些都由 `publish-readiness` 来做。不描述它会问哪些问题，也不指向任何文件、商品详情文字或条目，暗示答案。 |
 | 第 11 步 | 没有 `listing.md`，或者某项限制不通过 | 停下。这次会话有 shell、能写文件时，运行 `store-listing`；否则说出它，它没安装时再加上 `npx skills add interskh/app-creators-skills --skill store-listing`。限制检查见下。 |
 | 第 12 步和第 15 步 | listing 的 `revision` 不是当前的 | 随 go-ahead block 完整展示文案和图片，每个语言的每个字段都要有，并问它们是否还和应用相符。 |
-| 第 12 步和第 15 步，送审之前，没有别的关口挡住这一步时 | 提交前审查 | 第 12 步里会送审的动作出 block 之前，以及第 15 步出 block 之前，运行 `store-review` 针对 `google_play` 的提交前审查，也就是它的第 2 到 4 步。只认本次会话里它最新的一次审查。只要有一行 `flag`，这一步就像被关口挡住一样停下：逐条列出每个 `flag` 和它的修复办法。它的 `note` 行放进出 block 的那条消息里，排在 block 前面。这个 skill 没装时，说“提交前审查已跳过：没有安装 `store-review`”，给出 `npx skills add interskh/app-creators-skills --skill store-review`，然后继续到 go-ahead。 |
+| 第 12 步和第 15 步，送审之前，没有别的关口挡住这一步时 | 提交前审查 | 第 12 步里会送审的动作出 block 之前，以及第 15 步为送审出 block 之前，运行 `store-review` 针对 `google_play` 的提交前审查，也就是它的第 2 到 4 步。只认本次会话里它最新的一次审查。只要有一行 `flag`，这一步就像被关口挡住一样停下：逐条列出每个 `flag` 和它的修复办法。它的 `note` 行放进出 block 的那条消息里，排在 block 前面。这个 skill 没装时，说“提交前审查已跳过：没有安装 `store-review`”，给出 `npx skills add interskh/app-creators-skills --skill store-review`，然后继续到 go-ahead。“publish now, with no review”之前不运行：Google 不审核它。 |
 
 **停下时有改动在审核中。** workflow 检查或 readiness 的 `fail` 让这次运行停下，而 state（`targets.android.status: review`、最新的 `history` 行或备注）或创作者说明有改动在审核中时，停下的消息里还要直白地说：Google 审核通过后会自动发布这些改动，除非托管发布（managed publishing）是开着的；这里只认本次会话针对这个应用从 Publishing overview（发布概览）读到的状态。备注里的读取或之前会话的读取都不算。没有这样的读取时，还要在这条消息里问。不做其他任何动作。
 
@@ -178,7 +178,7 @@ Reply "yes" to do this for exactly this release. Anything else stops here.
     证据：这些行出现在 "Changes in review"（审核中的更改）里，或者提交状态是 In review。记 `review`，或者保持 `live`。
 
 16. 读取审核结果。默认：创作者报告状态。备选：Google 的邮件。
-    执行：说出 `references/review.md` 里的时间，然后停下。之后的会话询问状态，按 `references/statuses.md` 对应。被拒时，用 `store-review` 的被拒解读来读这条消息。它会指出是哪项政策、怎么修、走哪条途径；申诉的 go-ahead block 由它来出，所以本 skill 不再为申诉出 block。重新提交仍归本 skill。在 App content 里（比如 Sign-in details）或在商品详情里修的问题：创作者改好并点 Save，再用一个新的第 15 步 block 送审，不用给 Google 发消息。在代码里修的问题：从第 8 步做新构建。这个 skill 没装时，说出它并给出 `npx skills add interskh/app-creators-skills --skill store-review`，然后读 `references/review.md`。这时申诉会到 Google 手里，所以是 **go-ahead**，单独出 block，动作按那个文件的原文写。
+    执行：说出 `references/review.md` 里的时间，然后停下。之后的会话询问状态，按 `references/statuses.md` 对应。被拒时，用 `store-review` 的被拒解读来读这条消息。它会指出是哪项政策、怎么修、走哪条途径；它的参考文件列出的消息，由它出 go-ahead block，所以本 skill 不再为这些消息出 block。本 skill 的 `references/review.md` 里的其他消息，比如内容分级申诉，仍在这里单独出 block，动作按那个文件的原文写。重新提交仍归本 skill。在 App content 里（比如 Sign-in details）或在商品详情里修的问题：创作者改好并点 Save，再在被拒版本所在的轨道上用一个新的 block 送审，测试轨道是第 12 步，正式版是第 15 步，不用给 Google 发消息。在代码里修的问题：从第 8 步做新构建。这个 skill 没装时，说出它并给出 `npx skills add interskh/app-creators-skills --skill store-review`，然后读 `references/review.md`。这时申诉会到 Google 手里，所以是 **go-ahead**，单独出 block，动作按那个文件的原文写。
 
 17. **go-ahead** 发布更改。默认：Publishing overview，Publish changes。备选：无。
     先查：问三个区域的每一行。"Changes in review" 必须是空的。已发布、正式版上是这个版本代码，而且 Publishing overview 上没有等待中的发布比例改动，才复用这一步。"Changes ready to publish"（可以发布的更改）下的正式版发布是另一个版本代码时：停下，说出两个版本代码，并说明这里的 yes 发布的会是那个构建，而不是这个。

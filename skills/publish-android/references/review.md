@@ -1,6 +1,6 @@
 # Google Play review: time, rejection, appeal
 
-Bracketed numbers point to `## Sources`. `store-review` does the pre-submit review and the rejection reading, and holds the block for an appeal. This file is the fallback when `store-review` is not installed.
+Bracketed numbers point to `## Sources`. `store-review` does the pre-submit review and the rejection reading, and holds the block for the messages its reference lists. Any other message below, such as a content rating appeal, keeps its own block in `publish-android`. This file is the fallback when `store-review` is not installed.
 
 ## How long
 
@@ -14,8 +14,8 @@ Bracketed numbers point to `## Sources`. `store-review` does the pre-submit revi
 
 Update status Update rejected, or App rejected for a first publish. Fix the issue and resubmit, or appeal [2]. Rejected submissions link to the Policy status page with the issue and how to fix it [7]. If an update is rejected, the last approved version stays live [7][8]. A rejection does not affect the account's standing; repeated rejections can lead to suspension [8]. Until the violation is fixed, do not republish [8].
 
-- **A fix in App content, such as Sign-in details, or in the listing.** The creator changes it and clicks Save; it waits in the Publishing overview for Send for review [9]. That send is a new Step 15 block, which names every row it sends. Google: "You can complete these steps without contacting or waiting for a reply from the policy support team" [9]. No message to Google, and no block of its own.
-- **A fix in code.** A new build with a new version code, from Step 8, then a new Step 15 block.
+- **A fix in App content, such as Sign-in details, or in the listing.** The creator changes it and clicks Save; it waits in the Publishing overview for Send for review [9]. That send is a new block for the rejected release's track, Step 12 for a testing track or Step 15 for production, which names every row it sends. Google: "You can complete these steps without contacting or waiting for a reply from the policy support team" [9]. No message to Google, and no block of its own.
+- **A fix in code.** A new build with a new version code, from Step 8, then a new Step 12 or Step 15 block, by track.
 - After a rejection, changes are not sent automatically [1], and the next internal testing release is reviewed too [1].
 - **Removed by Google.** The published version stays unavailable until a compliant update. Google's steps: upload the compliant bundle to every track that holds the old one, and keep the non-compliant bundles under Not included, or the resubmission fails [8]. Each roll-out is a block.
 - **Suspended by Google.** Needs a successful appeal [2][8].

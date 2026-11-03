@@ -6,7 +6,7 @@ description: >
 tags: [publish-android, level-2]
 runs: 1
 execution:
-  max_turns: 24
+  max_turns: 32
   timeout_seconds: 600
   allowed_tools: [Read, Glob, Grep, Skill]
   prompt: |

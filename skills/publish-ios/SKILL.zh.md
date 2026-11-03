@@ -173,7 +173,7 @@ Reply "yes" to do this for exactly this release. Anything else stops here.
     证据：创作者报告这个身份的状态是 Waiting for Review 或 In Review。记 `targets.ios.status: review`；有在售版本时保持 `live`。
 
 14. 读取审核结果。默认：创作者报告状态。备选：Apple 的状态邮件。
-    执行：说出 `references/review.md` 里 Apple 给的时间，然后停下。之后的会话询问状态，按 `references/statuses.md` 对应。被拒时，用 `store-review` 的被拒解读来读这条消息。它会指出是哪条指南、怎么修、走哪条途径；每一条发给 App Review 的消息，都由它出 go-ahead block，所以本 skill 不再为这些消息出 block。重新提交仍归本 skill：是一次新的第 13 步，要出新的 block；改了代码就从第 8 步开始。在 App Store Connect 里或服务器上就能修好的问题，比如演示账号，先改好再回复，不用重新提交。这个 skill 没装时，说出它并给出 `npx skills add interskh/app-creators-skills --skill store-review`，然后读 `references/review.md`。这时回复、接受 bug 修复的提议、申诉，以及发给 App Review 的其他消息，都会到审核人员手里，所以每一项都是 **go-ahead**，单独出 block，动作按那个文件的原文写，途径要等 yes 之后才给。证据：创作者报告已发出。
+    执行：说出 `references/review.md` 里 Apple 给的时间，然后停下。之后的会话询问状态，按 `references/statuses.md` 对应。被拒时，用 `store-review` 的被拒解读来读这条消息。它会指出是哪条指南、怎么修、走哪条途径；它的参考文件列出的消息，由它出 go-ahead block，所以本 skill 不再为这些消息出 block。本 skill 的 `references/review.md` 里的其他消息，仍在这里单独出 block，动作按那个文件的原文写。重新提交仍归本 skill：是一次新的第 13 步，要出新的 block；改了代码就从第 8 步开始。在 App Store Connect 里或服务器上就能修好的问题，比如演示账号，先改好再回复，不用重新提交。这个 skill 没装时，说出它并给出 `npx skills add interskh/app-creators-skills --skill store-review`，然后读 `references/review.md`。这时回复、接受 bug 修复的提议、申诉，以及发给 App Review 的其他消息，都会到审核人员手里，所以每一项都是 **go-ahead**，单独出 block，动作按那个文件的原文写，途径要等 yes 之后才给。证据：创作者报告已发出。
 
 15. **go-ahead** 向公众发布。默认：从 Pending Developer Release 手动发布。备选：版本更新用分阶段发布，见 `references/release.md`。
     先查：问这个版本的 app status 和 Build 部分的 build number。版本更新时，还要问 Phased Release for Automatic Updates 部分显示什么。

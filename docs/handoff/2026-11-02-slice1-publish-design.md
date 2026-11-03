@@ -1765,3 +1765,50 @@ Run `2026-11-02-slice1-publish-design`, task I/T3. Uncommitted, for the orchestr
 - `skills/store-review/SKILL.zh.md`, `references/verified-runs.md`; new `evals/store-review/` (README, `lib/`, 6 cases).
 - `evals/publish-ios/lib/scaffold.sh`, new `lib/login/`, new `expo-login-submit-{en,zh}`, `evals/publish-ios/README.md`.
 - Shared: `README.md` (store-review status rows), `docs/ROADMAP.md` (`store-review zh` ticked).
+
+## Slice I / gate fix round 1
+
+Run `2026-11-02-slice1-publish-design`, whole-run gate fix round 1, items 1 to 13. Uncommitted. Evals not run.
+
+**Decisions**
+- Route cells (1): each "who acts" cell starts with the route kind (`reply:`, `resubmit:`, `appeal:`, `send for review:`, `new build:`). Google rows lost "select Appeal", "Publishing overview, Send for review", and "Not included"; the removal steps moved to a sentence under the table. Step 8 says the `Route:` line names no control, click path, form, or link. Blocks unchanged.
+- Step 9 (2, 5): two checks, one question per message: an earlier send (App Review thread or Policy status page), then the creator's "saved" report for a store-side fix the draft states. Step 10 says the send is not recorded unless a calling skill notes it. The "No step here is effective" sentence now says the skill reaches no store and Step 9 checks the store first.
+- Track routing (3): Step 12 for a testing track, Step 15 for production; the track comes from the message or state's notes. Also fixed `publish-android/references/review.md`, the Step 16 fallback, which said Step 15 for both.
+- Narrowed hand-off (4): store-review holds the block only for messages its reference lists. publish-ios keeps Appointment request and Contact us; publish-android keeps the content rating appeal. Both publish `review.md` intros say the same.
+- Gate row (7): Step 15's review runs before "its block for a send for review", and the row says not before "publish now, with no review".
+- Before you start (8): the publish skills' shell-and-write wording.
+- Privacy rows (9): only a reachable screen or component counts. Apple: a link. Google: a link or the policy text.
+- Bug-fix action (12): "approve the current submission, and address the issues in the next update", from Apple's "you'd like the current submission approved and will address the issues in your next update".
+- Evals (5, 10, 11, 13): apple-rejection prompts report a non-expiring demo account saved and no earlier reply; play graders accept Step 12 and fail Step 15 for this internal release; no-review-or-publish-path fails a click path anywhere, blocks included; no-submit-path fails a submission block in any message; expo-review-goahead `max_turns` 32.
+
+**Rejected**
+- Changing the `Route:` line inside the REJECTION READING block: it would change the block hash for no gain; a sentence under it does the job.
+- Asking both Step 9 questions at once: the brief says each is the only question.
+- Keeping Step 15 as a pass in play-rejection: the seed is internal testing, so Step 15 is now a real miss.
+
+**Assumptions**
+- The skill reads state's notes, where the play seed records "Step 12 ... internal testing". Check `named-the-policy-and-route`.
+- The apple prompt's two reports skip both Step 9 asks, so the block stays reachable in the same turn budget.
+
+**Deferred**
+- `verified-runs.md` rows: orchestrator. A Play testing-track pre-submit case: none yet.
+
+**Facts re-fetched 2026-11-04 (curl, HTTP 200)**
+- Apple guidelines (4.2.2, 5.1.1(i)); bug-fix-submissions. Google answer 9888076 (redirects to 10144311; prominent disclosure, privacy policy), 9842754 (suspended, Appeal), 9859455, 9859654.
+
+**Evidence**
+- `bash scripts/lint-skills.sh`: 7 skills clean. `bash tests/lint-skills.test.sh`: 109/109. `claude plugin validate .`: passed with warnings.
+- Blocks en = zh, unchanged: PRE-SUBMIT `6d2b09e1…5271`, REJECTION READING `5ef458c4…a958`, GO-AHEAD `5498f744…3e86` (`bash /tmp/cc-sliceI-t3-blocks.sh`).
+- Route cells: `bash /tmp/cc-sliceI-fix1-proof.sh`, both references clean; the HEAD `google-play.md` gives 2 hits.
+- Graders: `node /tmp/cc-sliceI-fix1-checks.mjs`, 28/28 structure, 4/4 regex samples, mutants 10/10. en = zh graders 5/5 (`python3 -I /tmp/cc-sliceI-fix1-graders-eq.py`). YAML parses for all 10 changed or checked cases.
+- Skill text: `bash /tmp/cc-sliceI-fix1-skillgrep.sh`, 30/30, en and zh.
+
+**Touches**
+- `skills/store-review/SKILL.md`, `SKILL.zh.md`, `references/app-store.md`, `references/google-play.md`.
+- `skills/publish-ios/SKILL.md`, `SKILL.zh.md`, `references/review.md`; `skills/publish-android/SKILL.md`, `SKILL.zh.md`, `references/review.md`.
+- `evals/store-review/{apple,play}-rejection-{en,zh}/case.yaml`, README; `evals/publish-ios/expo-login-submit-{en,zh}/case.yaml`, README; `evals/publish-android/expo-review-goahead-{en,zh}/case.yaml`, README.
+- Supersedes T3's assumption "Step 9 shows the reply block before saved": the block now waits for "saved".
+
+**Eval cases to rerun**
+- `store-review-apple-rejection-{en,zh}`, `store-review-play-rejection-{en,zh}`, `publish-ios-expo-login-submit-{en,zh}`, `publish-android-expo-review-goahead-{en,zh}`.
+- Should be unaffected, rerun if budget allows: `store-review-expo-login-presubmit-{en,zh}` (privacy row wording), `publish-ios-expo-submit-goahead-{en,zh}`.

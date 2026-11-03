@@ -1,6 +1,6 @@
 # App Review: time, rejection, appeal
 
-Bracketed numbers point to `## Sources`. `store-review` does the pre-submit review and the rejection reading, and holds the block for every message to App Review. This file is the fallback when `store-review` is not installed.
+Bracketed numbers point to `## Sources`. `store-review` does the pre-submit review and the rejection reading, and holds the block for the messages its reference lists. Any other message below keeps its own block in `publish-ios`. This file is the fallback when `store-review` is not installed.
 
 ## How long
 
@@ -28,7 +28,7 @@ Each of these reaches a reviewer, so each is a **go-ahead** with its own block. 
 | message | action | route |
 |---|---|---|
 | Reply to a rejection, including Metadata Rejected | "send this reply to App Review" | Role: Account Holder, Admin, or App Manager. Apps, the app, the unresolved issues link, Resolve next to the submission, Reply to App Review, then the reply; a file can be attached [4] |
-| Bug-fix acceptance | "reply to App Review accepting the bug-fix offer: approve this submission now, and fix the other issues in the next submission" | Reply to the offer message in App Store Connect, saying you want the current submission approved [1][10] |
+| Bug-fix acceptance | "reply to App Review accepting the bug-fix offer: approve the current submission, and address the issues in the next update" | Reply to the offer message in App Store Connect, saying you want the current submission approved [1][10] |
 | Appeal | "send this appeal to the App Review Board" | The "Submit an appeal to App Review" form [11]. The form sits behind Apple sign-in, so its fields were not read [8] |
 | Expedited review request | "send this expedited review request to App Review" | The "Request an Expedited App Review" form, only for a submission already sent to App Review [12] |
 | Appointment request | "request an App Review appointment" | The link on Apple's App Review page [1] |
