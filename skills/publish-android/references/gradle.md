@@ -100,7 +100,7 @@ Default: Play App Signing with a Google-generated app signing key, and the creat
 
 Check, reading no secret:
 
-1. `git ls-files -- keystore.properties '*.jks' '*.keystore'` prints nothing. If it prints anything, stop: a key or its passwords are committed. The creator removes them from the index in a commit. The history still holds them, so a key that was ever pushed counts as compromised: before any upload, a new key; after one, an upload key reset (`references/app-signing.md`).
+1. `git ls-files -- keystore.properties '*.jks' '*.keystore'` prints nothing. If it prints anything, stop: a key or its passwords are committed. Ask for no push. A secret in any commit, pushed or not, counts as compromised: GitHub's first step for a committed secret is to revoke or rotate it, and rewriting history may then not be needed [25]. So rotate it: before any upload, a new key; after one, an upload key reset (`references/app-signing.md`). Then the creator removes the file from the index and ignores it, in a commit of those paths. Removing it from history as well is the creator's choice, with the `git-filter-repo` steps on GitHub's page [25]; this skill does not rewrite history.
 2. `keystore.properties` exists, and `git check-ignore -q keystore.properties` exits 0. Never read the file.
 3. `./gradlew -q :app:signingReport`. The `Variant: release` block shows `Config: release`, a `Store` other than `debug.keystore`, and a `SHA-256` line [1]. Write in the notes `Upload key: SHA-256 <fingerprint>, from signingReport, <date>`, never the `Store` path, which holds a home folder. Seen 2026-11-03 on the Android Gradle plugin 9.5.0: with no `keystore.properties`, the release block shows no store and the command exits 1.
 
@@ -236,3 +236,4 @@ All fetched with curl and read 2026-11-03. The Android Gradle plugin lines marke
 22. Orchestrate workflows, CircleCI: https://circleci.com/docs/guides/orchestrate/workflows/
 23. Starting builds automatically, Codemagic: https://docs.codemagic.io/yaml-running-builds/starting-builds-automatically/
 24. Build triggers, Bitrise: https://docs.bitrise.io/en/bitrise-ci/run-and-analyze-builds/build-triggers.html
+25. Removing sensitive data from a repository, GitHub Docs: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository

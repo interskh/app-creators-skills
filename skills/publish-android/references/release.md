@@ -20,7 +20,7 @@ So with managed publishing off, a yes to Send for review is also a yes to publis
 | action | class | why |
 |---|---|---|
 | Turn managed publishing on | **effective** | It holds changes back and reaches no one |
-| Turn managed publishing off | **go-ahead** | Google does not say what happens to changes waiting at Ready to publish when it is turned off. From then on, approval publishes with no further yes |
+| Turn managed publishing off | **go-ahead** | Google does not say what happens to changes waiting at Ready to publish when it is turned off. From then on, approval publishes with no further yes. The block names every row in review and ready to publish, with its version code: `SKILL.md` Step 18 |
 
 ## Send for review
 
@@ -55,7 +55,7 @@ Production, Releases tab, the release, Manage rollout [6]:
 
 | change | path | what happens |
 |---|---|---|
-| Increase | Update rollout, the new percentage, Confirm update [6] | More users get it. The percentage never rises by itself [6]. 100% is not held by managed publishing [1] |
+| Increase | Update rollout, the new percentage, Confirm update [6] | More users get it. The percentage never rises by itself [6]. With managed publishing on, a new percentage below 100% is held until Publish changes, because full and staged roll-outs are held [1]; 100% is not held [1] |
 | Halt | Halt rollout [6] | No more users get it; those who have it keep it [6]. A fully rolled-out release can be halted too, except internal testing and a track's first release; the previous fully rolled-out release then serves in its place [7] |
 | Resume | Resume rollout, a percentage, Confirm update [6] | The same set of users as before the halt [6] |
 

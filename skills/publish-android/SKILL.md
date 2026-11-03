@@ -67,6 +67,8 @@ Read `.app-creators/state.md`. If the file is missing, run `app-creators` first 
 
 Run every command from the project root.
 
+**Secret paths.** Before every ask to commit, in any step, run the route's secret file checks from its Step 6 on the paths that exist. Ask only for a commit of named paths, never one that would hold a path those checks name. A key or its passwords in any commit, pushed or not, counts as compromised: the route's Step 6 says what to do, before any push.
+
 **Current.** A revision is current when `git status --porcelain -- . ':(exclude).app-creators'` prints nothing and `git diff --quiet <revision> HEAD -- . ':(exclude).app-creators'` exits 0. An empty `revision` or a failing command means not current. Two revisions match when that `git diff` between them exits 0. If `git` cannot run here, say so in one line. Every revision then reads as not current and unmatched until there is a reading: at the first gate or step whose stop or rebuild depends on currency, ask the creator to run these commands in their terminal, for each recorded revision it needs, and report the output. That output is a reading, like a store status. Do not ask this before a step needs it: Step 1's ask stays alone in its message.
 
 **Gates.** Each row applies where it says. Never re-ask what readiness, listing, or state records. Report every gate that stops a step in one message. A stop at a gate ends the step: no go-ahead block, not even a preview, and no worksheet.
@@ -75,7 +77,7 @@ Run every command from the project root.
 |---|---|---|
 | now | readiness `fail` at a current revision | Stop. List each failing check with its `fix` from `readiness.md`. |
 | now | readiness `unknown`, not current, or absent | Say "readiness is unknown, running minimal checks" and run them. Restate the result in every go-ahead block. A `fail` that is not current also gets: "the last report recorded a fail at an older or uncommitted revision; run `publish-readiness` again". Absent skill: name it with `npx skills add interskh/app-creators-skills --skill publish-readiness`. |
-| Step 11, before the Data safety form | `data_inventory.confirmed` not true, or its `revision` not current | Stop. Run `publish-readiness` if this session has a shell and can write files; otherwise name it, with the install command above if it is absent. Ask no privacy question, propose no inventory or Data safety answer, and never set `confirmed`: `publish-readiness` does that. |
+| Step 11, before the Data safety form | `data_inventory.confirmed` not true, or its `revision` not current | Stop. Run `publish-readiness` if this session has a shell and can write files; otherwise name it, with the install command above if it is absent. Ask no privacy question, propose no inventory or Data safety answer, and never set `confirmed`: `publish-readiness` does that. Do not describe the questions it will ask, and point to no file, listing text, or item as a hint toward an answer. |
 | Step 11 | `listing.md` missing, or a limit fails | Stop. Run `store-listing` if this session has a shell and can write files; otherwise name it, with `npx skills add interskh/app-creators-skills --skill store-listing` if it is absent. The limit check is below. |
 | Steps 12 and 15 | listing `revision` not current | Show the listing and graphics in full with the go-ahead block, every field of every locale, and ask whether they still match the app. |
 | Step 15 | `store-review` not installed | Say "the pre-submit review was skipped: `store-review` has not shipped", and continue to the go-ahead. |
@@ -107,7 +109,7 @@ Assessed revision: <readiness revision, or none>
 Readiness: <pass | unknown | stale>. <when unknown or stale: "publish-readiness did not assess this build. Minimal checks only: <each check and its result>.">
 Target API: <n, read from the bundle; Google requires m | unknown: <why>>
 Listing: <current at <commit> | not current: shown in full below. Does it still match the app?>
-After approval: <only on a send for review. "managed publishing is on, read this session: approved changes wait at Ready to publish for a separate yes" | "managed publishing is off or unavailable: Google publishes these changes to <who> as soon as they are approved, with no further yes">
+After approval: <only on a send for review, one line per row. An internal testing release: "internal testing is not covered by managed publishing: Google makes it available to <tester lists> as soon as it is approved, with no further yes". Every other row: "managed publishing is on, read this session: approved, it waits at Ready to publish for a separate yes" | "managed publishing is off or unavailable: Google publishes it to <who> as soon as it is approved, with no further yes">
 Reply "yes" to do this for exactly this release. Anything else stops here.
 ```
 
@@ -132,7 +134,7 @@ Every step below is marked **human-only**, **effective**, or **go-ahead**, excep
    Proof: the creator reports the app with this package. Record `targets.android.package`, and `targets.android.status` per `references/statuses.md`. If they report none yet, record `none`, and stop.
 
 4. Project edits. Default and exact edits: the route file. Alternative: none.
-   Run: make every edit the route requires, in one commit, before any build: config, project link, the package, the version name for a new release, and the upload settings the route pins. Show the diff, and ask the creator to commit.
+   Run: make every edit the route requires, in one commit, before any build: config, project link, the package, the version name for a new release, the upload settings the route pins, and its ignore lines for secret files. Show the diff, run the secret path checks, and ask the creator to commit the edited paths.
    Expect: `git status --porcelain -- . ':(exclude).app-creators'` prints nothing. These edits change the revision, which is why Step 5 follows.
 
 5. Rebind readiness. Default: `publish-readiness`. Alternative: the stale rule in Before you start.
@@ -175,7 +177,7 @@ Every step below is marked **human-only**, **effective**, or **go-ahead**, excep
 
 12. **go-ahead** Testing release (only when the creator asks, or Step 13 needs a closed test). Each action reaches testers, and sometimes a reviewer, so each is its own block and proof, and a yes to one does not cover the next. Default: Play Console, per `references/tracks.md`. Alternative: none; the route file forbids releasing from the upload tool.
     Check first: ask for the track's releases and their version codes, the tester lists the track uses with their counts, the app status, every row of the Publishing overview's three sections, and the Managed publishing status. Only an action whose own proof already holds is skipped.
-    An action that goes to review: on an app already available, Step 14's proof must hold first; if not, do Step 14 and come back. Its block takes Step 15's form, because Send for review sends every row under "Changes not yet sent for review": the action names every row, and `After approval:` names who each row reaches, the public included.
+    An action that goes to review: Step 14's proof must hold first, on or unavailable; if not, do Step 14 and come back. Its block takes Step 15's form, because Send for review sends every row under "Changes not yet sent for review": the action names every row, and `After approval:` names who each row reaches, the public included.
     Run: the block for one action. After the yes, the creator clicks, then reads back what its proof names.
     - "roll out version code <code> to internal testing, for tester lists <lists> (<count> testers)". The first roll-out, and any after a rejection, goes to review: add ", and send for review with these other changes: <every row>".
     - "promote version code <code> to closed testing track <track>, for tester lists <lists> (<count> testers)". If Play Console sends it for review, add ", and send for review with these other changes: <every row>".
@@ -186,16 +188,16 @@ Every step below is marked **human-only**, **effective**, or **go-ahead**, excep
     Check first: ask whether Test and release, Production, is enabled. If it is, go to Step 14.
     Ask, and stop: the requirement in `references/accounts.md`: 12 testers opted in continuously for 14 days, then the application, whose answers the creator writes. Never fill it in.
 
-14. **effective** Managed publishing, before any send for review on an app that is already available: in Step 12, Step 15, and every resubmission. Already available, our reading of Google's term: the app status read this session is not Draft. Default: on. Alternative: none.
-    Check first: ask what the Publishing overview's Managed publishing status shows. If on, go back to the step that sent you, or to Step 15.
-    Run: ask the creator to turn it on and Save, then read it back. Google does not allow it on an app's first publish: say so, and Step 15's block says approval publishes.
-    Proof: "Managed publishing is turned on".
+14. **effective** Managed publishing, before every send for review: in Step 12, Step 15, and every resubmission. Default: on. Alternative: none.
+    Check first: ask what the Publishing overview's Managed publishing status shows, and the app status. On: go back to the step that sent you, or to Step 15. Unavailable: the app status is Draft, or the creator reports that Play does not offer it. Google allows it only on an app already available, never on a first publish. Say so, and go back: that step's block uses the off-or-unavailable `After approval:` text, and the step goes on.
+    Run: when it is off and Play offers it, ask the creator to turn it on and Save, then read it back.
+    Proof: "Managed publishing is turned on", or the unavailable reading, from this session.
 
 15. **go-ahead** Production release and Send for review. Default: Play Console, per `references/release.md`. Alternative: none.
     Check first: ask for the production track's releases and their version codes, every row of the Publishing overview's three sections, the Managed publishing status, and the latest submission status.
     - In review, or Ready to publish, holding this version code on production: submitted. Record it, go to Step 16 or 17.
     - Any of those holding a different version code: stop, name both, and say a yes here would not reach this build.
-    - Rejected, or not sent: only now run the Step 11 gates and the Step 15 gates. On an app already available, Step 14's proof must hold, as in Step 12. If the production release does not exist, the creator creates it from this bundle and clicks Save, which reaches no one, then reads the rows back.
+    - Rejected, or not sent: only now run the Step 11 gates and the Step 15 gates. Step 14's proof must hold, or Play reports it unavailable, as in Step 12. If the production release does not exist, the creator creates it from this bundle and clicks Save, which reaches no one, then reads the rows back.
     Then compare revisions: if the build's revision is not current, rebuild from Step 8, unless the creator refuses; then readiness reads stale.
     Run: the block, with the action "send for review: production release <name>, version code <code>, <rollout percentage or "first release, all users">, and these other changes: <every row>". If Play Console offers Publish instead, the action is "publish now, with no review: <every row>". After the yes, the path in `references/release.md`.
     Proof: the rows sit in "Changes in review", or the submission is In review. Record `review`, or keep `live`.
@@ -209,9 +211,9 @@ Every step below is marked **human-only**, **effective**, or **go-ahead**, excep
     Proof: app status Production, and the production release holds this version code. Record `live`.
 
 18. **go-ahead** Rollout and publishing settings (only when the creator asks): increase the rollout, halt, resume, or turn managed publishing off. Each changes who gets the app. Default: Play Console, per `references/release.md`. Alternative: none.
-    Check first: ask what the release and its Rollout history show, or the Managed publishing status. If it already reads as asked, skip.
-    Run: the block, with that one action. A yes to one does not cover the next.
-    Proof: the creator reports the release, or the status, now shows that change.
+    Check first: ask what the release and its Rollout history show, the Managed publishing status, and every row of the Publishing overview's three sections with each release's version code. If it already reads as asked, skip.
+    Run: the block, with that one action, in these words: "increase the rollout of production release <name>, version code <code>, from <p>% to <q>%", "halt the rollout of production release <name>, version code <code>", "resume the rollout of production release <name>, version code <code>, at <q>%", or "turn managed publishing off: <each row in review, with its version code> then publishes as soon as it is approved, with no further yes; <each row ready to publish, with its version code>: Google does not say whether it publishes when the hold ends". With managed publishing on, an increase or resume below 100% is held: add ", held by managed publishing until a separate yes to Publish changes". A yes to one does not cover the next.
+    Proof: the creator reports the release, or the status, now shows that change. A held change shows on the Publishing overview instead, and waits for Step 17.
 
 Then do Verify and Update state.
 
@@ -229,7 +231,7 @@ Then do Verify and Update state.
 |---|---|---|
 | `git` exits 72: "couldn't create cache file ... xcrun_db" | Seen in `publish-ios`'s 2026-11-02 eval runs: a sandboxed agent on macOS, where `/usr/bin/git` is an Xcode shim | Use a real git binary if one exists, such as `/opt/homebrew/bin/git`. If none exists, follow the Current rule |
 | Create new release is disabled | Google's page: setup tasks are outstanding | Finish the tasks on the Dashboard |
-| A new release cannot be created | Google's page: another release is outstanding | Roll staged releases to 100%, or remove changes and discard unpublished releases |
+| A new release cannot be created | Google's page: another release is outstanding | Ask which release is outstanding. Removing its changes and discarding an unpublished release reach no one. Raising a staged rollout to 100% reaches users: only through Step 18's block, with no path before the yes |
 | Production or Open testing is disabled | Google's page: a new personal account has not met the testing requirement | Step 13 |
 | An upload is refused for its version code | Google's page: a version code cannot be used twice | New build from Step 8 |
 | The Errors summary blocks publishing | Google's page: errors must be fixed; warnings can be published over | Fix each error it lists |

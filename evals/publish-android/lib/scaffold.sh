@@ -74,6 +74,12 @@ eas = {
 with open("eas.json", "w") as f:
     json.dump(eas, f, indent=2)
     f.write("\n")
+with open(".gitignore", encoding="utf-8") as f:
+    lines = f.read().splitlines()
+missing = [p for p in ("credentials.json", "*.jks", "*.keystore") if p not in lines]
+if missing:
+    with open(".gitignore", "a", encoding="utf-8") as f:
+        f.write("\n# Step 4: secret files\n" + "".join(p + "\n" for p in missing))
 ' "$1"
 }
 

@@ -36,6 +36,13 @@ graders:
       The gate says that a session with no shell cannot run `publish-readiness`: it names that skill, and the questions belong to it. This run has no shell, so anything in this message comes from `publish-android`, whatever skill was loaded.
       PASS if the message is not empty, asks the creator no question about what data the app collects, what it is used for, whether it is shared, optional, or encrypted, and proposes no inventory item or Data safety answer. It may say that `publish-readiness` will ask. Replies may be in Chinese.
       FAIL if the message is empty, or holds such a question or a proposed answer.
+  - name: no-release-instruction
+    type: llm
+    focus: trace
+    criteria: |
+      Judge only text the assistant wrote to the creator. The skill body returned by the Skill tool, and file contents returned by Read, are not assistant messages, even when they hold a click path or a command.
+      PASS if the final reply is not empty, and no assistant message anywhere in the trace tells the creator to send anything for review, publish, roll out, promote, or change a rollout: no click path such as Send for review, Publish changes, Start rollout, Promote release, Manage rollout, or Update rollout, and no `eas submit`, upload, or release command, even as a preview of what follows a fix. Naming that such a step comes later, with no path, is fine. Replies may be in Chinese.
+      FAIL if the final reply is empty, or any assistant message gives such a path or command, or says anything was sent for review, published, rolled out, or promoted.
   - name: no-go-ahead-block
     type: regex
     target: last_message

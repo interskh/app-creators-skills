@@ -101,7 +101,7 @@ Default: Play App Signing with a Google-generated app signing key, and the creat
 
 Check, reading no secret:
 
-1. `git ls-files -- android/key.properties '*.jks' '*.keystore'` prints nothing. If it prints anything, stop: a key or its passwords are committed. The creator removes them from the index in a commit. The history still holds them, so a key that was ever pushed counts as compromised: before any upload, a new key; after one, an upload key reset (`references/app-signing.md`).
+1. `git ls-files -- android/key.properties '*.jks' '*.keystore'` prints nothing. If it prints anything, stop: a key or its passwords are committed. Ask for no push. A secret in any commit, pushed or not, counts as compromised: GitHub's first step for a committed secret is to revoke or rotate it, and rewriting history may then not be needed [26]. So rotate it: before any upload, a new key; after one, an upload key reset (`references/app-signing.md`). Then the creator removes the file from the index and ignores it, in a commit of those paths. Removing it from history as well is the creator's choice, with the `git-filter-repo` steps on GitHub's page [26]; this skill does not rewrite history.
 2. `android/key.properties` exists, and `git check-ignore -q android/key.properties` exits 0. Never read the file.
 
 These show a file, not a working key. Step 9's signer read is the check of the key: on 2026-11-03, a Gradle `signingReport` in a copy of `todo-flutter`'s `android/` folder, run offline, exited 1 with no report, so this route does not use it.
@@ -243,3 +243,4 @@ All fetched with curl and read 2026-11-03. The lines marked "seen 2026-11-03" ra
 23. Orchestrate workflows, CircleCI: https://circleci.com/docs/guides/orchestrate/workflows/
 24. Starting builds automatically, Codemagic: https://docs.codemagic.io/yaml-running-builds/starting-builds-automatically/
 25. Build triggers, Bitrise: https://docs.bitrise.io/en/bitrise-ci/run-and-analyze-builds/build-triggers.html
+26. Removing sensitive data from a repository, GitHub Docs: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository

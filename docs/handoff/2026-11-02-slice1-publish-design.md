@@ -1482,3 +1482,38 @@ Run `2026-11-02-slice1-publish-design`, task H/T3. Uncommitted, for the orchestr
 **Touches**
 - New: `evals/publish-android/` (README, `lib/`, 22 cases). Edited: `skills/publish-android/SKILL.zh.md`, `references/verified-runs.md`.
 - Shared: `README.md` (7 status rows), `docs/ROADMAP.md` (2 ticks, 3 Kyle lines), `skills/publish-readiness/references/verified-runs.md` and `skills/store-listing/references/verified-runs.md` (2 rows each).
+
+## Slice H / gate fix round 1
+
+**Decisions**
+- Step 14 now runs before every send for review. It has one outcome set: on; unavailable (app status Draft, or the creator reports Play does not offer it); or off, then the creator turns it on. Unavailable goes back with the off-or-unavailable `After approval:` text. The "already available, our reading" sentence is gone, so Steps 12 and 15 no longer dead-end after the first internal roll-out.
+- Draft counts as unavailable with no ask, because Google says a first publish cannot use it (9859654, fetched 2026-11-03). This keeps `expo-review-goahead` reachable: its prompt reports Draft and "off".
+- The `After approval:` template is now one line per row. An internal testing release gets its own text ("not covered by managed publishing ... available to <tester lists> ... no further yes"), per 9859654's FAQ. The block stays byte-identical in both files (sha256 `3fd7d196…8ed6`).
+- Committed secret: the safe default is rotation, pushed or not. GitHub's page says to revoke or rotate first and that a history rewrite may then not be needed. History removal is the creator's choice with `git-filter-repo`; this skill rewrites nothing. The rule is in all three routes' Step 6 check 1.
+- A new `Secret paths` paragraph in Before you start runs the secret checks before every commit ask and asks only for commits of named paths. Expo's Step 4 table adds the ignore lines `credentials.json`, `*.jks`, `*.keystore`.
+- Step 18 now has fixed English action strings. "Turn managed publishing off" names each row in review and each row ready to publish, with its version code. With managed publishing on, an increase or resume below 100% adds ", held by managed publishing until a separate yes to Publish changes". `release.md` says the same.
+- Troubleshooting: a 100% rollout goes only through Step 18's block. Removing changes and discarding releases reach no one. `tracks.md` says the same.
+- Inventory gate: it no longer describes `publish-readiness`'s questions, and points to no file, listing text, or item as a hint.
+- Expo resume rules gain the "not listed, `Upload:` line on another commit, any state" case. It counts as taken, then a new build.
+- Evals:
+  - `no-release-instruction` (llm, trace) is added to `expo-no-listing`, `expo-unconfirmed-inventory`, and `kotlin-target-api-low`.
+  - `block-action-says-held` (regex) is added to `expo-rollout-goahead`, and its llm grader now requires the hold.
+  - `expo-review-goahead`'s `After approval:` criterion accepts the per-row text.
+  - `apply_expo_edits` now writes the Step 4 ignore lines, so the seeded trees match the new Step 4.
+
+**Rejected**
+- Removing a committed key from history by default: it needs `git-filter-repo` (an install) and rewrites history that others may hold. Rotation is what GitHub puts first.
+- Keeping the "already available" reading and adding an exception: two rules for one state. One reading from Step 14 replaces both.
+- Putting the hold sentence in `After approval:`: that line is for a send for review only. The action line is what a regex can check.
+- An English-only regex for the hold: zh replies may translate the action, so the pattern also accepts 托管发布.
+
+**Assumptions**
+- A rise below 100% with managed publishing on lands on the Publishing overview and waits for Publish changes. Google lists staged roll-outs as held but does not say which section they land in, so the proof says "on the Publishing overview". Check with a real run.
+- Play shows some sign when managed publishing is unavailable on a non-Draft app. The skill relies on the creator's report.
+
+**Deferred**
+- A level 3 or eval run of the changed Step 14, 18, and Secret paths text. This needs `claude plugin eval` (the orchestrator's) and a Play account.
+
+**Touches**
+- `skills/publish-android/SKILL.md`, `SKILL.zh.md`, `references/{expo,flutter,gradle,release,tracks}.md`.
+- `evals/publish-android/`: the README, `lib/scaffold.sh`, and 10 `case.yaml` files.

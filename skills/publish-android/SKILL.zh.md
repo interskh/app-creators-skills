@@ -42,6 +42,8 @@
 
 每条命令都在项目根目录运行。
 
+**secret 路径。** 在任何一步请创作者 commit 之前，先对存在的路径跑路线第 6 步里的 secret 文件检查。只请创作者 commit 写明的路径，绝不请求会包含这些检查列出的路径的 commit。密钥或它的密码进了任何 commit，不管推送（push）没有，都算已泄露：怎么处理见路线的第 6 步，要在任何推送之前做。
+
 **当前（current）。** `git status --porcelain -- . ':(exclude).app-creators'` 没有输出，并且 `git diff --quiet <revision> HEAD -- . ':(exclude).app-creators'` 退出码为 0，这个 revision 才算当前。`revision` 为空或命令失败，都算不是当前。两个 revision 之间这条 `git diff` 退出码为 0，就算一致。`git` 在这里跑不了时，用一句话说明。在拿到读取结果之前，所有 revision 都算不是当前、也不一致：第一次遇到要看 revision 是否当前来决定停下或重新构建的关口或步骤时，请创作者在自己的终端里，对这一步需要的每个已记录 revision 运行这些命令，并报告输出。这个输出就是一次读取，和商店状态一样。步骤用不到时不要问：第 1 步的问题仍然单独成一条消息。
 
 **关口。** 每一行只在它写的时机生效。readiness、listing 或 state 已经记下的，绝不再问。挡住同一步的关口，放在一条消息里全部说明。停在关口上，这一步就结束：不出 go-ahead block，预览也不出，也不出填写清单。
@@ -50,7 +52,7 @@
 |---|---|---|
 | 现在 | readiness 在当前 revision 上是 `fail` | 停下。列出每个失败的检查项和 `readiness.md` 里它的 `fix`。 |
 | 现在 | readiness 是 `unknown`、不是当前的，或者没有 | 说“就绪结果未知，正在跑最小检查”，然后跑。结果要在每个 go-ahead block 里重申。不是当前的 `fail` 还要加一句：“上一份报告在较旧或未提交的 revision 上记录了 fail，请重跑 `publish-readiness`”。这个 skill 没装时，说出它的名字并给出 `npx skills add interskh/app-creators-skills --skill publish-readiness`。 |
-| 第 11 步，Data safety 表单之前 | `data_inventory.confirmed` 不是 true，或者它的 `revision` 不是当前的 | 停下。这次会话有 shell、能写文件时，运行 `publish-readiness`；否则说出它，它没安装时再加上上面的安装命令。不问任何隐私问题，不提议清单内容或 Data safety 答案，也绝不设置 `confirmed`：这些都由 `publish-readiness` 来做。 |
+| 第 11 步，Data safety 表单之前 | `data_inventory.confirmed` 不是 true，或者它的 `revision` 不是当前的 | 停下。这次会话有 shell、能写文件时，运行 `publish-readiness`；否则说出它，它没安装时再加上上面的安装命令。不问任何隐私问题，不提议清单内容或 Data safety 答案，也绝不设置 `confirmed`：这些都由 `publish-readiness` 来做。不描述它会问哪些问题，也不指向任何文件、商品详情文字或条目，暗示答案。 |
 | 第 11 步 | 没有 `listing.md`，或者某项限制不通过 | 停下。这次会话有 shell、能写文件时，运行 `store-listing`；否则说出它，它没安装时再加上 `npx skills add interskh/app-creators-skills --skill store-listing`。限制检查见下。 |
 | 第 12 步和第 15 步 | listing 的 `revision` 不是当前的 | 随 go-ahead block 完整展示文案和图片，每个语言的每个字段都要有，并问它们是否还和应用相符。 |
 | 第 15 步 | 没装 `store-review` | 说“提交前审查已跳过：`store-review` 暂未提供”，然后继续到 go-ahead。 |
@@ -82,7 +84,7 @@ Assessed revision: <readiness revision, or none>
 Readiness: <pass | unknown | stale>. <when unknown or stale: "publish-readiness did not assess this build. Minimal checks only: <each check and its result>.">
 Target API: <n, read from the bundle; Google requires m | unknown: <why>>
 Listing: <current at <commit> | not current: shown in full below. Does it still match the app?>
-After approval: <only on a send for review. "managed publishing is on, read this session: approved changes wait at Ready to publish for a separate yes" | "managed publishing is off or unavailable: Google publishes these changes to <who> as soon as they are approved, with no further yes">
+After approval: <only on a send for review, one line per row. An internal testing release: "internal testing is not covered by managed publishing: Google makes it available to <tester lists> as soon as it is approved, with no further yes". Every other row: "managed publishing is on, read this session: approved, it waits at Ready to publish for a separate yes" | "managed publishing is off or unavailable: Google publishes it to <who> as soon as it is approved, with no further yes">
 Reply "yes" to do this for exactly this release. Anything else stops here.
 ```
 
@@ -107,7 +109,7 @@ Reply "yes" to do this for exactly this release. Anything else stops here.
    证据：创作者报告有这个包名的应用。记下 `targets.android.package`，并按 `references/statuses.md` 记 `targets.android.status`。创作者报告还没有时，记 `none`，然后停下。
 
 4. 项目改动。默认和具体改动：路线文件。备选：无。
-   执行：构建之前，把路线要求的改动全部做完，放进一个 commit：配置、项目关联、包名、新版本的版本名，以及路线固定的上传设置。把 diff 给创作者看，请创作者 commit。
+   执行：构建之前，把路线要求的改动全部做完，放进一个 commit：配置、项目关联、包名、新版本的版本名、路线固定的上传设置，以及路线给 secret 文件加的忽略行。把 diff 给创作者看，跑 secret 路径检查，再请创作者 commit 改过的这些路径。
    预期：`git status --porcelain -- . ':(exclude).app-creators'` 没有输出。这些改动会改变 revision，所以后面接第 5 步。
 
 5. 重新绑定就绪结果。默认：`publish-readiness`。备选：“开始之前”里的过期规则。
@@ -150,7 +152,7 @@ Reply "yes" to do this for exactly this release. Anything else stops here.
 
 12. **go-ahead** 测试发布（创作者要求，或者第 13 步需要封闭测试时才做）。每个动作都会触达测试人员，有时还会触达审核人员，所以各自单独出 block、各有证据，对一个动作说的 yes 不覆盖下一个。默认：Play Console，见 `references/tracks.md`。备选：无；路线文件禁止用上传工具发布。
     先查：问这个轨道的发布和它们的版本代码，轨道用的测试人员名单和人数，应用状态，Publishing overview 三个区域的每一行，以及 Managed publishing 状态。只有证据已经满足的动作才跳过。
-    会送审的动作：应用已经可用时，第 14 步的证据必须先成立；不成立就先做第 14 步再回来。它的 block 按第 15 步的形式写，因为 Send for review 会把 "Changes not yet sent for review" 下的每一行一起送审：动作里写出每一行，`After approval:` 写明每一行会到谁手里，包括公众。
+    会送审的动作：第 14 步的证据必须先成立，开启或不可用都算；不成立就先做第 14 步再回来。它的 block 按第 15 步的形式写，因为 Send for review 会把 "Changes not yet sent for review" 下的每一行一起送审：动作里写出每一行，`After approval:` 写明每一行会到谁手里，包括公众。
     执行：只为一个动作出 block。得到 yes 之后，由创作者点击，然后念回这个动作的证据要求的内容。
     - "roll out version code <code> to internal testing, for tester lists <lists> (<count> testers)"。第一次 roll-out，以及被拒之后的那一次，都会送审：再加上 ", and send for review with these other changes: <every row>"。
     - "promote version code <code> to closed testing track <track>, for tester lists <lists> (<count> testers)"。Play Console 把它送审时，再加上 ", and send for review with these other changes: <every row>"。
@@ -161,16 +163,16 @@ Reply "yes" to do this for exactly this release. Anything else stops here.
     先查：问 Test and release 下的 Production 是否已启用。已启用就到第 14 步。
     问完就停：`references/accounts.md` 里的要求：12 名测试人员连续 14 天参与，然后提交申请，申请里的回答由创作者自己写。绝不代填。
 
-14. **effective** 托管发布（managed publishing），在应用已经可用时、任何送审之前开启：第 12 步、第 15 步和每次重新提交都适用。“已经可用”是我们对 Google 用语的理解：本次会话读到的应用状态不是 Draft。默认：开启。备选：无。
-    先查：问 Publishing overview 里 Managed publishing 状态显示什么。已开启就回到让你过来的那一步，或者到第 15 步。
-    执行：请创作者开启并点 Save，然后念回来。Google 不允许在应用第一次发布时使用它：要说明这一点，第 15 步的 block 也要写明审核通过就会发布。
-    证据："Managed publishing is turned on"。
+14. **effective** 托管发布（managed publishing），每次送审之前：第 12 步、第 15 步和每次重新提交都适用。默认：开启。备选：无。
+    先查：问 Publishing overview 里 Managed publishing 状态显示什么，以及应用状态。已开启：回到让你过来的那一步，或者到第 15 步。不可用：应用状态是 Draft，或者创作者报告 Play 不提供这个选项。Google 只允许已经可用的应用使用它，第一次发布时不行。说明这一点，然后回去：那一步的 block 用“关闭或不可用”的 `After approval:` 文字，这一步继续往下走。
+    执行：它是关的、而 Play 提供这个选项时，请创作者开启并点 Save，然后念回来。
+    证据："Managed publishing is turned on"，或者上面那种不可用的读取，都要来自本次会话。
 
 15. **go-ahead** 正式版发布并送审。默认：Play Console，见 `references/release.md`。备选：无。
     先查：问正式版轨道的发布和它们的版本代码，Publishing overview 三个区域的每一行，Managed publishing 状态，以及最新一次提交的状态。
     - In review 或 Ready to publish，而且正式版上是这个版本代码：已提交。记下来，到第 16 步或第 17 步。
     - 这些状态之一，但是另一个版本代码：停下，说出两个版本代码，并说明这里的 yes 到不了这个构建。
-    - Rejected，或者还没送审：到这里才运行第 11 步和第 15 步的关口。应用已经可用时，第 14 步的证据必须成立，和第 12 步一样。正式版发布还不存在时，由创作者用这个 bundle 创建它并点 Save，这不会触达任何人，然后念回这些行。
+    - Rejected，或者还没送审：到这里才运行第 11 步和第 15 步的关口。第 14 步的证据必须成立，或者 Play 报告它不可用，和第 12 步一样。正式版发布还不存在时，由创作者用这个 bundle 创建它并点 Save，这不会触达任何人，然后念回这些行。
     然后比较 revision：构建的 revision 不是当前的，就从第 8 步重新构建；创作者拒绝重新构建时，就绪结果写过期。
     执行：出 block，动作写 "send for review: production release <name>, version code <code>, <rollout percentage or "first release, all users">, and these other changes: <every row>"。如果 Play Console 显示的是 Publish 而不是送审，动作写 "publish now, with no review: <every row>"。得到 yes 之后，给出 `references/release.md` 里的路径。
     证据：这些行出现在 "Changes in review"（审核中的更改）里，或者提交状态是 In review。记 `review`，或者保持 `live`。
@@ -184,9 +186,9 @@ Reply "yes" to do this for exactly this release. Anything else stops here.
     证据：应用状态是 Production，正式版发布是这个版本代码。记 `live`。
 
 18. **go-ahead** 发布进度和发布设置（创作者要求才做）：扩大发布比例、暂停、恢复，或关闭托管发布。每一项都会改变谁能拿到应用。默认：Play Console，见 `references/release.md`。备选：无。
-    先查：问这个发布和它的 Rollout history 显示什么，或者 Managed publishing 状态。已经是要求的样子就跳过。
-    执行：出 block，只写这一个动作。对一个动作说的 yes 不覆盖下一个。
-    证据：创作者报告这个发布或这个状态已显示这次改动。
+    先查：问这个发布和它的 Rollout history 显示什么，Managed publishing 状态，以及 Publishing overview 三个区域的每一行和每个发布的版本代码。已经是要求的样子就跳过。
+    执行：出 block，只写这一个动作，用这些原文："increase the rollout of production release <name>, version code <code>, from <p>% to <q>%"、"halt the rollout of production release <name>, version code <code>"、"resume the rollout of production release <name>, version code <code>, at <q>%"，或者 "turn managed publishing off: <each row in review, with its version code> then publishes as soon as it is approved, with no further yes; <each row ready to publish, with its version code>: Google does not say whether it publishes when the hold ends"。托管发布开着时，扩大或恢复到 100% 以下的比例会被托管发布挡住：再加上 ", held by managed publishing until a separate yes to Publish changes"。对一个动作说的 yes 不覆盖下一个。
+    证据：创作者报告这个发布或这个状态已显示这次改动。被挡住的改动则出现在 Publishing overview 上，等第 17 步。
 
 然后做“验证”和“更新状态”。
 
@@ -204,7 +206,7 @@ Reply "yes" to do this for exactly this release. Anything else stops here.
 |---|---|---|
 | `git` 退出码 72：“couldn't create cache file ... xcrun_db” | `publish-ios` 2026-11-02 的 eval 运行里出现过：macOS 上 agent 在沙箱里运行，`/usr/bin/git` 是 Xcode 的转发程序 | 有真正的 git 可执行文件就用它，例如 `/opt/homebrew/bin/git`。没有就按“当前”那条规则 |
 | Create new release 是灰的 | Google 的页面：还有设置任务没完成 | 把 Dashboard 上的任务做完 |
-| 建不了新的发布 | Google 的页面：还有一个发布没有处理完 | 把分阶段发布推到 100%，或者撤掉改动、丢弃未发布的发布 |
+| 建不了新的发布 | Google 的页面：还有一个发布没有处理完 | 问是哪个发布没处理完。撤掉它的改动、丢弃未发布的发布，都不会触达任何人。把分阶段发布推到 100% 会触达用户：只能走第 18 步的 block，yes 之前不给路径 |
 | Production 或 Open testing 是灰的 | Google 的页面：新的个人账号还没满足测试要求 | 第 13 步 |
 | 上传因为版本代码被拒 | Google 的页面：同一个版本代码不能用两次 | 从第 8 步做新构建 |
 | Errors summary 挡住了发布 | Google 的页面：错误必须修复，警告可以忽略后发布 | 逐条修复它列出的错误 |

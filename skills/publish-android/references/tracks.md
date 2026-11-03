@@ -23,7 +23,7 @@ The creator types addresses into Play Console, never into chat. A change to the 
 
 ## Releases on a track
 
-- A release holds one or more app bundles. Create it on the track's page: Create new release [2]. You cannot create a new release while another is outstanding: roll staged releases out to 100%, or remove changes and discard unpublished releases first [2].
+- A release holds one or more app bundles. Create it on the track's page: Create new release [2]. You cannot create a new release while another is outstanding: roll staged releases out to 100%, or remove changes and discard unpublished releases first [2]. Rolling out to 100% reaches users: it is `SKILL.md` Step 18's go-ahead.
 - Save as draft keeps it in Play Console and reaches no one [2].
 - Next leads to Preview and confirm. Errors must be fixed before publishing; warnings can be published over [2].
 - Then the button is Save, which adds the release to the changes ready to send for review, or Publish, which "pushes changes live immediately", depending on whether the change needs review [2]. Either way, the click that sends or publishes is the go-ahead; `references/release.md` has both.

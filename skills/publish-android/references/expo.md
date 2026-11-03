@@ -25,6 +25,7 @@ Each changes a project file, so each changes the revision. Do them in one commit
 | `android.package` | the Edit tool. `publish-readiness` reports it first. It must equal the package of the app record from Step 3 | yes |
 | `version`, or `android.version`, which takes precedence [5] | the Edit tool, for a new release. `autoIncrement` does not change it [3] | yes on a new release |
 | `android.targetSdkVersion` in the `expo-build-properties` plugin [6] | the Edit tool, only when Step 9 reads a number below Google's | only then |
+| `.gitignore` lines `credentials.json`, `*.jks`, `*.keystore` | the Edit tool, as Expo says for credentials [16]. Then `git check-ignore -q credentials.json` must exit 0 [28] | yes, when missing |
 
 ```json
 {
@@ -88,7 +89,7 @@ Alternative: a keystore the creator holds, with `"credentialsSource": "local"` o
 
 **Secret files, on every run that uses either alternative, before Step 8.** Read no secret. Ask the creator for the keystore's path and the service account key file's path: paths only. For `credentials.json` and each path inside the project:
 
-1. `git ls-files -- credentials.json '*.jks' '*.keystore' <path>` prints nothing [27]. If it prints anything, stop: a key or its passwords are committed. The creator removes them from the index in a commit. The history still holds them, so a key that was ever pushed counts as compromised: before any upload, a new upload key; after one, an upload key reset (`references/app-signing.md`); for a service account key, a new key, and the old one deleted in Google Cloud.
+1. `git ls-files -- credentials.json '*.jks' '*.keystore' <path>` prints nothing [27]. If it prints anything, stop: a key or its passwords are committed. Ask for no push. A secret in any commit, pushed or not, counts as compromised: GitHub's first step for a committed secret is to revoke or rotate it, and rewriting history may then not be needed [29]. So rotate it: before any upload, a new upload key; after one, an upload key reset (`references/app-signing.md`); for a service account key, a new key, and the old one deleted in Google Cloud. Then the creator removes the file from the index and ignores it, in a commit of those paths. Removing it from history as well is the creator's choice, with the `git-filter-repo` steps on GitHub's page [29]; this skill does not rewrite history.
 2. If the file exists, `git check-ignore -q <path>` exits 0, which means ignored [28]. Exit 1 stops the run until the creator adds it to `.gitignore`, as Expo says [16]. Never open the file.
 
 A secret path that shows in `git status` is never something to commit: it is this check's fix.
@@ -150,6 +151,7 @@ For a local build: `--path <file>.aab` instead of `--id` [1].
 
 - Listed, and an `Upload:` line for this version name and code on a commit that matches the current tree: uploaded. Skip.
 - Listed with no such line, or with a line for another commit: this version code holds another binary. It is taken. New build from Step 8.
+- Not listed, with an `Upload:` line for this version code on another commit, in any state, `started` included: that upload may still land. It is taken. New build from Step 8.
 - Not listed, with a line that reads `started` and nothing after it: ask whether that upload finished, failed, or is still running, and check `eas submit:list`. Running or unknown: wait and read again. Still not listed: upload again.
 - Not listed, after `failed`: show the error, fix what it names, then upload again.
 - Not listed, after `finished`: wait and read again; then upload again.
@@ -213,3 +215,4 @@ All fetched with curl and read 2026-11-03. Expo pages carry a `modificationDate`
 26. Troubleshoot build errors and crashes, Expo: https://docs.expo.dev/build-reference/troubleshooting/
 27. git-ls-files, Git documentation: https://git-scm.com/docs/git-ls-files
 28. git-check-ignore, Git documentation: exit 0 ignored, 1 not ignored, 128 a fatal error: https://git-scm.com/docs/git-check-ignore
+29. Removing sensitive data from a repository, GitHub Docs: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository

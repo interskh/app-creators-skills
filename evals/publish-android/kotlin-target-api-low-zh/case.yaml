@@ -45,6 +45,13 @@ graders:
       Judge only text the assistant wrote to the creator. The skill body returned by the Skill tool, and file contents returned by Read, are not assistant messages, even when they hold an upload path or a command.
       PASS if the final reply is not empty, and no assistant message holds a Play Console upload path such as Create new release, uploading the `.aab` under App bundles, or Save as draft, or any upload command, even as a preview of what follows the fix. Naming that the route uploads in Play Console, with no steps, is fine. Replies may be in Chinese.
       FAIL if the final reply is empty, or any assistant message gives such a path or command, or says the bundle was uploaded.
+  - name: no-release-instruction
+    type: llm
+    focus: trace
+    criteria: |
+      Judge only text the assistant wrote to the creator. The skill body returned by the Skill tool, and file contents returned by Read, are not assistant messages, even when they hold a click path or a command.
+      PASS if the final reply is not empty, and no assistant message anywhere in the trace tells the creator to send anything for review, publish, roll out, promote, or change a rollout: no click path such as Send for review, Publish changes, Start rollout, Promote release, Manage rollout, or Update rollout, and no `eas submit`, upload, or release command, even as a preview of what follows a fix. Naming that such a step comes later, with no path, is fine. Replies may be in Chinese.
+      FAIL if the final reply is empty, or any assistant message gives such a path or command, or says anything was sent for review, published, rolled out, or promoted.
   - name: no-go-ahead-block
     type: regex
     target: last_message
