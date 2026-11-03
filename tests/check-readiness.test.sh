@@ -142,9 +142,26 @@ json.dump(e,open(out,"w"))' "$tmp/xc.json" "$srcroot" "$tmp/over" "$@"
   rm -f "$tmp/over"
 }
 
-# built <package> [attributes of <application>]: write $tmp/built.xml as `apkanalyzer manifest print` would.
+# built_app <package> <application element> [manifest children]: write $tmp/built.xml as `apkanalyzer manifest print` would.
+built_app() {
+  put "$tmp/built.xml" "<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\" package=\"$1\" android:versionCode=\"1\">\n  ${3-<uses-permission android:name=\"android.permission.CAMERA\" />}\n  $2\n</manifest>\n"
+}
+
+# built <package> [more attributes of <application>] [manifest children]: label and icon are references, as in a real build.
 built() {
-  put "$tmp/built.xml" "<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\" package=\"$1\" android:versionCode=\"1\">\n  <application ${2:-} android:label=\"Todo\" />\n</manifest>\n"
+  built_app "$1" "<application ${2:-} android:label=\"@ref/0x7f100001\" android:icon=\"@ref/0x7f0d0000\" />" "${3-<uses-permission android:name=\"android.permission.CAMERA\" />}"
+}
+
+built_no_label() {
+  built_app io.github.test.todo '<application android:icon="@ref/0x7f0d0000" />'
+}
+
+built_no_icon() {
+  built_app io.github.test.todo '<application android:label="@ref/0x7f100001" />'
+}
+
+built_permissions() {
+  built io.github.test.todo '' "$(for perm in "$@"; do printf '<uses-permission android:name="android.permission.%s" />' "$perm"; done)"
 }
 
 # native_args <platform>: set rargs for the current variant.
@@ -461,7 +478,7 @@ two "malformed --resolved, broken XML" 'not well-formed' "$tmp/kotlin" --platfor
 put "$tmp/entities.xml" '<!DOCTYPE m [<!ENTITY a "x">]><manifest package="a.b"><application android:label="&a;"/></manifest>\n'
 two "security: --resolved XML with entities is refused" 'declares XML entities' "$tmp/kotlin" --platform android --resolved "$tmp/entities.xml"
 put "$tmp/one.json" '{"expo":{"name":"One"}}\n'
-put "$tmp/two.json" '{"name":"Two"}\n'
+put "$tmp/two.json" '{"slug":"two"}\n'
 two "two Expo files" 'two expo files' "$tmp/expo" --platform ios --resolved "$tmp/one.json" --resolved "$tmp/two.json"
 variant xcode two-xcode
 resolve "$dir"
@@ -536,7 +553,7 @@ seed expo "option false" permission-strings ios 'sub app.json "\"Todo reads one 
 seed expo "missing bundle id" bundle-id ios 'sub app.json "\"bundleIdentifier\":\"io.github.test.todo\"" "\"supportsTablet\":true"' 'no bundle id'
 seed expo "bad bundle id" bundle-id ios 'sub app.json "\"bundleIdentifier\":\"io.github.test.todo\"" "\"bundleIdentifier\":\"io_github.todo\""' '"io_github\.todo" must be'
 seed expo "empty name" app-name ios 'sub app.json "\"name\":\"Todo\"" "\"name\":\"\""' 'name is empty'
-seed expo "no name" app-name ios 'sub app.json "\"name\":\"Todo\"," ""' 'name is empty'
+seed expo "no name" app-name ios 'sub app.json "\"name\":\"Todo\"," ""; sub package.json "\"name\":\"todo\"," ""' 'name is empty'
 seed expo "empty privacy" privacy-policy-url ios 'state . "\"\""' 'App Store Connect requires'
 seed expo "foreground gone" icon-sizes android 'rm assets/fg.png' 'foregroundImage points at "\./assets/fg\.png", which is missing'
 seed expo "foreground small" icon-sizes android 'png assets/fg.png 256 256 6; png assets/bg.png 256 256 2' 'fg\.png" is 256x256'
@@ -618,6 +635,7 @@ run_check "$dir" --platform ios --resolved "$tmp/dyn-expo-config.json"
 expect "same project with --resolved (wrapper) passes" 0 '^PASS app-name: ' '^PASS permission-strings: ' '!^(FAIL|UNKNOWN) '
 python3 -I -c 'import json,sys
 d=json.load(open(sys.argv[1]))["expo"]
+d["slug"]="todo"
 json.dump(d,open(sys.argv[2],"w"))' "$tmp/dyn-expo-config.json" "$tmp/dyn-expo-root.json"
 run_check "$dir" --platform ios --resolved "$tmp/dyn-expo-root.json"
 expect "same project with --resolved (expo root) passes" 0 '^PASS app-name: ' '!^(FAIL|UNKNOWN) '
@@ -655,10 +673,9 @@ seed flutter "missing id" bundle-id ios "over PRODUCT_BUNDLE_IDENTIFIER=; sub io
 seed flutter "bad id" bundle-id ios "over PRODUCT_BUNDLE_IDENTIFIER=io_github.todo" '"io_github\.todo" must be'
 seed flutter "empty name" app-name ios "sub ios/Runner/Info.plist '<string>Todo</string>' '<string></string>'" 'name is empty'
 seed flutter "ios empty privacy" privacy-policy-url ios 'state . "\"\""' 'App Store Connect requires'
-seed flutter "android icon gone" icon-sizes android "sub android/$km/AndroidManifest.xml ' android:icon=\"@mipmap/ic_launcher\"' ''" 'android:icon is missing'
+seed flutter "android icon gone" icon-sizes android "built_no_icon; sub android/$km/AndroidManifest.xml ' android:icon=\"@mipmap/ic_launcher\"' ''" 'android:icon is missing'
 seed flutter "android icon wrong size" icon-sizes android "webp android/$km/res/mipmap-hdpi/ic_launcher.webp VP8L 96 96" 'mipmap-hdpi/ic_launcher\.webp" is 96x96, expected 72x72'
 seed flutter "android host permission undeclared" permissions-declared android "put android/$km/kotlin/M.kt 'val p = Manifest.permission.READ_CONTACTS\n'" '"READ_CONTACTS", which is not declared'
-seed flutter "android missing id" package android "built ''" 'no application id'
 seed flutter "android empty name" app-name android "sub android/$km/res/values/strings.xml '>Todo<' '><'" 'name is empty'
 seed flutter "android empty privacy" privacy-policy-url android 'state . "\"\""' 'Google Play requires'
 seed flutter "web icon gone" icon-sizes web "rm web/icons/Icon-192.png" 'Icon-192\.png", which is missing'
@@ -796,7 +813,7 @@ expect "a repeated fix prints once, every gap still named" 1 '^FAIL icon-sizes: 
 
 # ---- Seeded gaps: kotlin ---------------------------------------------------
 
-seed kotlin "icon attr gone" icon-sizes android "sub $km/AndroidManifest.xml ' android:icon=\"@mipmap/ic_launcher\"' ''" 'android:icon is missing'
+seed kotlin "icon attr gone" icon-sizes android "built_no_icon; sub $km/AndroidManifest.xml ' android:icon=\"@mipmap/ic_launcher\"' ''" 'android:icon is missing'
 seed kotlin "icon files gone" icon-sizes android "rm -rf $km/res/mipmap-*" '"@mipmap/ic_launcher" has no file'
 seed kotlin "wrong VP8L size" icon-sizes android "webp $km/res/mipmap-xxxhdpi/ic_launcher.webp VP8L 96 96" 'mipmap-xxxhdpi/ic_launcher.webp" is 96x96, expected 192x192'
 seed kotlin "wrong VP8 size" icon-sizes android "webp $km/res/mipmap-mdpi/ic_launcher.webp VP8 96 96" 'mipmap-mdpi/ic_launcher.webp" is 96x96, expected 48x48'
@@ -805,31 +822,35 @@ seed kotlin "wrong PNG size" icon-sizes android "rm $km/res/mipmap-hdpi/ic_launc
 seed kotlin "adaptive foreground gone" icon-sizes android "rm $km/res/drawable/ic_launcher_foreground.xml" '"@drawable/ic_launcher_foreground" has no file'
 seed kotlin "adaptive no foreground" icon-sizes android "sub $km/res/mipmap-anydpi-v26/ic_launcher.xml '<foreground android:drawable=\"@drawable/ic_launcher_foreground\" />' ''" 'has no <foreground>'
 seed kotlin "adaptive vector not 108dp" icon-sizes android "sub $km/res/drawable/ic_launcher_foreground.xml 'android:width=\"108dp\"' 'android:width=\"96dp\"'" 'android:width "96dp", expected 108dp'
-seed kotlin "permission undeclared" permissions-declared android "sub $km/AndroidManifest.xml '<uses-permission android:name=\"android.permission.CAMERA\" />' ''" '"CAMERA", which is not declared'
+seed kotlin "permission undeclared" permissions-declared android "built_permissions" '"CAMERA", which is not declared'
 seed kotlin "second permission undeclared" permissions-declared android "put $km/java/io/test/L.java 'class L { String a = android.Manifest.permission.ACCESS_FINE_LOCATION; }\n'" '"ACCESS_FINE_LOCATION", which is not declared'
 seed kotlin "literal permission undeclared" permissions-declared android "put $km/java/io/test/L.kt 'val a = \"android.permission.RECORD_AUDIO\"\n'" '"RECORD_AUDIO", which is not declared'
-seed kotlin "missing id in the artifact" package android "built ''" 'no application id'
 seed kotlin "bad id in the artifact" package android "built io.github.2todo" '"io\.github\.2todo" needs'
-seed kotlin "label gone" app-name android "sub $km/AndroidManifest.xml ' android:label=\"@string/app_name\"' ''" 'android:label is missing'
+seed kotlin "label gone" app-name android "built_no_label; sub $km/AndroidManifest.xml ' android:label=\"@string/app_name\"' ''" 'android:label is missing'
 seed kotlin "empty name" app-name android "sub $km/res/values/strings.xml '>Todo<' '> <'" 'name is empty'
 seed kotlin "empty privacy" privacy-policy-url android 'state . "\"\""' 'Google Play requires'
 rm -f "$tmp/built.xml"
 built io.github.test.todo
 
 variant kotlin dangerous-evidence
-sub "$dir/$km/AndroidManifest.xml" '<uses-permission android:name="android.permission.CAMERA" />' '<uses-permission android:name="android.permission.CAMERA" /><uses-permission android:name="android.permission.READ_CONTACTS" /><uses-permission android:name="android.permission.INTERNET" />'
+built_permissions CAMERA READ_CONTACTS INTERNET
 native android
 expect "evidence lists dangerous permissions only" 0 '^PASS permissions-declared: declared dangerous: "CAMERA", "READ_CONTACTS"; ' '!INTERNET'
+built io.github.test.todo
 
 variant kotlin malformed-manifest
 put "$dir/$km/AndroidManifest.xml" '<manifest><application'
 native android
-expect "malformed manifest gives UNKNOWN" 0 '^UNKNOWN app-name: .*XML' '^UNKNOWN icon-sizes: .*XML' '^UNKNOWN permissions-declared: .*XML' '!^FAIL '
+expect "malformed manifest gives UNKNOWN; the built manifest still decides permissions" 0 '^UNKNOWN app-name: .*XML' '^UNKNOWN icon-sizes: .*XML' '^PASS permissions-declared: ' '!^FAIL '
+run_check "$dir" --platform android
+expect "malformed manifest with no built manifest: permissions UNKNOWN" 0 '^UNKNOWN permissions-declared: .*XML' '!^FAIL '
 
 variant flutter missing-manifest
 rm "$dir/android/$km/AndroidManifest.xml"
 native android
-expect "a missing manifest is UNKNOWN: Gradle can relocate it" 0 '^UNKNOWN app-name: .*missing' '^UNKNOWN icon-sizes: .*missing' '^UNKNOWN permissions-declared: .*missing' '!^FAIL '
+expect "a missing manifest is UNKNOWN: Gradle can relocate it" 0 '^UNKNOWN app-name: .*missing' '^UNKNOWN icon-sizes: .*missing' '^PASS permissions-declared: ' '!^FAIL '
+run_check "$dir" --platform android
+expect "a missing manifest with no built manifest: permissions UNKNOWN" 0 '^UNKNOWN permissions-declared: .*missing' '!^FAIL '
 
 variant kotlin string-gone
 sub "$dir/$km/res/values/strings.xml" 'name="app_name"' 'name="other"'
@@ -856,8 +877,12 @@ expect "Gradle placeholder label is UNKNOWN" 0 '^UNKNOWN app-name: '
 
 variant kotlin sdk23
 sub "$dir/$km/AndroidManifest.xml" '<uses-permission android:name="android.permission.CAMERA" />' '<uses-permission-sdk-23 android:name="android.permission.CAMERA" />'
-native android
-expect "uses-permission-sdk-23 declares a permission" 0 '^PASS permissions-declared: declared dangerous: "CAMERA"'
+run_check "$dir" --platform android
+expect "uses-permission-sdk-23 in src/main declares a permission" 0 '^PASS permissions-declared: declared dangerous: "CAMERA"'
+built io.github.test.todo '' '<uses-permission-sdk-23 android:name="android.permission.CAMERA" />'
+run_check "$dir" --platform android --resolved "$tmp/built.xml"
+expect "uses-permission-sdk-23 in the built manifest declares a permission" 0 '^PASS permissions-declared: declared dangerous: "CAMERA"'
+built io.github.test.todo
 
 variant kotlin all-android-gaps
 put "$dir/$km/java/io/test/L.kt" 'val a = Manifest.permission.READ_SMS\nval b = Manifest.permission.READ_CONTACTS\n'
@@ -877,9 +902,6 @@ put "$tmp/gradle-root/build.gradle" 'apply plugin: "com.android.application"\n'
 put "$tmp/gradle-root/src/main/AndroidManifest.xml" '<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:label="Todo" android:icon="@mipmap/x"/></manifest>\n'
 run_check "$tmp/gradle-root" --platform android
 expect "a Gradle file plus a manifest at the project root is an Android app" 1 '^PASS app-name: "Todo"' '^UNKNOWN package: '
-mkdir -p "$tmp/gradle-only/app"
-put "$tmp/gradle-only/app/build.gradle" 'apply plugin: "com.android.application"\n'
-two "a Gradle file with no manifest is not detected" 'no supported framework' "$tmp/gradle-only" --platform android
 
 # ---- Android layers that cannot be judged ----------------------------------
 
@@ -893,9 +915,9 @@ android_icon_is '<layer-list xmlns:android="http://schemas.android.com/apk/res/a
 expect "layer-list launcher is UNKNOWN" 0 '^UNKNOWN icon-sizes: .*"layer-list" drawable' '!^PASS icon-sizes: '
 android_icon_is '<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp"/>\n'
 expect "legacy vector launcher is UNKNOWN" 0 '^UNKNOWN icon-sizes: .*"vector" drawable' '!^PASS icon-sizes: '
-android_icon_is '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt"><foreground><aapt:attr name="android:drawable"><vector/></aapt:attr></foreground></adaptive-icon>\n'
+android_icon_is '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt"><background android:drawable="@color/white"/><foreground><aapt:attr name="android:drawable"><vector/></aapt:attr></foreground></adaptive-icon>\n'
 expect "inline aapt:attr foreground is UNKNOWN" 0 '^UNKNOWN icon-sizes: <foreground> in .*inline drawable' '!^PASS icon-sizes: '
-android_icon_is '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android"><foreground/></adaptive-icon>\n'
+android_icon_is '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android"><background android:drawable="@color/white"/><foreground/></adaptive-icon>\n'
 expect "an empty adaptive foreground fails" 1 '^FAIL icon-sizes: <foreground> in .* has no drawable'
 
 variant kotlin layer-in-adaptive
@@ -924,7 +946,11 @@ expect "a remote Android icon is UNKNOWN" 0 '^UNKNOWN icon-sizes: .*remote URL' 
 seed vite "icon link gone" icon-sizes web "rm public/favicon.svg" 'favicon\.svg", which is missing'
 seed vite "manifest icon gone" icon-sizes web "rm public/icon-64.png" 'icon-64\.png", which is missing'
 seed vite "manifest size mismatch" icon-sizes web "png public/icon-64.png 32 32 6" 'is 32x32 but manifest declares'
-seed vite "empty title, no manifest" app-name web "rm public/manifest.webmanifest; sub index.html '<title>Todo</title>' '<title> </title>'" 'name is empty'
+variant vite empty-title-vite
+rm "$dir/public/manifest.webmanifest"
+sub "$dir/index.html" '<title>Todo</title>' '<title> </title>'
+run_check "$dir" --platform web
+expect "vite: an empty title with no manifest is UNKNOWN" 0 '^UNKNOWN app-name: .*a JS or TS config may set it' '!^FAIL '
 seed static "icon gone" icon-sizes web "rm favicon.png" 'favicon\.png", which is missing'
 seed static "no icons declared" icon-sizes web "sub index.html '<link rel=\"icon\" sizes=\"32x32\" href=\"favicon.png\">' ''" 'no icon declared'
 seed static "declared size mismatch" icon-sizes web "png favicon.png 16 16 6" 'is 16x16 but index.html declares'
@@ -972,9 +998,9 @@ expect "next layout with a computed key and no data file: UNKNOWN" 0 '^UNKNOWN a
 layout_is 'const title = "x";\nexport const metadata = { title: "Todo", description: title };\n'
 run_check "$dir" --platform web
 expect "next layout with a value reference and no data file: UNKNOWN" 0 '^UNKNOWN app-name: ' '!^PASS app-name: '
-put "$dir/public/manifest.json" '{"name":"From Manifest"}\n'
+put "$dir/app/manifest.json" '{"name":"From Manifest"}\n'
 run_check "$dir" --platform web
-expect "next layout is not read: public/manifest.json decides" 0 '^PASS app-name: "From Manifest" from "public/manifest.json"'
+expect "next layout is not read: app/manifest.json decides" 0 '^PASS app-name: "From Manifest" from "app/manifest.json"'
 run_check "$tmp/nextjs" --platform web
 expect "next layout with a literal title and no data file: UNKNOWN, never PASS" 0 '^UNKNOWN app-name: ' '!^PASS app-name: ' '^PASS icon-sizes: '
 
@@ -1066,6 +1092,8 @@ url_case "null value" '---\nprovided:\n  publish-readiness:\n    privacy_policy_
 url_case "other skill is not read" '---\nprovided:\n  store-listing:\n    privacy_policy_url: https://example.org/wrong\n  publish-readiness:\n    privacy_policy_url: ""\n---\n' 1 "$empty"
 url_case "same key at the top is not read" '---\nprivacy_policy_url: https://example.org/wrong\nprovided:\n  publish-readiness:\n    other: x\n---\n' 1 "$empty"
 url_case "the key after its block ended is not read" '---\nprovided:\n  publish-readiness:\n    other: x\n  privacy_policy_url: https://example.org/wrong\n---\n' 1 "$empty"
+url_case "a sibling block of the skill is not read" '---\nprovided:\n  publish-readiness:\n    other: x\n  store-listing:\n    privacy_policy_url: https://example.org/wrong\n---\n' 1 "$empty"
+url_case "a scalar parent with nested text is not read" '---\nprovided:\n  publish-readiness: none\n    privacy_policy_url: https://example.org/wrong\n---\n' 1 "$empty"
 url_case "a deeper nested key is not read" '---\nprovided:\n  publish-readiness:\n    other:\n      privacy_policy_url: https://example.org/wrong\n---\n' 1 "$empty"
 url_case "a flow map at provided is UNKNOWN" '---\nprovided: { publish-readiness: { privacy_policy_url: "https://example.org/p" } }\n---\n' 0 "$unread"
 url_case "a flow map at the skill is UNKNOWN" '---\nprovided:\n  publish-readiness: { privacy_policy_url: "https://example.org/p" }\n---\n' 0 "$unread"
@@ -1116,8 +1144,6 @@ two "expo platforms list without web" 'no web route' "$dir" --platform web
 two "expo platforms list without android" 'no android route' "$dir" --platform android
 put "$tmp/dart-only/pubspec.yaml" 'name: lib\ndependencies:\n  path: ^1.0.0\n'
 two "plain Dart package is not flutter" 'no supported framework' "$tmp/dart-only" --platform ios
-put "$tmp/swiftpm/Package.swift" '// swift-tools-version:5.9\nimport PackageDescription\nlet p = Package(name: "T", targets: [.executableTarget(name: "T")])\n'
-two "Package.swift alone is no project" 'no supported framework' "$tmp/swiftpm" --platform ios
 
 variant expo expo-with-vite
 put "$dir/vite.config.ts" 'export default {};\n'
@@ -1502,9 +1528,10 @@ variant kotlin kt-raw-only
 put "$dir/$km/java/A.kt" '// val a = Manifest.permission.READ_SMS\n'
 native android
 expect "kotlin: a permission only in a comment is UNKNOWN" 0 '^UNKNOWN permissions-declared: .*"READ_SMS", but only in what reads as a comment'
-sub "$dir/$km/AndroidManifest.xml" '<uses-permission android:name="android.permission.CAMERA" />' '<uses-permission android:name="android.permission.CAMERA" /><uses-permission android:name="android.permission.READ_SMS" />'
+built_permissions CAMERA READ_SMS
 native android
 expect "kotlin: a commented permission that is declared costs nothing" 0 '^PASS permissions-declared: .*needed by code: "CAMERA"; '
+built io.github.test.todo
 
 variant expo module-in-comment
 put "$dir/Row.ts" "// from 'expo-contacts'\nrequestPermissionsAsync();\n"
@@ -1619,7 +1646,7 @@ sub "$dir/app.json" 'io.github.test.todo"},"android"' 'io.github.my-app"},"andro
 run_check "$dir" --platform ios
 expect "a hyphen in a bundle id passes" 0 '^PASS bundle-id: "io.github.my-app"'
 
-for ext in mjs cjs mts; do
+for ext in mjs cjs mts cts; do
   variant expo scan-ext
   put "$dir/extra.$ext" 'launchCameraAsync();\n'
   run_check "$dir" --platform ios
@@ -1745,8 +1772,8 @@ expect "2 MB of backslashes in an unclosed state quote" 0 '^UNKNOWN privacy-poli
 
 variant static read-budget
 python3 -I -c 'import sys
-open(sys.argv[1],"w").write("<title>x</title>"+"<link rel=\"icon\" href=\"big.bin\">"*900)
-open(sys.argv[2],"wb").write(bytes(2*1024*1024))' "$dir/index.html" "$dir/big.bin"
+open(sys.argv[1],"w").write("<title>x</title>"+"<link rel=\"icon\" href=\"big.ico\">"*900)
+open(sys.argv[2],"wb").write(bytes(2*1024*1024))' "$dir/index.html" "$dir/big.ico"
 watched "$dir" --platform web
 expect "past the per-run read limit, a check is UNKNOWN" 0 '^UNKNOWN icon-sizes: .*per-run read limit' '!^PASS icon-sizes: '
 
@@ -1792,6 +1819,444 @@ m.web_checks=lambda *a:[("done-check",lambda:"ok"),("slow-check",lambda:time.sle
 sys.exit(m.main([sys.argv[2],"--platform","web"]))' "$check" "$dir"
 total=$((total + 1))
 if [ "$code" = 2 ] && printf '%s\n' "$out" | grep -q '^PASS done-check' && ! printf '%s\n' "$out" | grep -q 'slow-check' && printf '%s\n' "$err" | grep -q 'run limit passed'; then pass=$((pass + 1)); else fail "the run limit exits 2 with no PASS for undone checks" "exit $code, out '$out', err '$err'"; fi
+
+# ---- Next.js: only app/ data decides ------------------------------------------
+
+variant nextjs next-app-manifest
+put "$dir/app/manifest.json" '{"name":"From App"}\n'
+put "$dir/public/manifest.json" '{"name":"Stale Public"}\n'
+put "$dir/index.html" '<title>Stray Root</title>\n'
+run_check "$dir" --platform web
+expect "next: app/manifest.json decides over a stale public manifest and a stray index.html" 0 '^PASS app-name: "From App" from "app/manifest.json"' '!Stale Public' '!Stray Root'
+rm "$dir/app/manifest.json"
+run_check "$dir" --platform web
+expect "next: a stale public manifest and a stray index.html are UNKNOWN" 0 '^UNKNOWN app-name: ' '!^PASS app-name: ' '!Stale Public' '!Stray Root'
+
+variant nextjs next-public-ignored
+rm "$dir/app/icon.png"
+put "$dir/public/manifest.json" '{"name":"Stale","icons":[{"src":"/gone.png"}]}\n'
+put "$dir/index.html" '<link rel="icon" href="/gone.png"><link rel="manifest" href="/manifest.json">\n'
+run_check "$dir" --platform web
+expect "next: icons in public manifests and a root index.html do not count" 0 '^UNKNOWN icon-sizes: .*a JS or TS config may set one' '^UNKNOWN app-name: ' '!gone.png'
+
+variant nextjs next-webmanifest
+put "$dir/app/manifest.webmanifest" '{"name":"Todo Web","icons":[{"src":"/missing.png"}]}\n'
+run_check "$dir" --platform web
+expect "next: app/manifest.webmanifest decides, and its icons count" 1 '^PASS app-name: "Todo Web" from "app/manifest.webmanifest"' '^FAIL icon-sizes: .*missing.png'
+
+variant nextjs next-src-manifest
+mkdir "$dir/src"
+mv "$dir/app" "$dir/src/app"
+put "$dir/src/app/manifest.json" '{"name":"Todo Src"}\n'
+run_check "$dir" --platform web
+expect "next: src/app/manifest.json decides" 0 '^PASS app-name: "Todo Src" from "src/app/manifest.json"'
+
+for ext in ts js; do
+  variant nextjs next-code-manifest
+  put "$dir/app/manifest.json" '{"name":"Todo"}\n'
+  put "$dir/app/manifest.$ext" 'export default function manifest() { return {}; }\n'
+  run_check "$dir" --platform web
+  expect "next: app/manifest.$ext is UNKNOWN for name and icons, whatever else exists" 0 "^UNKNOWN app-name: \"app/manifest.$ext\" generates" "^UNKNOWN icon-sizes: \"app/manifest.$ext\" generates" '!^(PASS|FAIL) (app-name|icon-sizes)'
+done
+
+# ---- Web: a manifest counts only when the HTML links it --------------------------
+
+variant static unlinked-static
+put "$dir/manifest.json" '{"name":"Unlinked","icons":[{"src":"gone.png"}]}\n'
+run_check "$dir" --platform web
+expect "static: an unlinked manifest does not count, name or icons" 0 '^PASS app-name: "Todo" from index.html' '^PASS icon-sizes: ' '!Unlinked' '!gone.png'
+sub "$dir/index.html" '<title>Todo</title>' '<title></title>'
+run_check "$dir" --platform web
+expect "static: an empty title beside an unlinked manifest fails" 1 '^FAIL app-name: .*name is empty' '!Unlinked'
+
+variant vite unlinked-vite
+sub "$dir/index.html" '<link rel="manifest" href="/manifest.webmanifest">' ''
+sub "$dir/index.html" '<title>Todo</title>' '<title></title>'
+run_check "$dir" --platform web
+expect "vite: an empty title beside an unlinked manifest is UNKNOWN" 0 '^UNKNOWN app-name: .*a JS or TS config may set it' '!^(PASS|FAIL) app-name: '
+
+variant flutter unlinked-flutter
+sub "$dir/web/index.html" '<link rel="manifest" href="manifest.json">' ''
+sub "$dir/web/index.html" '<title>Todo</title>' ''
+run_check "$dir" --platform web
+expect "flutter web: an unlinked manifest does not name the app" 1 '^FAIL app-name: no name in a web manifest'
+
+variant static linked-other-name
+sub "$dir/index.html" '</title>' '</title><link rel="manifest" href="site.json">'
+put "$dir/site.json" '{"name":"Linked"}\n'
+run_check "$dir" --platform web
+expect "a manifest of any file name counts when linked" 0 '^PASS app-name: "Linked" from "site.json"'
+
+variant static public-index
+mkdir -p "$dir/public"
+put "$dir/public/index.html" '<title>Public</title>\n'
+sub "$dir/index.html" '<title>Todo</title>' ''
+run_check "$dir" --platform web
+expect "public/index.html is not the HTML read" 1 '^FAIL app-name: no name' '!Public'
+
+# ---- HeadReader: the head only ------------------------------------------------
+
+head_is() {
+  variant static head-case
+  put "$dir/index.html" "$1"
+  run_check "$dir" --platform web
+}
+head_is '<head></head><body><svg><title>Logo</title></svg></body>\n'
+expect "a title in an svg in the body is not the name" 1 '^FAIL app-name: no name' '!Logo'
+head_is '<head><svg><title>Logo</title></svg></head>\n'
+expect "a title inside an svg in the head is not the name" 1 '^FAIL app-name: no name' '!Logo'
+head_is '<head></head><title>Late</title>\n'
+expect "a title after </head> is not the name" 1 '^FAIL app-name: no name' '!Late'
+head_is '<body><title>Body</title></body>\n'
+expect "a title after <body> is not the name" 1 '^FAIL app-name: no name' '!Body'
+head_is '<head><title>First</title><title>Second</title></head>\n'
+expect "the first title wins" 1 '^PASS app-name: "First" from index.html' '!Second'
+head_is '<head><title>Todo</title></head><body><link rel="icon" href="favicon.png"></body>\n'
+expect "a link in the body is not read" 1 '^FAIL icon-sizes: no icon declared'
+
+# ---- A declared web icon must be an image ---------------------------------------
+
+variant static icon-not-image
+sub "$dir/index.html" 'href="favicon.png"' 'href="icon.ts"'
+put "$dir/icon.ts" 'export default 1;\n'
+run_check "$dir" --platform web
+expect "a declared icon that is not an image is UNKNOWN" 0 '^UNKNOWN icon-sizes: "icon.ts" does not have an image file extension' '!^PASS icon-sizes: '
+for ext in ico svg jpg jpeg gif avif ICO; do
+  variant static icon-ext
+  sub "$dir/index.html" ' sizes="32x32" href="favicon.png"' " href=\"f.$ext\""
+  put "$dir/f.$ext" 'x'
+  run_check "$dir" --platform web
+  expect "a declared .$ext icon counts" 0 '^PASS icon-sizes: '
+  : >"$dir/f.$ext"
+  run_check "$dir" --platform web
+  expect "an empty .$ext icon is UNKNOWN" 0 "^UNKNOWN icon-sizes: \"f.$ext\" is empty" '!^PASS icon-sizes: '
+done
+variant static icon-upper-png
+sub "$dir/index.html" 'href="favicon.png"' 'href="f.PNG"'
+png "$dir/f.PNG" 16 16 6
+run_check "$dir" --platform web
+expect "an upper-case .PNG still has its size read" 1 '^FAIL icon-sizes: "f.PNG" is 16x16'
+
+variant nextjs icon-odd-ext
+rm "$dir/app/icon.png"
+put "$dir/app/icon.txt" 'x'
+run_check "$dir" --platform web
+expect "next: app/icon with an unknown extension is UNKNOWN" 0 '^UNKNOWN icon-sizes: .*image file extension' '!^PASS icon-sizes: '
+
+variant expo favicon-not-image
+put "$dir/assets/favicon.ts" 'x'
+sub "$dir/app.json" './assets/favicon.png' './assets/favicon.ts'
+run_check "$dir" --platform web
+expect "expo: a web.favicon that is not an image is UNKNOWN" 0 '^UNKNOWN icon-sizes: .*favicon.ts" does not have an image' '!^PASS icon-sizes: '
+put "$dir/assets/favicon.ico" ''
+sub "$dir/app.json" './assets/favicon.ts' './assets/favicon.ico'
+run_check "$dir" --platform web
+expect "expo: an empty web.favicon is UNKNOWN" 0 '^UNKNOWN icon-sizes: .*favicon.ico" is empty' '!^PASS icon-sizes: '
+
+# ---- Expo: config order, classification, name default, local plugins --------------
+
+variant expo both-static
+python3 -I -c 'import json,sys
+d=json.load(open(sys.argv[1]))
+d["expo"]["ios"]["bundleIdentifier"]="io.github.from.configjson"
+json.dump(d,open(sys.argv[2],"w"))' "$dir/app.json" "$dir/app.config.json"
+run_check "$dir" --platform ios
+expect "app.config.json wins over app.json, as getStaticConfigFilePath orders them" 0 '^PASS bundle-id: "io.github.from.configjson"'
+
+put "$tmp/empty-object.json" '{}\n'
+two "--resolved {} is not an Expo config" 'is not Xcode settings' "$tmp/expo" --platform ios --resolved "$tmp/empty-object.json"
+put "$tmp/pkg-copy.json" '{"name":"todo","dependencies":{"expo":"~58.0.0"},"expo":"~58.0.0"}\n'
+two "--resolved package.json copy is not an Expo config" 'is not Xcode settings' "$tmp/expo" --platform ios --resolved "$tmp/pkg-copy.json"
+put "$tmp/slug-number.json" '{"slug":5}\n'
+two "--resolved with a non-string slug is not an Expo config" 'is not Xcode settings' "$tmp/expo" --platform ios --resolved "$tmp/slug-number.json"
+put "$tmp/expo-scalar.json" '{"expo":"x"}\n'
+two "--resolved with a non-object expo is not an Expo config" 'is not Xcode settings' "$tmp/expo" --platform ios --resolved "$tmp/expo-scalar.json"
+
+variant expo name-from-package
+sub "$dir/app.json" '"name":"Todo",' ''
+run_check "$dir" --platform ios
+expect "no config name: package.json name, stating the source" 0 '^PASS app-name: "todo" from package.json name'
+run_check "$dir" --platform web
+expect "no config name on web: package.json name" 0 '^PASS app-name: "todo" from package.json name'
+run_check "$dir" --platform android
+expect "no config name on android: package.json name" 0 '^PASS app-name: "todo" from package.json name'
+put "$dir/package.json" '{"dependencies":{"expo":"~58.0.0","react-dom":"19.0.0"}}\n'
+run_check "$dir" --platform ios
+expect "no name in either file fails" 1 '^FAIL app-name: the app name is empty in the Expo config or package.json'
+put "$dir/package.json" '{"name": '
+run_check "$dir" --platform ios
+expect "a malformed package.json is UNKNOWN for the fallback name" 0 '^UNKNOWN app-name: "package.json" is not valid JSON'
+variant expo name-null
+sub "$dir/app.json" '"name":"Todo"' '"name":null'
+run_check "$dir" --platform ios
+expect "a null config name falls back, as ?? does" 0 '^PASS app-name: "todo" from package.json name'
+variant expo name-empty
+sub "$dir/app.json" '"name":"Todo"' '"name":""'
+run_check "$dir" --platform ios
+expect "an empty config name does not fall back, as ?? does" 1 '^FAIL app-name: the app name is empty in the Expo config'
+
+for plugin in '"./plugins/x.js"' '"/abs/plugin"' '["../shared/x",{"a":1}]'; do
+  variant expo local-plugin-ids
+  sub "$dir/app.json" '"plugins":[' "\"plugins\":[$plugin,"
+  run_check "$dir" --platform ios
+  expect "local plugin $plugin: name and bundle id are UNKNOWN" 0 '^UNKNOWN app-name: the local config plugin' '^UNKNOWN bundle-id: the local config plugin' '!^(PASS|FAIL) (app-name|bundle-id)'
+  run_check "$dir" --platform android
+  expect "local plugin $plugin: package is UNKNOWN" 0 '^UNKNOWN app-name: the local config plugin' '^UNKNOWN package: the local config plugin' '!^(PASS|FAIL) (app-name|package)'
+  run_check "$dir" --platform web
+  expect "local plugin $plugin: web name is UNKNOWN" 0 '^UNKNOWN app-name: the local config plugin'
+done
+variant expo packaged-plugin-ids
+sub "$dir/app.json" '"plugins":[' '"plugins":["expo-some-other-module",'
+run_check "$dir" --platform ios
+expect "a packaged plugin keeps name and bundle id" 0 '^PASS app-name: ' '^PASS bundle-id: '
+
+variant expo ignore-negated
+apple_tree "$dir/ios"
+android_tree "$dir/android"
+put "$dir/.gitignore" 'ios/\n!ios/Podfile\n'
+run_check "$dir" --platform ios
+expect "a negated line naming ios/ is UNKNOWN on the whole route" 0 '^UNKNOWN app-name: \.gitignore has a negated' '^UNKNOWN bundle-id: .*negated' '^UNKNOWN permission-strings: .*negated' '!^(PASS|FAIL) (app-name|bundle-id|icon-sizes|icon-alpha|permission-strings)'
+put "$dir/.gitignore" 'android/\n!/android/app\n'
+run_check "$dir" --platform android
+expect "a negated line naming android/ is UNKNOWN on the whole route" 0 '^UNKNOWN package: .*negated' '^UNKNOWN permissions-declared: .*negated' '!^(PASS|FAIL) (app-name|package|icon-sizes|permissions-declared)'
+put "$dir/.gitignore" 'ios/\n!ios-old/\n!iosx\n'
+run_check "$dir" --platform ios
+expect "a negated line naming another folder does not count" 0 '^PASS bundle-id: .* from ios.bundleIdentifier'
+rm "$dir/.gitignore"
+put "$dir/.easignore" '!**/ios/\n'
+run_check "$dir" --platform ios
+expect ".easignore negation is UNKNOWN too" 0 '^UNKNOWN bundle-id: \.easignore has a negated'
+
+# ---- Route detection --------------------------------------------------------
+
+variant flutter quoted-sdk
+sub "$dir/pubspec.yaml" 'sdk: flutter' 'sdk: "flutter"'
+put "$dir/index.html" '<title>Landing</title>\n'
+run_check "$dir" --platform web
+expect "a quoted flutter sdk takes the Flutter route over a root landing page" 0 '^PASS app-name: "Todo" from "web/manifest.json"' '!Landing'
+variant flutter unreadable-pubspec
+printf '\377\376' >"$dir/pubspec.yaml"
+run_check "$dir" --platform ios
+expect "an unreadable pubspec.yaml takes the Flutter route" 0 '^UNKNOWN app-name: .*flutter build ios'
+
+put "$tmp/swiftpm-only/Package.swift" '// swift-tools-version:5.9\n'
+run_check "$tmp/swiftpm-only" --platform ios
+expect "Package.swift alone is the Xcode route: UNKNOWN with the resolve command" 0 '^UNKNOWN app-name: no resolved Xcode settings' '^UNKNOWN bundle-id: no resolved Xcode settings' '!^(PASS|FAIL) (app-name|bundle-id)'
+two "Package.swift has no Android route" 'xcode has no android route' "$tmp/swiftpm-only" --platform android
+for at in build.gradle build.gradle.kts app/build.gradle app/build.gradle.kts; do
+  rm -rf "$tmp/gradle-only"
+  put "$tmp/gradle-only/$at" 'x\n'
+  run_check "$tmp/gradle-only" --platform android
+  expect "a Gradle file at $at with no manifest is the Kotlin route: UNKNOWN" 0 '^UNKNOWN app-name: .*is missing; a Gradle source set can relocate it' '^UNKNOWN package: the application id comes from Gradle' '!^(PASS|FAIL) (app-name|package|icon-sizes|permissions-declared)'
+done
+variant static static-over-fallback
+put "$dir/Package.swift" 'x\n'
+put "$dir/build.gradle" 'x\n'
+run_check "$dir" --platform web
+expect "the fallback sits at the unknown end: index.html stays static" 0 '^PASS app-name: "Todo"'
+
+# ---- Android: a built manifest decides what it holds ------------------------------
+
+variant kotlin built-permission-both-ways
+sub "$dir/$km/AndroidManifest.xml" '<uses-permission android:name="android.permission.CAMERA" />' ''
+built_permissions CAMERA
+run_check "$dir" --platform android --resolved "$tmp/built.xml"
+expect "a permission only the built manifest holds counts" 0 '^PASS permissions-declared: declared dangerous: "CAMERA"; needed by code: "CAMERA"'
+variant kotlin built-permission-removed
+built_permissions
+run_check "$dir" --platform android --resolved "$tmp/built.xml"
+expect "a permission only src/main holds does not count once a build dropped it" 1 '^FAIL permissions-declared: .*"CAMERA", which is not declared'
+
+variant kotlin built-label
+sub "$dir/$km/AndroidManifest.xml" '@string/app_name' 'From Source'
+built_app io.github.test.todo '<application android:label="From Build" android:icon="@ref/0x1" />'
+run_check "$dir" --platform android --resolved "$tmp/built.xml"
+expect "a literal built label decides" 0 '^PASS app-name: "From Build" from the built manifest' '!From Source'
+built_app io.github.test.todo '<application android:label="" android:icon="@ref/0x1" />'
+run_check "$dir" --platform android --resolved "$tmp/built.xml"
+expect "an empty built label fails" 1 '^FAIL app-name: the app name is empty in the built manifest'
+for ref in '@ref/0x7f100001' '@string/app_name'; do
+  built_app io.github.test.todo "<application android:label=\"$ref\" android:icon=\"@ref/0x1\" />"
+  run_check "$dir" --platform android --resolved "$tmp/built.xml"
+  expect "a built label $ref falls back to src/main" 0 '^PASS app-name: "From Source" from android:label'
+done
+variant kotlin built-label-no-source
+rm "$dir/$km/AndroidManifest.xml"
+built_app io.github.test.todo '<application android:label="From Build" android:icon="@ref/0x1" />'
+run_check "$dir" --platform android --resolved "$tmp/built.xml"
+expect "a built manifest decides with no src/main manifest" 0 '^PASS app-name: "From Build"' '^PASS permissions-declared: ' '^UNKNOWN icon-sizes: .*missing'
+built io.github.test.todo
+
+variant kotlin no-built-api
+sub "$dir/$km/AndroidManifest.xml" '<uses-permission android:name="android.permission.CAMERA" />' ''
+run_check "$dir" --platform android
+expect "kotlin, no built manifest: an API whose permission is absent is UNKNOWN" 0 '^UNKNOWN permissions-declared: .*"CAMERA", and no built manifest shows it, and a library can supply it' '!^FAIL permissions-declared: '
+variant flutter no-built-api
+put "$dir/android/$km/kotlin/M.kt" 'val p = Manifest.permission.READ_CONTACTS\n'
+run_check "$dir" --platform android
+expect "flutter, no built manifest: an API whose permission is absent is UNKNOWN" 0 '^UNKNOWN permissions-declared: .*"READ_CONTACTS", and no built manifest shows it' '!^FAIL permissions-declared: '
+variant expo native-auto-permission
+android_tree "$dir/android"
+sub "$dir/android/$km/AndroidManifest.xml" '<uses-permission android:name="android.permission.CAMERA" />' ''
+sub "$dir/App.tsx" 'launchImageLibraryAsync' 'launchCameraAsync'
+run_check "$dir" --platform android
+expect "expo with android/, no built manifest: an absent permission is UNKNOWN" 0 '^UNKNOWN permissions-declared: .*"CAMERA", and no built manifest shows it'
+built_permissions
+run_check "$dir" --platform android --resolved "$tmp/built.xml"
+expect "expo with android/, built manifest without it: FAIL" 1 '^FAIL permissions-declared: .*"CAMERA", which is not declared'
+built io.github.test.todo
+variant expo config-auto-permission
+sub "$dir/App.tsx" 'launchImageLibraryAsync' 'launchCameraAsync'
+sub "$dir/app.json" '"expo-image-picker",{' '"expo-image-picker",{"cameraPermission":"Scan a code.",'
+run_check "$dir" --platform android
+expect "the Expo config route keeps its how rules: auto needs no declaration" 0 '^PASS permissions-declared: .*needed by code: "CAMERA"'
+
+variant kotlin no-built-attrs
+sub "$dir/$km/AndroidManifest.xml" ' android:label="@string/app_name"' ''
+sub "$dir/$km/AndroidManifest.xml" ' android:icon="@mipmap/ic_launcher"' ''
+run_check "$dir" --platform android
+expect "no built manifest: a missing label or icon is UNKNOWN" 0 '^UNKNOWN app-name: android:label is missing from src/main' '^UNKNOWN icon-sizes: android:icon is missing from src/main' '!^FAIL '
+built io.github.test.todo
+run_check "$dir" --platform android --resolved "$tmp/built.xml"
+expect "a built manifest holding them: a missing source attribute stays UNKNOWN" 0 '^UNKNOWN app-name: android:label is missing from src/main' '^UNKNOWN icon-sizes: android:icon is missing from src/main' '!^FAIL '
+variant kotlin no-application
+put "$dir/$km/AndroidManifest.xml" '<manifest xmlns:android="http://schemas.android.com/apk/res/android"><uses-permission android:name="android.permission.CAMERA" /></manifest>\n'
+run_check "$dir" --platform android
+expect "no built manifest: no <application> is UNKNOWN" 0 '^UNKNOWN app-name: ' '^UNKNOWN icon-sizes: ' '!^FAIL '
+built_app io.github.test.todo ''
+run_check "$dir" --platform android --resolved "$tmp/built.xml"
+expect "a built manifest with no <application> confirms it: FAIL" 1 '^FAIL app-name: android:label is missing .* in the built manifest' '^FAIL icon-sizes: android:icon is missing .* in the built manifest'
+built io.github.test.todo
+variant kotlin bad-label-no-built
+sub "$dir/$km/AndroidManifest.xml" '@string/app_name' ' '
+run_check "$dir" --platform android
+expect "no built manifest: a present but empty label still fails" 1 '^FAIL app-name: the app name is empty'
+variant kotlin bad-icon-no-built
+rm -rf "$dir/$km/res/mipmap-"*
+run_check "$dir" --platform android
+expect "no built manifest: a present icon with no file still fails" 1 '^FAIL icon-sizes: "@mipmap/ic_launcher" has no file'
+
+put "$tmp/no-package.xml" '<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:label="Todo"/></manifest>\n'
+two "--resolved manifest with no package is not a built manifest" 'is not a built manifest' "$tmp/kotlin" --platform android --resolved "$tmp/no-package.xml"
+put "$tmp/empty-package.xml" '<manifest package=""><application/></manifest>\n'
+two "--resolved manifest with an empty package is not a built manifest" 'is not a built manifest' "$tmp/kotlin" --platform android --resolved "$tmp/empty-package.xml"
+
+adaptive='<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">'
+android_icon_is "$adaptive<foreground android:drawable=\"@drawable/fg\" /></adaptive-icon>\n"
+expect "an adaptive icon with no background fails" 1 '^FAIL icon-sizes: .*has no <background>'
+android_icon_is "$adaptive<background android:drawable=\"@color/white\" /><foreground android:drawable=\"#ffffff\" /></adaptive-icon>\n"
+expect "a colour foreground is UNKNOWN" 0 '^UNKNOWN icon-sizes: icon reference "#ffffff" is not a @mipmap or @drawable file' '!^PASS icon-sizes: '
+android_icon_is "$adaptive<background android:drawable=\"@color/white\" /><foreground android:drawable=\"@color/white\" /></adaptive-icon>\n"
+expect "a colour reference foreground is UNKNOWN" 0 '^UNKNOWN icon-sizes: icon reference "@color/white"' '!^PASS icon-sizes: '
+android_icon_is "$adaptive<background android:drawable=\"#ffffff\" /><foreground android:drawable=\"@mipmap/ic_launcher_fg\" /></adaptive-icon>\n"
+webp "$dir/$km/res/mipmap-mdpi/ic_launcher_fg.webp" VP8L 108 108
+native android
+expect "a colour background stays allowed" 0 '^PASS icon-sizes: '
+
+# ---- Apple values --------------------------------------------------------------
+
+variant xcode dollar-name
+sub "$dir/Runner/Info.plist" '<key>CFBundleDisplayName</key><string>Todo</string>' '<key>CFBundleDisplayName</key><string>$PRODUCT_NAME</string>'
+sub "$dir/Runner/Info.plist" 'Todo scans a code to add an item.' 'Costs $PRICE'
+native ios
+expect "a dollar left after expansion is UNKNOWN" 0 '^UNKNOWN app-name: "\$PRODUCT_NAME" does not resolve' '^UNKNOWN permission-strings: "NSCameraUsageDescription" holds a build variable' '!^(PASS|FAIL) (app-name|permission-strings)'
+
+for name in ../AppIcon Sub/AppIcon; do
+  variant xcode icon-name-path
+  resolve "$dir" "ASSETCATALOG_COMPILER_APPICON_NAME=$name"
+  run_check "$dir" --platform ios --resolved "$tmp/xc.json"
+  expect "an icon set name $name is UNKNOWN, not FAIL" 0 '^UNKNOWN icon-sizes: ASSETCATALOG_COMPILER_APPICON_NAME .* is not a plain' '^UNKNOWN icon-alpha: ' '!^(PASS|FAIL) (icon-sizes|icon-alpha)'
+done
+
+variant xcode iconset-outside-catalog
+mv "$dir/$xset" "$dir/Runner/AppIcon.appiconset"
+native ios
+expect "an .appiconset outside a .xcassets folder does not count" 1 '^FAIL icon-sizes: no "AppIcon.appiconset"'
+variant xcode iconset-decoy
+mkdir -p "$dir/Docs"
+cp -R "$dir/$xset" "$dir/Docs/AppIcon.appiconset"
+native ios
+expect "a decoy .appiconset outside the catalog is not a second set" 0 '^PASS icon-sizes: '
+variant xcode iconset-group
+mkdir -p "$dir/Runner/Assets.xcassets/Icons"
+mv "$dir/$xset" "$dir/Runner/Assets.xcassets/Icons/AppIcon.appiconset"
+native ios
+expect "an .appiconset in a catalog group counts" 0 '^PASS icon-sizes: '
+
+# ---- Permission scan -----------------------------------------------------------
+
+variant expo not-utf8
+printf 'launchCameraAsync();\n// \377\n' >"$dir/Row.ts"
+run_check "$dir" --platform ios
+expect "a source file that is not UTF-8 goes to skipped" 0 '^UNKNOWN permission-strings: "Row.ts" is not UTF-8 text' '!^(PASS|FAIL) permission-strings: '
+sub "$dir/App.tsx" 'launchImageLibraryAsync' 'launchCameraAsync'
+run_check "$dir" --platform ios
+expect "a gap elsewhere still FAILs beside a file that is not UTF-8" 1 '^FAIL permission-strings: "App.tsx" uses'
+variant expo nul-byte
+printf 'launchCameraAsync();\000\n' >"$dir/Row.ts"
+run_check "$dir" --platform ios
+expect "a source file with a NUL byte goes to skipped" 0 '^UNKNOWN permission-strings: "Row.ts" holds a NUL byte' '!^(PASS|FAIL) permission-strings: '
+
+variant expo nested-build
+put "$dir/src/build/Cam.tsx" 'launchCameraAsync();\n'
+put "$dir/src/dist/Mic.tsx" 'useMicrophonePermissions();\n'
+run_check "$dir" --platform ios
+expect "src/build and src/dist are scanned" 1 '^FAIL permission-strings: .*"src/build/Cam.tsx" uses.*"src/dist/Mic.tsx" uses'
+variant expo root-output
+put "$dir/build/Cam.tsx" 'launchCameraAsync();\n'
+put "$dir/dist/Cam.tsx" 'launchCameraAsync();\n'
+run_check "$dir" --platform ios
+expect "build and dist at the scan root are skipped" 0 '^PASS permission-strings: '
+variant expo gradle-output
+put "$dir/lib/mod/build.gradle" 'x\n'
+put "$dir/lib/mod/build/Cam.tsx" 'launchCameraAsync();\n'
+run_check "$dir" --platform ios
+expect "build beside a Gradle file is skipped" 0 '^PASS permission-strings: '
+variant expo gradle-kts-output
+put "$dir/lib/mod/build.gradle.kts" 'x\n'
+put "$dir/lib/mod/build/Cam.tsx" 'launchCameraAsync();\n'
+put "$dir/lib/mod/dist/Mic.tsx" 'useMicrophonePermissions();\n'
+run_check "$dir" --platform ios
+expect "only build is skipped beside a Gradle file, not dist" 1 '^FAIL permission-strings: "lib/mod/dist/Mic.tsx" uses' '!Cam.tsx'
+variant expo deep-node-modules
+put "$dir/packages/x/node_modules/y/Cam.tsx" 'launchCameraAsync();\n'
+run_check "$dir" --platform ios
+expect "other skip folders keep any depth" 0 '^PASS permission-strings: '
+variant expo link-to-src-build
+put "$dir/src/build/Cam.ts" 'launchPhotos();\n'
+ln -s src/build "$dir/linked"
+run_check "$dir" --platform ios
+expect "a link to a scanned src/build folder stays silent" 0 '^PASS permission-strings: ' '!linked'
+variant expo link-to-root-build
+put "$dir/build/Cam.ts" 'launchPhotos();\n'
+ln -s build "$dir/linked"
+run_check "$dir" --platform ios
+expect "a link to the root build folder is UNKNOWN" 0 '^UNKNOWN permission-strings: "linked" points at a folder that is not scanned'
+
+# ---- Surviving mutants -----------------------------------------------------------
+
+two "an abbreviated flag is refused" 'unrecognized arguments' "$tmp/expo" --platform ios --resol "$tmp/x.json"
+
+variant expo bg-location
+put "$dir/Row.ts" 'requestBackgroundPermissionsAsync();\n'
+sub "$dir/app.json" '"plugins":[' '"plugins":[["expo-location",{"isAndroidBackgroundLocationEnabled":true}],'
+run_check "$dir" --platform android
+expect "isAndroidBackgroundLocationEnabled declares the background permission" 0 '^PASS permissions-declared: declared dangerous: "ACCESS_BACKGROUND_LOCATION"'
+sub "$dir/app.json" '"isAndroidBackgroundLocationEnabled":true' '"isAndroidBackgroundLocationEnabled":false'
+run_check "$dir" --platform android
+expect "isAndroidBackgroundLocationEnabled false does not declare it" 1 '^FAIL permissions-declared: .*"ACCESS_BACKGROUND_LOCATION", which is not declared'
+
+variant xcode srcroot-link-out
+ln -s "$tmp/expo" "$dir/away"
+resolve "$dir/away"
+run_check "$dir" --platform ios --resolved "$tmp/xc.json"
+expect "a symlinked SRCROOT that leaves the project is UNKNOWN" 0 '^UNKNOWN app-name: SRCROOT in the resolved Xcode settings is not inside' '!^(PASS|FAIL) (app-name|bundle-id)'
+variant xcode srcroot-link-in
+ln -s "$dir" "$tmp/v/srcroot-link"
+resolve "$tmp/v/srcroot-link"
+run_check "$dir" --platform ios --resolved "$tmp/xc.json"
+expect "a symlinked SRCROOT that resolves into the project is read" 0 '^PASS bundle-id: ' '^PASS icon-sizes: '
+rm "$tmp/v/srcroot-link"
 
 # ---- Fixtures --------------------------------------------------------------
 

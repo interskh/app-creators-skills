@@ -31,7 +31,8 @@ IMAGE_PREFIX_BYTES = 2 * 1024 * 1024
 SHOW_LIMIT = 80
 MAX_LINE = 8000
 UNSAFE_CATEGORIES = {"Cc", "Cf", "Cs", "Zl", "Zp"}
-EXPO_EXTENSIONS = (".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".mts")
+EXPO_EXTENSIONS = (".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".mts", ".cts")
+WEB_ICON_EXTENSIONS = (".png", ".webp", ".ico", ".svg", ".jpg", ".jpeg", ".gif", ".avif")
 GRADLE_FILES = ("build.gradle", "build.gradle.kts")
 APP_PRODUCT_TYPE = "com.apple.product-type.application"
 PERMISSION_SCOPE = ("this covers declared permissions and the known API patterns the script's table lists; "
@@ -408,6 +409,22 @@ def valid_package(value, source, fix):
                      "needs two or more segments, each starting with a letter, using only letters, digits, and underscores", source, fix)
 
 
+def _skip_dir(name, current, root):
+    """build and dist are output only at the scan root; build also beside a Gradle file. A src/build folder is source."""
+    if name in ("build", "dist"):
+        return current == root or (name == "build" and any(os.path.lexists(os.path.join(current, g)) for g in GRADLE_FILES))
+    return name in SKIP_DIRS
+
+
+def _not_scanned(path, root):
+    current = root
+    for part in os.path.relpath(path, root).split(os.sep):
+        if _skip_dir(part, current, root):
+            return True
+        current = os.path.join(current, part)
+    return False
+
+
 def scan_code(root, extensions, skipped):
     """Yield (relative path, comment-free text, raw text); a file that cannot be read goes in skipped."""
     def unreadable(error):
@@ -415,13 +432,12 @@ def scan_code(root, extensions, skipped):
 
     scan_real = os.path.realpath(root)
     for current, dirs, files in os.walk(root, onerror=unreadable):
-        dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS)
+        dirs[:] = sorted(d for d in dirs if not _skip_dir(d, current, root))
         for name in dirs:
             path = os.path.join(current, name)
             if os.path.islink(path) and not _inside(path, PROJECT["real"]):
                 skipped.append("%s points outside the project" % show(_rel(path)))
-            elif os.path.islink(path) and (not _inside(path, scan_real) or set(
-                    os.path.relpath(os.path.realpath(path), scan_real).split(os.sep)) & SKIP_DIRS):
+            elif os.path.islink(path) and (not _inside(path, scan_real) or _not_scanned(os.path.realpath(path), scan_real)):
                 skipped.append("%s points at a folder that is not scanned" % show(_rel(path)))
         for name in sorted(files):
             if not name.endswith(extensions):
@@ -432,7 +448,14 @@ def scan_code(root, extensions, skipped):
             except Unknown as e:
                 skipped.append(str(e))
                 continue
-            raw = data.decode("utf-8", "replace")
+            try:
+                raw = data.decode("utf-8")
+            except ValueError:
+                skipped.append("%s is not UTF-8 text" % show(_rel(path)))
+                continue
+            if "\0" in raw:
+                skipped.append("%s holds a NUL byte" % show(_rel(path)))
+                continue
             yield _rel(path), strip_comments(raw), raw
 
 
@@ -523,12 +546,16 @@ def _resolved_file(path):
             root = parse_xml(data, label)
             if root.tag != "manifest":
                 raise Unknown("root element is not manifest")
+            if not root.get("package"):
+                raise UsageError("--resolved %s is not a built manifest: it has no package attribute" % label)
             return "android", root
         parsed = json.loads(data.decode("utf-8-sig"))
     except (Unknown, ValueError, RecursionError) as e:
         raise UsageError("--resolved %s could not be read (%s)" % (label, clean(e) or type(e).__name__))
-    if isinstance(parsed, dict):
-        return "expo", parsed["expo"] if isinstance(parsed.get("expo"), dict) else parsed
+    if isinstance(parsed, dict) and isinstance(parsed.get("expo"), dict):
+        return "expo", parsed["expo"]
+    if isinstance(parsed, dict) and isinstance(parsed.get("slug"), str):
+        return "expo", parsed
     if parsed and isinstance(parsed, list) and all(isinstance(e, dict) and isinstance(e.get("buildSettings"), dict) for e in parsed):
         return "xcode", parsed
     raise UsageError("--resolved %s is not Xcode settings, an Expo config, or an Android manifest" % label)
@@ -577,7 +604,7 @@ class Apple:
         for _ in range(8):
             m = re.search(r"\$\(([^)$]*)\)|\$\{([^}$]*)\}", value)
             if not m:
-                if "$(" in value or "${" in value:
+                if "$" in value:
                     raise Unknown("%s does not resolve" % show(value))
                 return value
             var = m.group(1) if m.group(1) is not None else m.group(2)
@@ -628,13 +655,16 @@ class Apple:
         if name is None:
             raise Fail("no ASSETCATALOG_COMPILER_APPICON_NAME in the resolved settings", Apple.FIX_ICON)
         name = self.expand(name)
+        if "/" in name or ".." in name:
+            raise Unknown("ASSETCATALOG_COMPILER_APPICON_NAME %s is not a plain icon set name" % show(name))
         sets = []
         for current, dirs, _ in os.walk(self.root):
             dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
             if name + ".icon" in dirs:
                 raise Unknown("%s is an Icon Composer file; Xcode renders its sizes and alpha at build time, "
                               "so check the archived app" % show(name + ".icon"))
-            if name + ".appiconset" in dirs:
+            in_catalog = any(part.endswith(".xcassets") for part in os.path.relpath(current, self.root).split(os.sep))
+            if name + ".appiconset" in dirs and in_catalog:
                 sets.append(os.path.join(current, name + ".appiconset"))
         if not sets:
             raise Fail("no %s under %s" % (show(name + ".appiconset"), show(_rel(self.root))), Apple.FIX_ICON)
@@ -762,17 +792,31 @@ class AndroidNative:
             self._manifest = read_xml(path)
         return self._manifest
 
-    def application(self):
+    def _built_attr(self, attr):
+        application = self.built.find("application")
+        return application.get(ANDROID_NS + attr) if application is not None else None
+
+    def _source_attr(self, attr, fix):
+        """A value src/main lacks can come from another manifest, so only a built manifest confirms it is missing."""
+        if self.built is not None and self._built_attr(attr) is None:
+            raise Fail("android:%s is missing on <application> in the built manifest" % attr, fix)
         node = self.manifest().find("application")
-        if node is None:
-            raise Fail("AndroidManifest.xml has no <application>", "restore the <application> element")
-        return node
+        value = node.get(ANDROID_NS + attr) if node is not None else None
+        if value is None:
+            raise Unknown("android:%s is missing from src/main, and a library or build variant manifest can supply it; "
+                          "pass a built manifest with --resolved <file> to confirm" % attr)
+        return value
+
+    def maybe(self):
+        return None if self.built is not None else "no built manifest shows it, and a library can supply it"
 
     def app_name(self):
         fix = 'set android:label on <application>, usually "@string/app_name" in res/values/strings.xml'
-        label = self.application().get(ANDROID_NS + "label")
-        if label is None:
-            raise Fail("android:label is missing on <application>", fix)
+        if self.built is not None:
+            built = self._built_attr("label")
+            if built is not None and not built.startswith("@") and "${" not in built:
+                return valid_name(built, "the built manifest (android:label)", fix)
+        label = self._source_attr("label", fix)
         if label.startswith("@string/"):
             return self._string_name(label, fix)
         if "${" in label or label.startswith("@"):
@@ -839,9 +883,9 @@ class AndroidNative:
 
     def _check_xml_drawable(self, node, label, base_dp, fails, unknowns, fix):
         if node.tag == "adaptive-icon":
-            if node.find("foreground") is None:
-                fails.append(("%s has no <foreground>" % label, fix))
-                return 0
+            for tag in ("foreground", "background"):
+                if node.find(tag) is None:
+                    fails.append(("%s has no <%s>" % (label, tag), fix))
             count = 0
             for tag in ("foreground", "background", "monochrome"):
                 layer = node.find(tag)
@@ -852,7 +896,7 @@ class AndroidNative:
                     unknowns.append("<%s> in %s is an inline drawable, whose size cannot be judged here" % (tag, label))
                 elif ref is None:
                     fails.append(("<%s> in %s has no drawable" % (tag, label), fix))
-                elif not ref.startswith(("@color/", "@android:color/", "#")):
+                elif tag != "background" or not ref.startswith(("@color/", "@android:color/", "#")):
                     count += self._check_layer(ref, 108, fails, unknowns, fix)
             return count
         if node.tag == "vector" and base_dp == 108:
@@ -867,9 +911,7 @@ class AndroidNative:
 
     def icon_sizes(self):
         fix = 'set android:icon="@mipmap/ic_launcher" on <application> and add the icon with Image Asset Studio'
-        ref = self.application().get(ANDROID_NS + "icon")
-        if ref is None:
-            raise Fail("android:icon is missing on <application>", fix)
+        ref = self._source_attr("icon", fix)
         fails = []
         unknowns = []
         count = self._check_layer(ref, 48, fails, unknowns, fix)
@@ -878,8 +920,9 @@ class AndroidNative:
     def declared(self):
         declared = set()
         removed = set()
+        manifest = self.built if self.built is not None else self.manifest()
         for tag in ("uses-permission", "uses-permission-sdk-23"):
-            for node in self.manifest().findall(tag):
+            for node in manifest.findall(tag):
                 name = (node.get(ANDROID_NS + "name") or "").replace("android.permission.", "")
                 if node.get(TOOLS_NS + "node") == "remove":
                     removed.add(name)
@@ -906,7 +949,7 @@ class ExpoConfig:
             if os.path.lexists(os.path.join(project, name)):
                 self.why = "%s is dynamic; run `npx expo config --json`, save the output, and pass it with --resolved <file>" % name
                 return
-        path = os.path.join(project, "app.json" if os.path.lexists(os.path.join(project, "app.json")) else "app.config.json")
+        path = os.path.join(project, "app.config.json" if os.path.lexists(os.path.join(project, "app.config.json")) else "app.json")
         try:
             data = load_json(path) if os.path.lexists(path) else {}
             if not isinstance(data, dict):
@@ -943,6 +986,24 @@ class ExpoConfig:
             return "a config plugin entry that is not a name can set it"
         return None
 
+    def _no_local_plugin(self):
+        local = [name for name in self.plugins() if name.startswith((".", "/"))]
+        if local:
+            raise Unknown("the local config plugin %s can rewrite this; run `npx expo prebuild` and check the native project" % show(local[0]))
+
+    def _name(self):
+        """Expo's own default is exp.name ?? the package.json name."""
+        self._no_local_plugin()
+        name = self.cfg().get("name")
+        if name is not None:
+            return name, "the Expo config (name)"
+        path = os.path.join(self.project, "package.json")
+        data = load_json(path) if os.path.lexists(path) else None
+        name = data.get("name") if isinstance(data, dict) else None
+        if isinstance(name, str) and name.strip():
+            return name, "package.json name, Expo's default when the config sets none"
+        return "", "the Expo config or package.json"
+
     def image_path(self, value, what):
         """Return an absolute path for a config image, or raise for remote and missing files."""
         if not isinstance(value, str) or re.match(r"https?://", value):
@@ -968,17 +1029,20 @@ class ExpoConfig:
                 yield what, value, width, height
 
     def app_name(self):
-        return valid_name(self.cfg().get("name", ""), "the Expo config (name)", "set expo.name in the app config")
+        name, source = self._name()
+        return valid_name(name, source, "set expo.name in the app config")
 
     def web_name(self):
-        name = self.section("web").get("name") or self.cfg().get("name", "")
-        return valid_name(name, "the Expo config", "set expo.name or expo.web.name in the app config")
+        name, source = self._name()
+        return valid_name(self.section("web").get("name") or name, source, "set expo.name or expo.web.name in the app config")
 
     def bundle_id(self):
+        self._no_local_plugin()
         value = self.section("ios").get("bundleIdentifier")
         return valid_bundle_id(value, "ios.bundleIdentifier", "set ios.bundleIdentifier in the app config to a reverse-DNS id")
 
     def package(self):
+        self._no_local_plugin()
         value = self.section("android").get("package")
         return valid_package(value, "android.package", "set android.package in the app config to your own reverse-DNS id")
 
@@ -1043,7 +1107,7 @@ class ExpoConfig:
         favicon = self.section("web").get("favicon")
         if not favicon:
             raise Fail("no web.favicon in the app config", "set web.favicon in the app config")
-        read_bytes(self.image_path(favicon, "web.favicon"), limit=IMAGE_PREFIX_BYTES, prefix=True)
+        check_image_file(self.image_path(favicon, "web.favicon"))
         return "web.favicon %s exists" % show(favicon)
 
     def strings(self):
@@ -1086,6 +1150,14 @@ class ExpoConfig:
                 % show("android.permission." + perm))
 
 
+def check_image_file(path):
+    """For a web icon with no size to read: an image extension and at least one byte."""
+    if not path.lower().endswith(WEB_ICON_EXTENSIONS):
+        raise Unknown("%s does not have an image file extension" % show(_rel(path)))
+    if not read_bytes(path, limit=IMAGE_PREFIX_BYTES, prefix=True):
+        raise Unknown("%s is empty" % show(_rel(path)))
+
+
 def _short_perms(value):
     return [p.replace("android.permission.", "") for p in value if isinstance(p, str)] if isinstance(value, list) else []
 
@@ -1098,9 +1170,14 @@ class HeadReader(HTMLParser):
         HTMLParser.__init__(self, convert_charrefs=True)
         self.title = None
         self.in_title = False
+        self.head_over = False
         self.links = []
 
     def handle_starttag(self, tag, attrs):
+        if tag in ("body", "svg"):
+            self.head_over = True
+        if self.head_over:
+            return
         if tag == "title" and self.title is None:
             self.in_title = True
             self.title = ""
@@ -1110,6 +1187,8 @@ class HeadReader(HTMLParser):
     def handle_endtag(self, tag):
         if tag == "title":
             self.in_title = False
+        elif tag == "head":
+            self.head_over = True
 
     def handle_data(self, data):
         if self.in_title:
@@ -1131,27 +1210,22 @@ class Web:
 
     def head(self):
         if not self._head_read:
-            for rel in (("index.html",), ("public", "index.html")):
-                path = os.path.join(self.base, *rel)
-                if os.path.lexists(path):
-                    self._head = HeadReader()
-                    self._head.feed(read_text(path))
-                    break
+            path = os.path.join(self.base, "index.html")
+            if self.framework != "nextjs" and os.path.lexists(path):
+                self._head = HeadReader()
+                self._head.feed(read_text(path))
             self._head_read = True
         return self._head
 
     def manifest(self):
-        """Return (path, data) for a manifest file, or (None, None). Malformed raises Unknown."""
-        head = self.head()
-        candidates = []
-        for link in head.links if head else []:
-            if "manifest" in (link.get("rel") or "").lower().split() and link.get("href"):
-                found = self._find(link["href"], self.base)
-                if found:
-                    candidates.append(found)
-        for folder in (os.path.join(self.base, "public"), self.base, self.app_dir):
-            for name in ("manifest.webmanifest", "manifest.json", "site.webmanifest"):
-                candidates.append(os.path.join(folder, name))
+        """Return (path, data) for the manifest the build uses, or (None, None). Malformed raises Unknown."""
+        if self.framework == "nextjs":
+            candidates = [os.path.join(self.app_dir, name) for name in ("manifest.json", "manifest.webmanifest")]
+        else:
+            head = self.head()
+            links = [link["href"] for link in (head.links if head else [])
+                     if "manifest" in (link.get("rel") or "").lower().split() and link.get("href")]
+            candidates = [found for found in (self._find(href, self.base) for href in links) if found]
         for path in candidates:
             if os.path.lexists(path):
                 data = load_json(path)
@@ -1159,6 +1233,14 @@ class Web:
                     raise Unknown("%s is not a JSON object" % show(_rel(path)))
                 return path, data
         return None, None
+
+    def _next_code_manifest(self):
+        """A manifest.ts or manifest.js generates the manifest at build time, whatever else exists."""
+        for name in ("manifest.ts", "manifest.js"):
+            path = os.path.join(self.app_dir, name)
+            if self.framework == "nextjs" and os.path.lexists(path):
+                return "%s generates the web manifest at build time, so it is not read" % show(_rel(path))
+        return None
 
     def _find(self, ref, base):
         ref = ref.split("?")[0].split("#")[0]
@@ -1177,6 +1259,9 @@ class Web:
         if self.expo:
             return self.expo.web_name()
         fix = "set <title> in index.html or name in the web manifest"
+        code_manifest = self._next_code_manifest()
+        if code_manifest:
+            raise Unknown(code_manifest)
         path, data = self.manifest()
         if data is not None:
             name = data.get("name") or data.get("short_name")
@@ -1186,6 +1271,8 @@ class Web:
         if head and head.title is not None:
             if PLACEHOLDER.search(head.title):
                 raise Unknown("<title> holds a build placeholder (%s)" % show(head.title))
+            if self.configured_in_code and not head.title.strip():
+                raise Unknown("<title> is empty, no linked web manifest names the app, and a JS or TS config may set it")
             return valid_name(head.title, "index.html <title>", fix)
         if self.configured_in_code:
             raise Unknown("no name in a web manifest or <title>, and a JS or TS config may set it")
@@ -1198,6 +1285,9 @@ class Web:
         fails = []
         unknowns = []
         declared = []
+        code_manifest = self._next_code_manifest()
+        if code_manifest:
+            unknowns.append(code_manifest)
         path, data = self.manifest()
         if data is not None:
             icons = data.get("icons", [])
@@ -1239,8 +1329,8 @@ class Web:
             if path is None:
                 fails.append(("%s declares %s, which is missing" % (source, show(ref)), fix))
                 return
-            if not path.endswith((".png", ".webp")):
-                read_bytes(path, limit=IMAGE_PREFIX_BYTES, prefix=True)
+            if not path.lower().endswith((".png", ".webp")):
+                check_image_file(path)
                 return
             width, height, _ = image_info(path)
         except Unknown as e:
@@ -1346,10 +1436,13 @@ def _package_deps(project):
 
 
 def _is_flutter(project):
-    try:
-        return re.search(r"(?m)^[ \t]+sdk:[ \t]*flutter\b", read_text(os.path.join(project, "pubspec.yaml"))) is not None
-    except Unknown:
+    path = os.path.join(project, "pubspec.yaml")
+    if not os.path.lexists(path):
         return False
+    try:
+        return "flutter" in read_text(path)
+    except Unknown:
+        return True
 
 
 def _is_android_app(project):
@@ -1376,7 +1469,13 @@ def detect_framework(project):
         return "nextjs"
     if any(has("vite.config." + e) for e in ("js", "ts", "mjs", "mts")) or "vite" in deps:
         return "vite"
-    return "static" if has("index.html") else "unknown"
+    if has("index.html"):
+        return "static"
+    if has("Package.swift"):
+        return "xcode"
+    if any(has(os.path.join(folder, name)) for folder in ("", "app") for name in GRADLE_FILES):
+        return "kotlin"
+    return "unknown"
 
 
 def expo_platforms(project, expo):
@@ -1413,7 +1512,11 @@ def native_wins(project, folder):
     if not os.path.lexists(path):
         return True
     forms = {folder, folder + "/", folder + "/*", folder + "/**"}
-    return not any(line.strip().lstrip("/") in forms for line in read_text(path).splitlines())
+    lines = [line.strip() for line in read_text(path).splitlines()]
+    if any(line.startswith("!") and re.search(r"(?<![\w.-])%s(?![\w.-])" % folder, line) for line in lines):
+        raise Unknown("%s has a negated line naming %s/, which this script does not interpret, so it cannot tell "
+                      "whether the native folder or the app config decides" % (name, folder))
+    return not any(line.lstrip("/") in forms for line in lines)
 
 
 # Runner ------------------------------------------------------------------
@@ -1490,11 +1593,10 @@ def android_checks(project, framework, expo, resolved):
         skipped = []
         if framework == "expo":
             found = detect(project, EXPO_EXTENSIONS, EXPO_APIS, skipped)
-            required = [(perm, how, rel, certain) for row, rel, certain in found for perm, how in row[3]]
+            required = [(perm, how if source is expo else "declare", rel, certain) for row, rel, certain in found for perm, how in row[3]]
         else:
             required = detect_android_native(source.root, skipped)
-        return check_android_permissions(declared, blocked, required, source.fix_permission, skipped,
-                                         expo.maybe() if source is expo else None)
+        return check_android_permissions(declared, blocked, required, source.fix_permission, skipped, source.maybe())
 
     return [("app-name", name), ("package", ident), ("icon-sizes", sizes), ("permissions-declared", permissions)]
 
