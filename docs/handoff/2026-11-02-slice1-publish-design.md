@@ -439,3 +439,53 @@ Not rechecked: no reviewer or Codex read this change, and the eval did not rerun
 Accepted from the gate: a raw-only permission match with the key declared stays `PASS`, because the declared key is the authoritative input.
 
 implement-loop: slice D follow-up shipped; remaining: [E, F, G, H, I, J]
+
+## Slice E / T1 check-listing.py and limits
+
+**Decisions**
+- `required` takes `yes`, `no`, or `unverified`, split from `checked`. `promotional_text`, `title`, `full_description` have a sourced limit but no source on required status, so they carry `required: unverified` and `checked: 2026-11-03`: over the limit `FAIL`, within it `PASS`, empty or absent `UNKNOWN`. `checked: unverified` stays `UNKNOWN` for the whole row; no real row uses it now.
+- `keywords` is `100 bytes` from the Help page. The product page says 100 characters. The conflict is written in `limits.md`.
+- `subtitle` is `no` because Apple's required-properties table has an explicit Required column and that cell is empty. `name` is `yes` from the same table.
+- Google `phone` uses the page's general screenshot requirement (320-3840, ratio 2, no alpha). That requirement is not limited to phones; the page gives other device types their own rules.
+- Keys in the listing follow `[A-Za-z0-9][A-Za-z0-9_-]*`, so a raw control sequence in a locale key is exit 2. Field ids print reader keys as they are; image ids go through `token`, unquoted when safe and sanitized when not; paths and size cells are always quoted.
+- Over-limit is checked before empty, and whitespace-only counts as empty.
+- Image rows must hold exactly `store, device_class, path, size`; a missing or extra key is exit 2.
+- Reader rejections give `line N:`. Shape rejections name the key path, for example `stores.s.en: `.
+- A PNG has alpha at colour type 4 or 6, or with `tRNS` between IHDR and the first IDAT.
+- Parsing without `MAX_INDENT` keeps `RecursionError` caught in `main`. Shape runs after parsing, so it does not bound depth: 1020 levels fit in the 1 MiB cap and gave a traceback. The suite covers it.
+
+**Rejected**
+- Inferring "not required" from a missing statement: Apple's required table omits `description` and `keywords` too, though another page says they are required. Absence there is not evidence.
+- Google rows for tablets, Chromebook, Wear OS, Android XR: the rule grammar cannot state an exact ratio or an open maximum, and the large-screen numbers differ from the general ones. No row gives `UNKNOWN`, which is true.
+- A Google `app_icon` row: `publish-readiness` owns icons.
+
+**Assumptions**
+- `chars` means Unicode code points. Google's page only says full-width and half-width count alike; Apple states nothing for CJK. Check: submit a CJK name at the limit in a level-4 run.
+- A 1 MiB prefix holds the first SOF of a normal JPEG. Past it the result is `UNKNOWN`.
+
+**Deferred**
+- The limits reader skips the line after the header without checking it. A table with no separator loses its first row, which then gives `UNKNOWN`, not a false `PASS`. `tests/check-listing.test.sh` checks the real table.
+- `scripts/lint-skills.sh` fails on `skills/store-listing/SKILL.md` missing until T2 adds it. Expected; only that one line.
+- Apple's required-device list and its iPhone section notes do not agree; `limits.md` states both, and the script enforces neither.
+
+**Line count**
+- `check-listing.py` is 291 lines. It uses one blank line between functions. Imports and constants are one per line, which costs 14 lines; with them compressed it was 277. Above the 260 line; the next cuts are in the T1 report.
+
+**Value sources, all fetched 2026-11-03**
+- `name`, `subtitle` limits: developer.apple.com/help/app-store-connect/reference/app-information/app-information.
+- `name`, `subtitle` required: same path, `required-localizable-and-editable-properties`.
+- `description`, `keywords`, `promotional_text` limits; `description`, `keywords` required: same path, `platform-version-information`.
+- All `app_store` image rows, no-alpha, formats, counts, required classes: same path, `screenshot-specifications`.
+- Apple preview video: same path, `app-preview-specifications`.
+- Keywords conflict: developer.apple.com/app-store/product-page/.
+- `title`, `short_description`, `full_description` limits and the CJK statement: support.google.com/googleplay/android-developer/answer/9859152.
+- `short_description` required and all `google_play` image rows: answer/9866151.
+- Read without a required statement for `title` or `full_description`: answers 9859454, 9859455, 9859751, 9844778, and the `edits.listings` API page.
+
+**Left out or marked**
+- `required: unverified`: `promotional_text`, `title`, `full_description`.
+- Left out: Google tablets and Chromebook, Wear OS, XR (grammar), Android TV screenshots (no size stated), `app_icon` (other skill).
+
+**Touches**
+- `skills/store-listing/references/limits.md`, `skills/store-listing/scripts/check-listing.py`, `tests/check-listing.test.sh`, `.github/workflows/lint.yml`.
+- Shared surface: the `device_class` slugs and output line format, which T2's skill and later submission steps read.

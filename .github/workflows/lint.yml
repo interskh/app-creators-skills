@@ -20,6 +20,8 @@ jobs:
         run: bash tests/check-pwa.test.sh
       - name: check-readiness tests
         run: bash tests/check-readiness.test.sh
+      - name: check-listing tests
+        run: bash tests/check-listing.test.sh
       - name: Lint skills
         run: bash scripts/lint-skills.sh
       - name: Lint template
