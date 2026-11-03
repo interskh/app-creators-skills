@@ -922,3 +922,47 @@ Suite on the final text: lint tests 109/109, metrics 106/106, check-pwa 48/48, c
 Not rechecked: the second fix round had no reviewer or Codex read, by the one-recheck bound. No eval reaches its paths, so its evidence is lint and reading.
 
 implement-loop: slice F follow-up shipped; remaining: [G, H, I, J]
+
+## Slice G / T1 fixtures
+
+Fixture repo worktree: branch `implement-loop/2026-11-02-slice1-publish-design`, nothing committed. `todo-flutter` is built from `flutter create` and checked. `todo-swift` is hand-written and was never built.
+
+**Decisions**
+- `todo-flutter`: `flutter create --org io.github.interskh --project-name todo --platforms ios,android --no-pub todo-flutter`, then `flutter pub add image_picker shared_preferences` (1.2.4 and 2.5.6, both current on pub.dev on 2026-11-03, neither discontinued). The template's `.gitignore` is untouched and `pubspec.lock` is kept. `flutter create` already set `CFBundleDisplayName` to `Todo` and `applicationId` to `io.github.interskh.todo`; I set `android:label="Todo"` and added `NSPhotoLibraryUsageDescription`. Only that one key, since the pub.dev page says camera and microphone keys are for camera and video.
+- Icons: `sips -z` from `todo-expo/assets/icon.png` into all 18 iOS slots and 5 mipmaps. All report `hasAlpha: no`. Android keeps the template's legacy `@mipmap/ic_launcher`, no adaptive icon.
+- Tests: replaced the counter test with 3 widget tests. Mutation battery on `lib/main.dart`: 5/5 caught after adding the empty-text and order test (the first run missed 2).
+- `todo-swift`: `Todo.xcodeproj/project.pbxproj` in Flutter 3.44.0's `Runner.xcodeproj` shape (`objectVersion = 54`, classic file references), one app target, Debug and Release, with every setting the brief names. Added iOS 17 deployment target (`onChange` form), `SWIFT_VERSION = 5.0`, and the generated-plist keys for scene manifest and launch screen. Shared scheme `Todo.xcscheme`. Single-size 1024 `AppIcon` and an empty-colour `AccentColor`.
+- Photo API: `PHPhotoLibrary.requestAuthorization(for: .readWrite)` runs before `PhotosPicker` shows. This gives `permission-strings` an API to find. `PhotosPicker` alone needs no permission, and the README says so.
+- `swiftc -typecheck` passes only with a `/tmp` shim (`UIImage` to `NSImage`, `Image(uiImage:)`) and `@State` swapped for a plain wrapper, because the SwiftUI macro plugin is absent from the Command Line Tools. That is a macOS type check, not an iOS build.
+
+**Rejected**
+- `PBXFileSystemSynchronizedRootGroup` and `objectVersion = 77`: I could not confirm the shape from a source on this machine. Flutter's template was the only real pbxproj available.
+- A `UIKit`-free image path: SwiftUI has no `Data` to `Image` initializer, so `UIImage` stays and the shim carries the typecheck.
+- Installing Xcode, a JDK, or anything else: forbidden. Android `gradlew` and a Gradle build were not tried.
+- A lighter storage package: none was searched for. `shared_preferences` is first-party, current, and one dependency.
+
+**Assumptions**
+- Xcode accepts the hand-written project. Unchecked. Check: open it in a full Xcode and build, as the `todo-swift` README says.
+- The Flutter template's Info.plist and pbxproj for 3.44.0 are valid for current Xcode. Check: `flutter build ios` on a machine with Xcode.
+- `INFOPLIST_KEY_*` names and `GENERATE_INFOPLIST_FILE` match Apple's build settings reference, as `checks.md` source 60 read on 2026-11-03.
+
+**Deferred**
+- Slice H reuses `todo-flutter` for Android. No Android build was tried (no JDK), so `package` stays `UNKNOWN` until a release exists.
+- Real `xcodebuild -showBuildSettings -json` output for both fixtures. Safe: the skills must treat the missing input as `UNKNOWN`, and that is what the script returns.
+- Level 3 on the Flutter and Xcode routes stays open for Kyle on a machine with Xcode, per spec section 3.7.
+
+**Command outcomes**
+- `flutter analyze`: no issues. `flutter test`: 3 passed.
+- `flutter build ios --release --no-codesign --config-only`: ran `pub get`, warned codesigning is off, then printed `Application not configured for iOS`. Failure recorded, not worked around. Build output (`build/`, `Generated.xcconfig`, `ephemeral/`) is ignored by git; I removed `build/`.
+- `plutil -lint` on `project.pbxproj`: OK. On the scheme: not a plist, so `xmllint --noout` was used: OK. The three `Contents.json` parse. No dangling object ids.
+- `check-readiness.py`, no resolved input: `todo-flutter --platform ios` and `todo-swift --platform ios` give `UNKNOWN` for app-name, bundle-id, icon-sizes, icon-alpha, and permission-strings, plus `UNKNOWN` privacy-policy-url (no state file). `todo-flutter --platform android` gives `PASS` for app-name, icon-sizes, and permissions-declared, `UNKNOWN` for package and privacy-policy-url. No `FAIL`, exit 0 on all three.
+- Shape test with hand-written resolved files in `/tmp` (not in any repo): both fixtures reach `PASS` on app-name, bundle-id, icon-sizes, icon-alpha, and permission-strings on their own Info.plist, icons, and code. These resolved files were not produced by `xcodebuild`.
+- No absolute home path in any file git would track (grep of both fixtures; the only hits are in ignored generated files).
+
+**Touches**
+- Fixtures repo: `README.md`, new `todo-flutter/`, new `todo-swift/`. Not touched: `todo-expo`, `todo-vite`.
+- Skills repo: this file only.
+
+**Fixture commit:** `de83d0f` on the fixtures branch, unpushed. The orchestrator reran `flutter test` (3 passed), `flutter analyze` (no issues), and `plutil -lint` on the Swift project (OK).
+
+**Orchestrator edit.** The global `privacy-scan` hook read template icon names with an at-sign, such as the 2x iOS icons, as email addresses, in paths and in `Contents.json`. A path cannot carry an allow comment, and `--no-verify` needs approval. So the Flutter asset catalog files use `-2x.png`, with `Contents.json` to match. `check-readiness.py` with the hand-written resolved file still passes on them.
