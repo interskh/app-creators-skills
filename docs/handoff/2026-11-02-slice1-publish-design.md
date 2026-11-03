@@ -1577,3 +1577,32 @@ Suite at 195858d passes: lint tests 109/109, metrics 106/106, check-pwa 48/48, c
 - T2 ran as two sequential doers (T2a shared steps and Expo, T2b Flutter, Gradle, and routing) with one risk-gated reviewer on the combined diff, because the task was larger than one doer has finished in earlier slices.
 
 implement-loop: slice H deferred: gate at the fix cap with one open eval defect (Step 9 target API comparison skipped in 2 of 6 kotlin-target-api-low runs at 195858d; one-clause fix named); remaining: [I, J]
+
+### Slice H follow-up
+
+**Decisions**
+- `publish-android` Step 9 Expect: Google's number is read from `references/target-api.md` in this session, never from memory, and the number read and the number required are stated before any next step. Two sentences, en and zh.
+- `publish-android` readiness `now` row: the no-git-output rule starts with "When Step 1 asks", so a resumed no-shell run past Step 1 may ask for the git reading at once. zh: 第 1 步提问时.
+- `publish-ios/references/expo.md`: after the `.eas/workflows/` check, every other CI file gets `references/flutter.md`'s file list, three rules, and sources, with `eas submit` and `eas build --auto-submit[-with-profile]` counting as an upload. Same wording as Android's Expo route. Cited [1][3], the sources this file's table row already uses for `--auto-submit`; no new store fact, so no fetch.
+- `publish-ios/SKILL.md` and `SKILL.zh.md` name only "the route's workflow check", so they need no change.
+
+**Rejected**
+- A pinned-upload clause for iOS like Android's: iOS has no draft pins. On iOS an EAS upload is an upload, and flutter.md's automatic-trigger rule decides.
+- Copying flutter.md's Xcode Cloud question into the Expo route: not part of the file check, and beyond these three fixes.
+
+**Deferred**
+- `kotlin-target-api-low-zh`, 1 of 6 runs: after a correct Step 9 stop, the reply previewed the post-fix path ("Create new release, Save as draft"). Skill, not judge: Step 10 bans an upload command in the reading's message, but no rule bans a preview in a Step 9 stop. Fix: Step 9's stop gives no upload path. Possibly nudged by "before any next step"; one run cannot say.
+- `publish-ios`, the Android "first reply asks for no git output" clause has no iOS twin. `expo-first-run-en` 1 of 2 said it would need two git commands' output; the `Current` paragraph's "Step 1's ask stays alone" was already there. Skill drift, low rate.
+- `expo-first-run-zh` 1 of 2 (`asked-only-human-facts`, 1 to 2 split): the only question was the membership ask. Judge.
+- `expo-submit-goahead-zh` run 1 (`block-names-the-release`, 1 to 2 split): `Listing:` said "shown in full below" with the listing above the block. A model slip, not this round's text. Run 2 was cut by the cost cap.
+
+**Touches**
+- `skills/publish-android/SKILL.md`, `SKILL.zh.md`, `skills/publish-ios/references/expo.md`.
+
+**Evidence** (Sonnet, no shell)
+- Suite: lint tests 109/109, metrics 106/106, check-pwa 48/48, check-readiness 596/596, check-listing 226/226, `lint: 6 skills clean`, template lint clean, manifests parse, `claude plugin validate .` passed with warnings.
+- `publish-android-kotlin-target-api-low-*` ×3: `evals/results/2026-11-03T15-21-23-810Z`, $1.32. en 3 of 3 at 1.00; zh 2 of 3, one at 0.78 (`no-upload-path`, `no-release-instruction`, the preview above). `read-target-api` and `stopped-before-upload-with-the-fix` passed 6 of 6.
+- `publish-ios-expo-*` ×2: `15-30-56-385Z`, $3.20, partial at the $3 cap, 8 cases ran: 13 of 16 runs at 1.00, misses above. The replies name CI files and fastlane in the workflow check, so the new text was read. The rest, `publish-ios-expo-u*` ×2: `15-48-13-170Z`, $1.75, 8 of 8 at 1.00.
+- Evals this round: $6.27.
+
+implement-loop: slice H follow-up shipped; remaining: [I, J]
