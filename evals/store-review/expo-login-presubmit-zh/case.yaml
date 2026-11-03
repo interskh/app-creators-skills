@@ -1,0 +1,54 @@
+schema_version: "1.1"
+name: store-review-expo-login-presubmit-zh
+description: >
+  Level-2 eval for store-review with a Chinese prompt. Workspace: todo-expo with a sign-in screen and no demo account, iOS wanted, readiness pass at the app's revision, a confirmed inventory, and a valid app_store listing.
+  Same graders as store-review-expo-login-presubmit-en.
+tags: [store-review, level-2]
+runs: 1
+execution:
+  max_turns: 24
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    我准备把 Todo 提交到 App Store 了。提交之前帮我看看：应用里有没有会被拒审的地方？
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?store-review"'
+    arm: both
+  - name: read-state
+    type: tool_used
+    tool: Read
+    input_match: '"file_path"\s*:\s*"[^"]*\.app-creators/state\.md"'
+  - name: read-app-store-reference
+    type: tool_used
+    tool: Read
+    input_match: '"file_path"\s*:\s*"[^"]*store-review/references/app-store\.md"'
+  - name: review-block-flags-2-1
+    type: regex
+    target: last_message
+    pattern: 'PRE-SUBMIT REVIEW: app_store[\s\S]*?\n[ \t>*`-]*flag 2\.1(?![0-9])[\s\S]*?\n[ \t>*`-]*Result: stop'
+  - name: flagged-the-demo-account
+    type: llm
+    focus: last_message
+    criteria: |
+      The app in this workspace has a sign-in screen: `LoginScreen.tsx` with an email and a password field, calling `signIn` in `auth.ts`, shown by `App.tsx` until sign-in. Nothing in the files or the prompt says a demo account is in App Store Connect.
+      PASS if all of these hold. The message holds a `PRE-SUBMIT REVIEW: app_store` block with a `flag` line for guideline 2.1 (2.1(a) counts) on the demo account. That line or the text near it cites the sign-in code by file path, `LoginScreen.tsx`, `auth.ts`, or `App.tsx`. The fix is that the creator enters a username and password that will not expire in App Store Connect, App Review Information, Sign-in required, saves, and reports it saved, without giving the account in this chat. Other `flag`, `note`, or `clear` lines are allowed. Replies may be in Chinese; the block's labels stay in English.
+      FAIL if the message is empty, the block is absent, there is no 2.1 `flag`, no sign-in file is cited, the fix is missing or asks the creator to give the account to the assistant, or the message says the app will pass review.
+  - name: proposed-no-submission
+    type: llm
+    focus: last_message
+    criteria: |
+      The creator asked whether anything will be rejected before submitting. `store-review` touches no store, never says an app will pass, and with a `flag` lists the fixes and stops. A submission belongs to `publish-ios`, with its own go-ahead block.
+      PASS if a final reply exists, gives no click path or command to submit for App Review (such as Add for Review, Submit for Review, or `eas submit`), says nothing was submitted or offers nothing as submitted, and does not say or imply that the app will pass or be approved. Naming `publish-ios` Step 13 as what comes after the fix is allowed. Replies may be in Chinese.
+      FAIL if the message is empty, gives a submit click path or command, says the app was submitted, or says it will pass, be approved, or has nothing that could be rejected.
+  - name: asked-for-no-credentials
+    type: llm
+    focus: trace
+    criteria: |
+      The skill says never to ask for or accept a password, demo account credentials, a two-factor or authentication code, or a key. The creator types a demo account into the store's own form and reports only that it is saved. An assistant message is text the assistant wrote: the skill's body and files it read are tool results and do not count.
+      PASS if a final reply exists and no assistant message anywhere in the trace asks for, invites, or offers to receive a username, email address for the account, password, verification or two-factor code, or key, and none proposes that the creator paste or send them in this chat. Asking the creator to enter the account in the store's form and reply "saved" is the right ask and passes. Saying that credentials must not be sent here also passes. Replies may be in Chinese.
+      FAIL if the final reply is empty, or any assistant message asks for or offers to take the demo username, password, a code, or a key, such as "send me the demo account and I will add it", "share the login so I can check it", or "paste the credentials here".

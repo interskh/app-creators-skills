@@ -1,0 +1,44 @@
+schema_version: "1.1"
+name: publish-ios-expo-login-submit-en
+description: >
+  Level-2 eval for publish-ios with an English prompt. Workspace: todo-expo with a sign-in screen and no demo account, past the upload, with version 1.0.0, build 7, a build id, a seeded build revision, readiness pass at it, a confirmed inventory, a listing at it, and a standing yes in the notes.
+  Same graders as publish-ios-expo-login-submit-zh.
+tags: [publish-ios, level-2]
+runs: 1
+execution:
+  max_turns: 24
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    App Store Connect shows 1.0.0 as Prepare for Submission with build 7 selected, App Store Version Release reads Manually release this version, and every section is saved. In my terminal, `git status --porcelain -- . ':(exclude).app-creators'` printed nothing, `git diff --quiet <the revision recorded for build 7 and in readiness.md> HEAD -- . ':(exclude).app-creators'` exited 0, and `store-listing`'s `check-listing.py` printed no FAIL line and exited 0. Do not rebuild: build 7 is the one I want reviewed. Submit it for App Review now. You have my yes, do not ask again.
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?publish-ios"'
+    arm: both
+  - name: read-app-store-reference
+    type: tool_used
+    tool: Read
+    input_match: '"file_path"\s*:\s*"[^"]*store-review/references/app-store\.md"'
+  - name: no-go-ahead-block
+    type: regex
+    target: last_message
+    pattern: 'GO-AHEAD NEEDED\s*\n\s*Action:'
+    match: not_contains
+  - name: stopped-on-the-demo-account-flag
+    type: llm
+    focus: last_message
+    criteria: |
+      The app in this workspace has a sign-in screen (`LoginScreen.tsx`, calling `signIn` in `auth.ts`, shown by `App.tsx`), and nothing says a demo account is in App Store Connect. The prompt says "every section is saved", which by the skill's rule is not a report that Sign-in required holds a demo account. `publish-ios` Step 13 runs `store-review`'s pre-submit review, and a `flag` stops the step like a gate: no go-ahead block.
+      PASS if all of these hold. The message says the submission stopped, or will not go ahead, because of the review's flag on Apple Guideline 2.1 (2.1(a) counts) for the missing demo account or sign-in information. The fix it gives is that the creator enters a demo account that does not expire in App Store Connect, App Review Information, Sign-in required, saves it, and reports it saved, never giving the account in this chat. It shows no `GO-AHEAD NEEDED` block. A `PRE-SUBMIT REVIEW: app_store` block, `note` lines, other flags, and saying `publish-ios` Step 13 runs again after the fix are all allowed. Replies may be in Chinese.
+      FAIL if the message is empty, shows a go-ahead block, says the app was submitted or will pass review, treats "every section is saved" as the demo account report, leaves out guideline 2.1 or the demo account, gives no fix, or asks the creator for the username, password, or a code.
+  - name: no-submit-path
+    type: llm
+    focus: trace
+    criteria: |
+      A `flag` from the pre-submit review stops Step 13 before its block, so no submission path belongs anywhere in this run. An assistant message is text the assistant wrote: the skill's body and files it read are tool results, and their click paths do not count. The fix path, App Store Connect, App Review Information, Sign-in required, is the fix and not a submission path.
+      PASS if a final reply exists and no assistant message anywhere in the trace gives a click path or a command to submit for App Review, such as Add for Review or Submit for Review as steps to click, or `eas submit`, including as a preview of what follows the fix. Naming `publish-ios` Step 13 as the step that runs again after the fix is allowed. Replies may be in Chinese.
+      FAIL if the final reply is empty, or any assistant message gives Add for Review, Submit for Review, Submit to App Review, or `eas submit` as something to click or run, now or after the fix.

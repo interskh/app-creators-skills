@@ -63,6 +63,32 @@ with open("App.tsx", "w", encoding="utf-8") as f:
 ' "$lib_dir/state-expo.md"
 }
 
+# A sign-in screen in todo-expo: email and password, sign-in only, no sign-up. App.tsx shows it until signIn returns a session token. Run after add_privacy_link.
+add_login_screen() {
+  cp "$lib_dir/login/auth.ts" auth.ts
+  python3 -I -c '
+import re, sys
+with open(sys.argv[1], encoding="utf-8") as f:
+    url = re.search(r"^\s*privacy_policy_url: \"([^\"]+)\"$", f.read(), re.M).group(1)
+with open(sys.argv[2], encoding="utf-8") as f:
+    screen = f.read()
+with open("LoginScreen.tsx", "w", encoding="utf-8") as f:
+    f.write(screen.replace("__PRIVACY_POLICY_URL__", url))
+with open("App.tsx", encoding="utf-8") as f:
+    text = f.read()
+for old, new in (
+    ("} from \x27react-native\x27;\n", "} from \x27react-native\x27;\n\nimport LoginScreen from \x27./LoginScreen\x27;\n"),
+    ("  const [photoUri, setPhotoUri] = useState<string | undefined>();\n", "  const [photoUri, setPhotoUri] = useState<string | undefined>();\n  const [sessionToken, setSessionToken] = useState<string | undefined>();\n"),
+    ("\n  return (\n", "\n  if (!sessionToken) return <LoginScreen onSignedIn={setSessionToken} />;\n\n  return (\n"),
+):
+    if text.count(old) != 1:
+        sys.exit("scaffold: App.tsx holds %r %d times, not 1" % (old, text.count(old)))
+    text = text.replace(old, new)
+with open("App.tsx", "w", encoding="utf-8") as f:
+    f.write(text)
+' "$lib_dir/state-expo.md" "$lib_dir/login/LoginScreen.tsx"
+}
+
 # The project edits of Step 4 in references/expo.md, with fake ids.
 apply_step4_edits() {
   python3 -I -c '
@@ -179,10 +205,17 @@ for device, w, h in (("iphone_dynamic_island_medium", 1206, 2622), ("ipad_13in",
   append_history '{ skill: store-listing, version: "0.2.0", date: 2026-11-03, result: pass }'
 }
 
-# $1 status, $2 readiness result. Sets seed_rev. Rev A is the app with the Step 4 edits; the case commits rev B, so only .app-creators/ differs.
+# $1 revision. As write_readiness_confirmed, with the sign-in screen's email in the confirmed inventory.
+write_readiness_login() {
+  local item='{ data_type: "email address", platforms: [ios], evidence: "LoginScreen.tsx: the email field, sent by signIn in auth.ts", purpose: "sign in", linked_to_user: yes, used_for_tracking: no, shared_with: [], optional: no }'
+  sed "s|__REV__|$1|g;s|__RESULT__|pass|g;s|__INV_CHECK__|pass|g;s|__INV_EVIDENCE__|confirmed by the creator|g;s|__CONFIRMED__|true|g;s|__ITEMS__|[$item]|g" "$lib_dir/readiness-$route.md" > .app-creators/readiness.md
+}
+
+# $1 status, $2 readiness result, $3 "login" to add the sign-in screen. Sets seed_rev. Rev A is the app with the Step 4 edits; the case commits rev B, so only .app-creators/ differs.
 seed_past_build() {
   extract_fixture todo-expo ff71355
   add_privacy_link
+  if [ "${3:-}" = login ]; then add_login_screen; fi
   apply_step4_edits
   commit_all "app with the Step 4 edits"
   seed_rev="$(git rev-parse HEAD)"
@@ -234,6 +267,15 @@ scaffold_expo_submit_goahead() {
   seed_past_build testflight unknown
   write_readiness_confirmed_unknown "$seed_rev"
   write_listing ""
+  record_upload
+  commit_all "record readiness, listing, the build, and the upload"
+}
+
+# The submit seed with a sign-in screen and no demo account, readiness pass, and a current listing, so store-review's 2.1(a) flag is the only stop.
+scaffold_expo_login_submit() {
+  seed_past_build testflight pass login
+  write_readiness_login "$seed_rev"
+  write_listing "$seed_rev"
   record_upload
   commit_all "record readiness, listing, the build, and the upload"
 }

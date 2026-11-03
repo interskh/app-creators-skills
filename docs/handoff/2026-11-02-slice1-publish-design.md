@@ -1715,3 +1715,53 @@ implement-loop: slice H follow-up shipped; remaining: [I, J]
 **Eval cases to rerun**
 - Must: `publish-ios-expo-submit-goahead-{en,zh}`, `publish-android-expo-review-goahead-{en,zh}` (review now runs; watch turns).
 - Seed changed, should be unaffected: every other `publish-ios-expo-*` and `publish-android-expo-*` pair (first-run, upload-check, no-listing, unconfirmed-inventory, release-goahead, rollout-goahead).
+
+## Slice I / T3 zh, evals
+
+Run `2026-11-02-slice1-publish-design`, task I/T3. Uncommitted, for the orchestrator. Evals not run. `SKILL.md` unchanged.
+
+**Decisions**
+- zh blocks are byte-identical to en (sha256): `PRE-SUBMIT REVIEW` `6d2b09e1…5271`, `REJECTION READING` `5ef458c4…a958`, `GO-AHEAD NEEDED` `5498f744…3e86`. Reply words: "回复 yes、是、同意或确认都算", as `publish-ios` zh. Quoted gate sentence translated, as `publish-ios` zh does.
+- Login seed is written by the scaffold from `lib/login/` (copied in each suite's lib): `LoginScreen.tsx` (email, password, own privacy link), `auth.ts` (`signIn` posts to `example.com`), wired into `App.tsx`. No sign-up, so 5.1.1(v) and `account-deletion` do not apply.
+- Login readiness holds a confirmed `email address` item. An empty inventory beside a sign-in would invite a side remark.
+- Play case uses Sign-in details: its route has no message, so it gets `no-review-or-publish-path`, not `no-send-route-before-yes`.
+- Integration grader is a Read on `store-review/references/app-store.md`, not a Skill grader: a run can reach the review by Skill or by reading `SKILL.md`; both must read the checklist.
+- `publish-ios` change: `seed_past_build` takes an optional third arg `login`; new `add_login_screen`, `write_readiness_login`, `scaffold_expo_login_submit`. Cost cap in its README 6 → 7 for 26 runs.
+- Regexes use lookahead only, no lookbehind, for engine portability. The 2.1 rejection regex reads the block's first item line, so a 2.1 in the go-ahead block alone does not pass.
+- README rows: `expo+app-store`, `expo+google-play`, and `other routes` (no run) replace `all routes`.
+
+**Rejected**
+- A fixtures repo commit for the sign-in: the brief asked for rev A from the scaffold.
+- Account deletion for the Play case: the seed has no account creation, so it would contradict its own files.
+- Git readings in the store-review prompts: the skill asks for none and continues on "unknown or stale".
+- `Guideline 2.1 - <title>` in the Apple text: the reference names only the number.
+
+**Assumptions**
+- The harness regex engine is JavaScript (proofs ran in node). Check the first report's regex verdicts.
+- Step 9 shows the reply block before the creator reports "saved". The skill says "ask nothing else before the block". Check `go-ahead-block-shown`.
+
+**Deferred**
+- Eval scores: `eval pending` in all four `verified-runs.md` rows.
+- No Google Play pre-submit case, and no case for an appeal or an untabled guideline.
+
+**Orchestrator must check in the eval verdicts**
+- `no-send-route-before-yes`: a fail for the `Action:` line, a `Route: reply` line, or the App Review Information fix path is a judge error. Reply to App Review, Resolve, or a URL is a real miss.
+- `no-review-or-publish-path`: a fail for a `Route:` line naming the Publishing overview as `publish-android` Step 15 is a judge error. A bare "then click Send for review" is real.
+- `flagged-the-demo-account`: a fail only for citing `App.tsx` and not `LoginScreen.tsx` is a judge error; the grader accepts either.
+- `stopped-on-the-demo-account-flag`: "every section is saved" taken as the demo account report is a real skill miss.
+- `asked-for-no-credentials`: an ask to "enter it and reply saved" is right; a fail there is a judge error.
+- A run that stops before the block in `apple-rejection` to wait for "saved" is a real miss.
+- A `partial: true` result is not a score.
+
+**Evidence**
+- `bash scripts/lint-skills.sh`: 7 skills clean. `bash tests/lint-skills.test.sh`: 109/109. `claude plugin validate .`: passed with warnings.
+- Blocks: `bash /tmp/cc-sliceI-t3-blocks.sh`, 3 of 3 equal.
+- Scaffolds: `bash /tmp/cc-sliceI-t3-scaffold.sh`, 132/132 over 8 seeds: clean tree, rev B differs only in `.app-creators/`, readiness revision current, `check-listing.py` exit 0 with 12 `PASS` and no `UNKNOWN` on the 6 listing seeds.
+- Existing seeds: `bash /tmp/cc-sliceI-t3-baseline.sh`, fixed git dates; 24 of 24 `publish-ios` seeds give the same HEAD commit as a scaffold from `HEAD`.
+- Regex: `node /tmp/cc-sliceI-t3-regex.mjs`, 51/51 checks, 5 patterns, mutants 19/19. Graders en = zh: `bash /tmp/cc-sliceI-t3-graders-eq.sh`, 4 of 4.
+- File mutants: `bash /tmp/cc-sliceI-t3-filemut.sh`, 5/5, restored by `cp`, sha256 equal.
+
+**Touches**
+- `skills/store-review/SKILL.zh.md`, `references/verified-runs.md`; new `evals/store-review/` (README, `lib/`, 6 cases).
+- `evals/publish-ios/lib/scaffold.sh`, new `lib/login/`, new `expo-login-submit-{en,zh}`, `evals/publish-ios/README.md`.
+- Shared: `README.md` (store-review status rows), `docs/ROADMAP.md` (`store-review zh` ticked).

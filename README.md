@@ -216,7 +216,9 @@ about another.
 | `publish-android` | expo+google-play | unverified, level 3 open: stops at Step 1, no Google Play or Expo fixture account; Step 2's check fails too, `eas` is not installed and has no login |
 | `publish-android` | flutter+google-play | unverified, level 3 open: stops at Step 1, no Google Play fixture account; Step 2's check fails too, `flutter doctor` reports Android license status unknown; the later local steps ran through a signed bundle and its target API read, with a throwaway key |
 | `publish-android` | kotlin+google-play | unverified, level 3 open: stops at Step 1, no Google Play fixture account; the local steps ran through a signed bundle and its target API read, with a throwaway key |
-| `store-review` | all routes | unverified, no run recorded |
+| `store-review` | expo+app-store | unverified, level 3 open: pre-submit review and rejection reading need no account and run in evals on a seeded sign-in; the store-side "saved" reading and sending a reply need an account |
+| `store-review` | expo+google-play | unverified, level 3 open: rejection reading needs no account and runs in an eval on a seeded sign-in; the store-side "saved" reading and the send for review need an account |
+| `store-review` | other routes | unverified, no run recorded |
 | `publish-web` | vite+vercel | unverified, no run recorded |
 | `publish-web` | nextjs+vercel | unverified, no run recorded |
 | `publish-web` | static+vercel | unverified, no run recorded |
