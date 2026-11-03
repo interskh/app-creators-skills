@@ -548,6 +548,34 @@ rr_run 2026-10-01 4 0.0.9 a live
 rr_run 2026-10-01 4 0.1.0 a live
 rr_scan "date tie, newer version lower: verified" 0
 
+rr_new route-l4-failed
+rr_readme "$(rr_row a verified)"
+rr_run 2026-10-01 4 0.1.0 a failed
+rr_scan "level 4 failed does not verify" 1 "${rs_pre}.*derives \"unverified, level 4 failed\""
+
+rr_new route-l4-unknown
+rr_readme "$(rr_row a verified)"
+rr_run 2026-10-01 4 0.1.0 a unknown
+rr_scan "level 4 unknown does not verify" 1 "${rs_pre}.*derives \"unverified, level 4 unknown\""
+
+rr_new route-l4-pass-then-fail
+rr_readme "$(rr_row a verified)"
+rr_run 2026-10-04 4 0.1.0 a pass
+rr_run 2026-10-05 4 0.1.0 a fail
+rr_scan "a later level 4 fail overrides a pass" 1 "${rs_pre}.*derives \"unverified, level 4 fail\""
+
+rr_new route-l4-fail-then-pass
+rr_readme "$(rr_row a 'unverified, level 4 fail')"
+rr_run 2026-10-04 4 0.1.0 a fail
+rr_run 2026-10-05 4 0.1.0 a pass
+rr_scan "a later level 4 pass overrides a fail" 1 "${rs_pre}.*derives \"verified\""
+
+rr_new route-l4-then-l3
+rr_readme "$(rr_row a 'unverified, level 3 open')"
+rr_run 2026-10-04 4 0.1.0 a pass
+rr_run 2026-10-05 3 0.1.0 a open
+rr_scan "a later level 3 row does not override a level 4 pass" 1 "${rs_pre}.*derives \"verified\""
+
 rr_new skill-no-row
 rr_readme
 rr_scan "skill missing from the table" 1 "^README\.md:0: readme-route-status: skill good-skill has no row"

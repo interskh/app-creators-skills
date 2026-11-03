@@ -89,6 +89,8 @@ English order:
 | 3 | Fixture run | The skill executed by an agent against the fixture app for every step that needs no paid account. For `publish-web` that is the whole skill on a free Vercel account | doer | `metadata.verified` may stay `unverified` |
 | 4 | Human run | A maintainer runs the skill on a real app with real accounts, records date, framework, outcome, and surprises in `references/verified-runs.md`, sets `metadata.verified` | maintainer | `metadata.verified` date; README may call the skill verified |
 
+A level 4 run counts as verified only with outcome `pass` or `live`, and the latest level 4 run decides.
+
 Credential boundary: an agent-run level (2 or 3) uses accounts that
 exist only for fixtures, with the narrowest token the provider offers,
 never a maintainer's personal or production accounts. Level 4 is the only

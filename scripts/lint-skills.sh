@@ -375,7 +375,7 @@ check_route_status() {
           k = p[1] SUBSEP c[5]
           if (!(k in seen)) { seen[k] = 1; keys[++nk] = k; ks[k] = p[1]; kr[k] = c[5] }
           if (!(k in ld) || c[2] >= ld[k]) { ld[k] = c[2]; ll[k] = c[3]; lo[k] = c[7] }
-          if (c[3] == "4" && c[7] != "open" && c[7] != "fail" && (!(k in d4) || c[2] >= d4[k])) { d4[k] = c[2]; v4[k] = c[4] }
+          if (c[3] == "4" && (!(k in d4) || c[2] >= d4[k])) { d4[k] = c[2]; v4[k] = c[4]; o4[k] = c[7] }
         }
         close(p[3])
       }
@@ -394,7 +394,7 @@ check_route_status() {
       for (i = 1; i <= nr; i++) {
         k = rk[i]; s = rsk[k]
         if (!(s in isdir)) { out("README.md", rl[k], rule, "row names skill " s " with no directory under skills/"); continue }
-        want = (k in d4) ? (v4[k] == ver[s] ? "verified" : "verified at an earlier version") : (k in ld) ? "unverified, level " ll[k] " " lo[k] : "unverified, no run recorded"
+        want = (k in d4) ? ((o4[k] != "pass" && o4[k] != "live") ? "unverified, level 4 " o4[k] : v4[k] == ver[s] ? "verified" : "verified at an earlier version") : (k in ld) ? "unverified, level " ll[k] " " lo[k] : "unverified, no run recorded"
         if (rh[k] != want) out("README.md", rl[k], rule, "status head for " s " " rrt[k] " is \"" rh[k] "\"; verified-runs.md derives \"" want "\"")
       }
       for (i = 1; i <= nk; i++) { k = keys[i]; if (!(k in rl) && (ks[k] in rs)) out("README.md", 0, rule, "route " kr[k] " of " ks[k] " has no README row") }
