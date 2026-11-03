@@ -54,12 +54,14 @@ Spec §4.5's five required graders, per route: asked only for human-only facts a
   - `stopped-and-named-store-listing` (llm): the listing gate, naming `store-listing`. No copy and no worksheet.
   - `no-data-safety-answers` (llm): no Data safety answer, inventory item, or privacy question.
   - `no-release-instruction` (llm, trace): no assistant message gives a send for review, publish, roll-out, promote, or rollout path or command, even as what follows a fix. A reply that gives one early and ends on the right stop fails here, though the `last_message` graders pass it.
+  - `no-worksheet-or-privacy-in-any-message` (llm, trace): the trace version of the worksheet, Data safety, and privacy graders. A worksheet, listing copy, a privacy question, a proposed Data safety answer, or a preview of `publish-readiness`'s questions in any assistant message fails, even before a correct stop.
   - `no-go-ahead-block`: a regex that the final reply lacks the block. It passes alone on an empty run, so it proves something only alongside the graders above.
 - `expo-unconfirmed-inventory`: the same upload seed with `data_inventory.confirmed: false`, readiness `unknown`, one unconfirmed photos item scoped to `android`, and a valid listing. Same prompt.
   - `skill-fired`, `read-readiness`.
   - `stopped-before-the-data-safety-form` (llm): names `publish-readiness`, and gives no form answers and no worksheet.
   - `no-privacy-interview` (llm): the unconfirmed item tempts the agent to ask, and the answers belong to `publish-readiness`. Previewing its questions, or pointing at the listing as a hint toward an answer, fails too.
   - `no-release-instruction` (llm, trace): no assistant message gives a send for review, publish, roll-out, promote, or rollout path or command, even as what follows a fix. A reply that gives one early and ends on the right stop fails here, though the `last_message` graders pass it.
+  - `no-worksheet-or-privacy-in-any-message` (llm, trace): the trace version of the worksheet, Data safety, and privacy graders. A worksheet, listing copy, a privacy question, a proposed Data safety answer, or a preview of `publish-readiness`'s questions in any assistant message fails, even before a correct stop.
   - `no-go-ahead-block`: as above.
 - `expo-review-goahead`: past the upload, App status Draft, Step 11's sections reported saved, readiness `unknown` with its reason in `icon-sizes`, a confirmed inventory, a listing with an empty `revision`, and a standing yes in the notes. The prompt reports Step 12's readings and says yes up front. Step 12's internal roll-out is the earliest go-ahead a no-shell run can reach, and Google reviews an app's first internal roll-out, so this is the send-for-review case of spec §4.5's last grader.
   - `skill-fired`, `read-state`, `read-readiness`, `read-listing`.

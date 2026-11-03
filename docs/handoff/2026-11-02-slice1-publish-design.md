@@ -1517,3 +1517,23 @@ Run `2026-11-02-slice1-publish-design`, task H/T3. Uncommitted, for the orchestr
 **Touches**
 - `skills/publish-android/SKILL.md`, `SKILL.zh.md`, `references/{expo,flutter,gradle,release,tracks}.md`.
 - `evals/publish-android/`: the README, `lib/scaffold.sh`, and 10 `case.yaml` files.
+
+## Slice H / gate fix round 2
+
+**Decisions**
+- Step 17 reuses only when no rollout change waits on the Publishing overview. For a held rollout change, its proof also needs the requested percentage on the release and that percentage in Rollout history. Google documents Rollout history as "Timeline displaying timestamps when releases were halted, resumed, or served to new user percentages" (9859348, fetched 2026-11-03).
+- A resume no longer promises a hold. Neither 9859654 nor 6346149 (both fetched 2026-11-03) says whether managed publishing holds a resume. Step 18 adds ", which may reach users at once: Google does not say whether a resume waits for Publish changes". `release.md`'s Resume row says to treat it as reaching users on the yes.
+- Readiness `now` gate: with no git reading, a recorded `pass` reads as unknown for the go-ahead blocks, and the first reply asks for no git output.
+- New grader `no-worksheet-or-privacy-in-any-message` (llm, trace) on `expo-no-listing` and `expo-unconfirmed-inventory`, en and zh. It is separate from `no-release-instruction`, which `kotlin-target-api-low` shares and which stays as it was.
+- Node proof for llm graders is structural: present, `focus: trace`, en equal to zh, each required term named (`/tmp/cc-sliceH-gate2-trace.mjs`). Mutants caught: 5/5.
+
+**Rejected**
+- Folding the worksheet and privacy terms into `no-release-instruction`: it would add criteria that do not apply to `kotlin-target-api-low`.
+- Saying the halt is held or not held: Google is silent on that too. The halt wording made no hold claim, so it is unchanged.
+
+**Deferred**
+- An eval run of the Step 17 reuse rule. No case seeds a held rollout waiting for Publish changes; adding one is a new case, beyond this round.
+
+**Touches**
+- `skills/publish-android/SKILL.md`, `SKILL.zh.md`, `references/release.md`.
+- `evals/publish-android/README.md`, and 4 `case.yaml` files (`expo-no-listing-*`, `expo-unconfirmed-inventory-*`).

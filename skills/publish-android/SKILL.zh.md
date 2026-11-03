@@ -51,7 +51,7 @@
 | 时机 | 输入 | 怎么做 |
 |---|---|---|
 | 现在 | readiness 在当前 revision 上是 `fail` | 停下。列出每个失败的检查项和 `readiness.md` 里它的 `fix`。 |
-| 现在 | readiness 是 `unknown`、不是当前的，或者没有 | 说“就绪结果未知，正在跑最小检查”，然后跑。结果要在每个 go-ahead block 里重申。不是当前的 `fail` 还要加一句：“上一份报告在较旧或未提交的 revision 上记录了 fail，请重跑 `publish-readiness`”。这个 skill 没装时，说出它的名字并给出 `npx skills add interskh/app-creators-skills --skill publish-readiness`。 |
+| 现在 | readiness 是 `unknown`、不是当前的，或者没有 | 说“就绪结果未知，正在跑最小检查”，然后跑。结果要在每个 go-ahead block 里重申。不是当前的 `fail` 还要加一句：“上一份报告在较旧或未提交的 revision 上记录了 fail，请重跑 `publish-readiness`”。这个 skill 没装时，说出它的名字并给出 `npx skills add interskh/app-creators-skills --skill publish-readiness`。没有 git 读取时，记录的 `pass` 在 go-ahead block 里按未知处理，第一次回复也不索要 git 输出：第 1 步的问题是其中唯一的问题。 |
 | 第 11 步，Data safety 表单之前 | `data_inventory.confirmed` 不是 true，或者它的 `revision` 不是当前的 | 停下。这次会话有 shell、能写文件时，运行 `publish-readiness`；否则说出它，它没安装时再加上上面的安装命令。不问任何隐私问题，不提议清单内容或 Data safety 答案，也绝不设置 `confirmed`：这些都由 `publish-readiness` 来做。不描述它会问哪些问题，也不指向任何文件、商品详情文字或条目，暗示答案。 |
 | 第 11 步 | 没有 `listing.md`，或者某项限制不通过 | 停下。这次会话有 shell、能写文件时，运行 `store-listing`；否则说出它，它没安装时再加上 `npx skills add interskh/app-creators-skills --skill store-listing`。限制检查见下。 |
 | 第 12 步和第 15 步 | listing 的 `revision` 不是当前的 | 随 go-ahead block 完整展示文案和图片，每个语言的每个字段都要有，并问它们是否还和应用相符。 |
@@ -181,13 +181,13 @@ Reply "yes" to do this for exactly this release. Anything else stops here.
     执行：说出 `references/review.md` 里的时间，然后停下。之后的会话询问状态，按 `references/statuses.md` 对应。被拒时读 `references/review.md`：重新提交是一次新的第 15 步 block。申诉会到 Google 手里，所以是 **go-ahead**，单独出 block，动作按那个文件的原文写。
 
 17. **go-ahead** 发布更改。默认：Publishing overview，Publish changes。备选：无。
-    先查：问三个区域的每一行。"Changes in review" 必须是空的。已发布、而且正式版上是这个版本代码，就复用这一步。"Changes ready to publish"（可以发布的更改）下的正式版发布是另一个版本代码时：停下，说出两个版本代码，并说明这里的 yes 发布的会是那个构建，而不是这个。
+    先查：问三个区域的每一行。"Changes in review" 必须是空的。已发布、正式版上是这个版本代码，而且 Publishing overview 上没有等待中的发布比例改动，才复用这一步。"Changes ready to publish"（可以发布的更改）下的正式版发布是另一个版本代码时：停下，说出两个版本代码，并说明这里的 yes 发布的会是那个构建，而不是这个。
     执行：出 block，动作写 "publish these changes on Google Play now: <every row under Changes ready to publish>"。得到 yes 之后，给出 `references/release.md` 里的路径。
-    证据：应用状态是 Production，正式版发布是这个版本代码。记 `live`。
+    证据：应用状态是 Production，正式版发布是这个版本代码。记 `live`。被挡住的发布比例改动还要：这个发布显示要求的发布比例，它的 Rollout history 显示已经按这个比例推送。
 
 18. **go-ahead** 发布进度和发布设置（创作者要求才做）：扩大发布比例、暂停、恢复，或关闭托管发布。每一项都会改变谁能拿到应用。默认：Play Console，见 `references/release.md`。备选：无。
     先查：问这个发布和它的 Rollout history 显示什么，Managed publishing 状态，以及 Publishing overview 三个区域的每一行和每个发布的版本代码。已经是要求的样子就跳过。
-    执行：出 block，只写这一个动作，用这些原文："increase the rollout of production release <name>, version code <code>, from <p>% to <q>%"、"halt the rollout of production release <name>, version code <code>"、"resume the rollout of production release <name>, version code <code>, at <q>%"，或者 "turn managed publishing off: <each row in review, with its version code> then publishes as soon as it is approved, with no further yes; <each row ready to publish, with its version code>: Google does not say whether it publishes when the hold ends"。托管发布开着时，扩大或恢复到 100% 以下的比例会被托管发布挡住：再加上 ", held by managed publishing until a separate yes to Publish changes"。对一个动作说的 yes 不覆盖下一个。
+    执行：出 block，只写这一个动作，用这些原文："increase the rollout of production release <name>, version code <code>, from <p>% to <q>%"、"halt the rollout of production release <name>, version code <code>"、"resume the rollout of production release <name>, version code <code>, at <q>%"，或者 "turn managed publishing off: <each row in review, with its version code> then publishes as soon as it is approved, with no further yes; <each row ready to publish, with its version code>: Google does not say whether it publishes when the hold ends"。托管发布开着时，扩大到 100% 以下的比例会被托管发布挡住：再加上 ", held by managed publishing until a separate yes to Publish changes"。恢复发布不承诺会被挡住：再加上 ", which may reach users at once: Google does not say whether a resume waits for Publish changes"。对一个动作说的 yes 不覆盖下一个。
     证据：创作者报告这个发布或这个状态已显示这次改动。被挡住的改动则出现在 Publishing overview 上，等第 17 步。
 
 然后做“验证”和“更新状态”。

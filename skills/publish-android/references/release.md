@@ -57,9 +57,9 @@ Production, Releases tab, the release, Manage rollout [6]:
 |---|---|---|
 | Increase | Update rollout, the new percentage, Confirm update [6] | More users get it. The percentage never rises by itself [6]. With managed publishing on, a new percentage below 100% is held until Publish changes, because full and staged roll-outs are held [1]; 100% is not held [1] |
 | Halt | Halt rollout [6] | No more users get it; those who have it keep it [6]. A fully rolled-out release can be halted too, except internal testing and a track's first release; the previous fully rolled-out release then serves in its place [7] |
-| Resume | Resume rollout, a percentage, Confirm update [6] | The same set of users as before the halt [6] |
+| Resume | Resume rollout, a percentage, Confirm update [6] | The same set of users as before the halt [6]. Google's pages do not say whether managed publishing holds a resume [1][6], so treat it as reaching users on the yes |
 
-Each change is its own **go-ahead**, and a yes to one does not cover the next. Proof: the release shows the new state, and its Rollout history the event [5].
+Each change is its own **go-ahead**, and a yes to one does not cover the next. Proof: the release shows the new state, and its Rollout history, a timeline of when releases were halted, resumed, or served to new user percentages [5], shows the event. A held increase has neither until Publish changes: Step 17's proof reads them.
 
 Once a staged rollout has started, its countries cannot be removed [6].
 
