@@ -1537,3 +1537,43 @@ Run `2026-11-02-slice1-publish-design`, task H/T3. Uncommitted, for the orchestr
 **Touches**
 - `skills/publish-android/SKILL.md`, `SKILL.zh.md`, `references/release.md`.
 - `evals/publish-android/README.md`, and 4 `case.yaml` files (`expo-no-listing-*`, `expo-unconfirmed-inventory-*`).
+
+## Slice H / whole-run gate close
+
+Gate on `git diff a6728a2...HEAD`: full suite, one fresh reviewer, Codex via codex-companion, two fix rounds (ebe7d27, 195858d). Both rounds are spent. The same reviewer and a Codex job rechecked each round, blocker-only.
+
+Suite at 195858d passes: lint tests 109/109, metrics 106/106, check-pwa 48/48, check-readiness 596/596, check-listing 226/226, `lint: 6 skills clean`, template lint clean, manifests parse, `claude plugin validate .` passed with warnings. The same suite passed at 6e45a4d and ebe7d27.
+
+**What the gate caught**
+- Reviewer: Steps 12, 14, and 15 dead-ended when Play does not offer managed publishing, which blocked the closed test and production access for a new personal account. On Expo, a `credentials.json` written before Step 4's commit could be committed, and the fix then treated an unpushed key as safe. A held rollout increase had no wording.
+- Codex: `After approval:` promised a hold that internal testing does not have. Turning managed publishing off named only the toggle, so another version code in review could publish on approval. Troubleshooting told the creator to roll staged releases to 100% with no block. After round 1, Step 17 could reuse itself while a held increase still waited. The stop-case graders read only the last message.
+- Reviewer and Codex rechecks of round 2: every item closed, no new blocker.
+
+**Evals** (Sonnet, no shell, `--max-cost-usd` about $0.25 per case run, none partial)
+- At 6e45a4d: `evals/results/2026-11-03T12-51-12-196Z`, $4.49, 21 of 22 at 1.00. `expo-unconfirmed-inventory-en` previewed `publish-readiness`'s photo questions and pointed at the listing's wording. Round 1 item 9 fixed the gate text.
+- At ebe7d27: `13-23-29-800Z`, $4.42, 14 of 22. One was a Bun crash before turn 1. The other seven each scored 1.00 on a `--keep-temp` rerun ($1.36).
+- At 195858d: `14-14-13-686Z`, $4.56, 19 of 22. `flutter-first-run-en` 0.89 on a 2 to 1 split, on a reply whose only question is the Step 1 ask.
+- Grader correction, orchestrator, past the cap and eval-only: the kept traces of the two Expo stop-case misses (`14-52-48-609Z`, `14-56-12-420Z`, $0.79) showed replies with no review, publish, or rollout path. Their only `eas submit` mention was the route line that `SKILL.md`'s route table requires. The `no-release-instruction` grader forbade any `eas submit`, so it demanded what the skill forbids. Its criteria now allow that one-line route statement with no command and no click path, in all six case files, en and zh equal. The eval README says so. After it: `expo-no-listing-*` and `expo-unconfirmed-inventory-*` 8 of 8 at 1.00 (`14-59-52-142Z`, `15-05-37-948Z`). No reviewer or Codex read this correction.
+- All evals in this slice: about $18.20.
+
+**Open at the cap**
+- `publish-android-kotlin-target-api-low`, at 195858d: 2 of 6 runs failed (`15-10-47-606Z`, $0.78, one miss per language; the 195858d full run passed both). The reply reported `targetSdk 35` and went on to Step 10's store reading, without reading `references/target-api.md` or comparing with Google's 36. `SKILL.md:160` says "the target at or above Google's number for this app" and never says to read that number from `references/target-api.md` in the session. Suggested fix, one clause in `SKILL.md` and `SKILL.zh.md` Step 9: "Google's number from `references/target-api.md`, read in this session; never from memory". Play's own upload check is the backstop, so a low bundle is refused, not published. The cost is a wasted upload attempt.
+
+**Deferred**
+- `SKILL.md:79` (zh 52): the new sentence "the first reply asks for no git output" reads as covering a resumed no-shell session that skips Step 1, which then costs one extra round trip. Fix: start it with "When Step 1 asks". Found in the last recheck.
+- Still from the T2 recheck: `publish-ios`'s `references/expo.md` workflow check reads only `.eas/workflows/`, so a non-EAS CI uploader in an Expo repo is not read. Fixed for Android only. For Kyle.
+- No eval seeds a held rollout waiting for Publish changes, an `Upload:` line, or managed publishing being turned off. Those paths were traced by reading only.
+- Unverified at level 3, all on Kyle's list: the `java -jar bundletool-all` form, Play refusing a used version code for a bundle (Google's sentence says APK), whether a rollout resume waits for Publish changes, and every Play Console step past Step 1.
+- `privacy-scan --range a6728a2..HEAD` and, in the fixtures repo, `--range de83d0f..a4c56a0` each printed only the author identity warning, which is contributor attribution. The full branch scan belongs to the slice loop.
+
+**For Kyle**
+- Premise correction: this machine has JDKs (Homebrew `openjdk@17`, `@21`, `@27`, keg-only, so `/usr/bin/java` fails), Android Studio with its JBR, and an Android SDK at `~/Library/Android/sdk` with platforms 35 to 37, build-tools, cmdline-tools, and system images. Earlier slices recorded "no JDK". Nothing was installed. `todo-kotlin` and `todo-flutter` were built here for level 3 with throwaway keys under `/tmp`. The `smoke-run` rows that earlier slices blocked on "no JDK" may now be runnable with the existing emulator. Accepting the Android SDK licenses stays your step: `flutter doctor` reports the license status unknown.
+- The first real `apkanalyzer manifest print` and `bundletool dump manifest` outputs (T1) matched `check-readiness.py`'s assumed shape. That closes half of the `Kyle:` roadmap line on resolved inputs. The Xcode half stays open.
+- Push the fixtures branch so `a4c56a0` is public.
+
+**Process**
+- Advisor not called. No Fable. No account login, no toolchain install, no license accepted, no push.
+- Bash rule slips, all recorded in the task entries: T1 used a few heredocs before it applied the rule. T2b ran one no-op heredoc. T3 ran one empty heredoc, one multi-line `python3 -c` on a `/tmp` file, and one `git -C /dev/null`. The orchestrator wrote one script with a heredoc commit message, caught it before it ran, and rewrote it to use a message file.
+- T2 ran as two sequential doers (T2a shared steps and Expo, T2b Flutter, Gradle, and routing) with one risk-gated reviewer on the combined diff, because the task was larger than one doer has finished in earlier slices.
+
+implement-loop: slice H deferred: gate at the fix cap with one open eval defect (Step 9 target API comparison skipped in 2 of 6 kotlin-target-api-low runs at 195858d; one-clause fix named); remaining: [I, J]
