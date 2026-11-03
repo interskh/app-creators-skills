@@ -4,12 +4,13 @@ Open-source agent skills for creators who built an app with AI and now
 need to publish it. They install into Claude Code, Codex, and other
 coding agents that skills.sh supports.
 
-This is a pre-release. Three skills ship today, and none has been
+This is a pre-release. Four skills ship today, and none has been
 verified on a real account. `app-creators` detects the project and
 writes its state file. `publish-readiness` checks whether the app is
 ready for the App Store, Google Play, or the web, and reports each gap
-with its fix. `publish-web` deploys a web app to Vercel or Cloudflare
-Pages.
+with its fix. `store-listing` writes App Store and Google Play listing
+copy in English and Chinese and plans the screenshots. `publish-web`
+deploys a web app to Vercel or Cloudflare Pages.
 
 Publishing to the App Store and Google Play, user acquisition, and
 monetization are planned and have not shipped. See
@@ -29,13 +30,13 @@ npx skills add interskh/app-creators-skills -a codex
 npx skills add interskh/app-creators-skills
 ```
 
-The Claude Code commands install all three skills for your user. Run the
+The Claude Code commands install all four skills for your user. Run the
 `npx skills` commands from your project root; by default they write to
 the project, under `.agents/skills/` for Codex.
 
 In a terminal, the `npx skills` CLI shows a picker. Select all the skills,
-because `publish-readiness` and `publish-web` read the state file that
-`app-creators` writes. When the CLI detects a coding agent, it installs
+because `publish-readiness`, `store-listing`, and `publish-web` read the
+state file that `app-creators` writes. When the CLI detects a coding agent, it installs
 them all without asking.
 With no terminal and no detected agent, it stops with "Nothing was
 installed"; add `-a <agent> -y`.
@@ -50,6 +51,7 @@ skills add no telemetry of their own.
 |---|---|---|---|
 | `app-creators` | core | all | unverified |
 | `publish-readiness` | publish | all | unverified |
+| `store-listing` | publish | all | unverified |
 | `publish-web` | publish | web | unverified |
 
 ### app-creators
@@ -58,8 +60,9 @@ skills add no telemetry of their own.
 It detects the framework and which destinations the project already has
 config for, asks the creator what they want now and where the app should
 go, writes `.app-creators/state.md`, and names the next skill. To publish,
-that is `publish-readiness`, then `publish-web` for the web; for anything
-else it says the skill has not shipped. Use it when the creator says start, where do I begin, set up app
+that is `publish-readiness`, then `publish-web` for the web, or
+`store-listing` for iOS and Android, whose platform skills have not shipped;
+for anything else it says the skill has not shipped. Use it when the creator says start, where do I begin, set up app
 creators, what's next, or ship my app (开始, 从哪开始, 下一步, 发布我的应用),
 or when another App Creators skill reports that `state.md` is missing or
 on a different schema major. Install it with
@@ -82,6 +85,21 @@ pre-flight, before I submit, privacy policy, age rating, or data inventory
 `npx skills add interskh/app-creators-skills` or the Claude Code commands
 above; it needs `app-creators` installed too. Chinese version:
 [`SKILL.zh.md`](skills/publish-readiness/SKILL.zh.md).
+
+### store-listing
+
+[`store-listing`](skills/store-listing/SKILL.md) writes App Store and Google
+Play listing copy in English and Chinese from what the app's code shows, and
+plans the screenshots each store needs. It checks every field and image against
+a dated limits table with `check-listing.py`, rewrites a field that is over
+rather than cutting it, and writes `.app-creators/listing.md`. The creator
+reviews the copy and captures the screenshots. It touches no store or account,
+and a readiness failure at the current revision stops it. Use it when the
+creator asks for a store listing, app description, keywords, screenshot plan,
+or character limits (商店文案, 上架文案, 应用描述, 关键词, 截图规划, 字数限制). Install it
+with `npx skills add interskh/app-creators-skills` or the Claude Code commands
+above; it needs `app-creators` installed too. Chinese version:
+[`SKILL.zh.md`](skills/store-listing/SKILL.zh.md).
 
 ### publish-web
 
@@ -119,6 +137,12 @@ about another.
 | `publish-readiness` | flutter+web | unverified, level 3 open: no fixture yet; no shipped skill publishes this route to the web |
 | `publish-readiness` | nextjs+web | unverified, level 3 open: no fixture |
 | `publish-readiness` | static+web | unverified, level 3 open: no fixture |
+| `store-listing` | expo+app-store | unverified, level 3 open: no screenshots captured, no full Xcode; answers and rerun not exercised |
+| `store-listing` | expo+google-play | unverified, level 3 open: no screenshots captured, no JDK; answers and rerun not exercised |
+| `store-listing` | flutter+app-store | unverified, level 3 open: no fixture yet |
+| `store-listing` | flutter+google-play | unverified, level 3 open: no fixture yet |
+| `store-listing` | xcode+app-store | unverified, level 3 open: no fixture yet |
+| `store-listing` | kotlin+google-play | unverified, level 3 open: no fixture yet |
 | `publish-web` | vite+vercel | unverified, no run recorded |
 | `publish-web` | nextjs+vercel | unverified, no run recorded |
 | `publish-web` | static+vercel | unverified, no run recorded |

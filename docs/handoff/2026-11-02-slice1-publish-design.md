@@ -489,3 +489,47 @@ implement-loop: slice D follow-up shipped; remaining: [E, F, G, H, I, J]
 **Touches**
 - `skills/store-listing/references/limits.md`, `skills/store-listing/scripts/check-listing.py`, `tests/check-listing.test.sh`, `.github/workflows/lint.yml`.
 - Shared surface: the `device_class` slugs and output line format, which T2's skill and later submission steps read.
+
+## Slice E / T2 store-listing skill and evals
+
+**Decisions**
+- One store's readiness `fail` stops the whole run, even when the other store passes: one file per run, and the creator can name the other store alone. `expo-readiness-fail` seeds iOS `fail`, Android `pass`, and a real alpha icon, so `check-readiness.py` agrees with the record.
+- With no store from intent or the request, the skill asks and stops before writing. The reader rejects an empty `stores`, so this is the one question that precedes the file.
+- Over-limit seed: fixed 80-char words plus padding dots to limit + 1. At today's limit the seed ends in one period, so cutting one character leaves the seeded words and fails `seeded-text-left-the-field`. The regex stays static while the seed tracks `limits.md`; the scaffold exits if the words outgrow the limit.
+- Regexes accept only the one-line flow map per locale. The reader rejects nested flow, so no flow parent can exist above it; that made them far simpler than the readiness ones. Linear on an 800 KB input in Node (5 ms).
+- `seeded-text` is a positive match with a lookahead, not `not_contains`: a deleted file or a missing field then fails too.
+- Added beyond the brief: `skill-fired` and `last-check-has-no-fail-line` on `expo-overlimit`. Without the second, a different over-limit text would pass every grader.
+- Copy graders that read the output use `focus: { source: file }`, because a `trace` judge sees only the first and last 12 messages. The truncation judge is told to ignore notes, which quote the old text.
+- Screenshot row count defers to `limits.md`, with several `phone` rows where a count spans device types. What each shot shows goes in the notes, because rows hold exactly four keys.
+- `size` is copied from the script's `PASS` line after `path` is set, so the agent never computes it.
+- `app-creators` to 0.1.2: routing table, Expect line, its version strings. `publish-readiness` left alone: its "(not shipped yet)" sits after `publish-ios` and `publish-android` only.
+- `docs/STATE.md` unchanged: it lists no skills, `history` is open to every writer, and it already names store-listing on `app.description`.
+
+**Rejected**
+- Capture commands (`simctl`, `adb screencap`). Apple's simulator page gave 404 on the docs JSON and Android's docs looped on redirects, so neither is sourced. The ask names the path and accepted sizes.
+- A `not_contains` or a literal-length regex on the rewritten field: the first passes on a missing file, the second restates the limit in the evals.
+- Writing `app.name` from the config into state: provided fact; the skill's state writes are only `updated` and `history`.
+- Stopping on a stale or `unknown` readiness: spec 4.4 proceeds.
+- A deterministic `tool_used Write` grader for "nothing outside `.app-creators/`": a temp file would fail it. The llm grader stays, with the 12 and 12 window as its limit.
+
+**Assumptions**
+- The minute estimates in `## What you must provide` are estimates, marked "about"; conventions ask for a duration. Check at level 4.
+- `app.languages` keys such as `zh-Hans` map to zh and stay as the listing key. The App Store Connect and Play locale mapping is for the submission steps. Check in Slice F.
+- Regex and format proofs ran; the skill itself has not. `claude plugin eval` is the orchestrator's, so the `verified-runs.md` rows and README say `eval pending`.
+- zh-rewrite's fresh-context check ran as one self pass, because this run dispatches no agents; `check_tokens.py` exits 0.
+
+**Deferred**
+- Fill the eval scores into `verified-runs.md` and README after the eval.
+- No case proves a passing edited field survives a rerun. `evals/store-listing/README.md` says so.
+- Locale rows for screenshots: the agreed path has no locale, so localized captures would need a schema decision.
+
+**Touches**
+- New: `skills/store-listing/SKILL.md`, `SKILL.zh.md`, `references/verified-runs.md`, `evals/store-listing/`.
+- Edited: `skills/app-creators/SKILL.md`, `SKILL.zh.md`, `README.md`, `llms.txt`, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `docs/ROADMAP.md`, `docs/launch/awesome-lists.md`.
+- Shared surface: README route rows that T3's lint compares, `listing.md` frontmatter that the submission skills read.
+
+**T2 evals (run by the slice orchestrator)**
+- `store-listing-*`, first run: `evals/results/2026-11-03T01-39-40-555Z`, $1.17. `expo-overlimit-en` 0.33: asked only to check, the agent reported the failure and did not rewrite. `expo-overlimit-zh` 0.83: the script ran, but the grader's one-line regex did not match the Bash call. `expo-copy-en` 0.91: `copy-claims-only-what-the-app-does` votes FAIL PASS FAIL; the judges gave no reasons, and two reruns voted PASS PASS PASS.
+- Diagnosis reruns: `evals/results/2026-11-03T01-45-43-272Z` overlimit 1.00 and 1.00, $0.41; `evals/results/2026-11-03T01-48-09-946Z` copy 1.00 and 1.00, $0.59.
+- Orchestrator edits: Step 6 now rewrites on exit 1 even when the creator only asked for a check; zh copy uses full-width punctuation, after a run wrote a half-width comma; `ran-check-script` names Python and the script in either order.
+- Final run after those edits: `evals/results/2026-11-03T01-51-54-082Z`, 6/6 at 1.00, $1.29.

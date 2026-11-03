@@ -1,0 +1,31 @@
+schema_version: "1.1"
+name: store-listing-expo-readiness-fail-en
+description: >
+  Level-2 eval for store-listing with an English prompt. Workspace: todo-expo with an alpha icon, readiness recorded at the current revision: iOS fail with a fix, Android pass.
+  Same graders as store-listing-expo-readiness-fail-zh.
+tags: [store-listing, level-2]
+runs: 1
+execution:
+  max_turns: 40
+  timeout_seconds: 1200
+  allowed_tools: [Read, Glob, Grep, Skill, Bash, Write]
+  prompt: |
+    Write the store listing for this app.
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?store-listing"'
+    arm: both
+  - name: stopped-and-listed-the-fix
+    type: llm
+    focus: trace
+    criteria: |
+      PASS if the assistant told the creator it stopped because readiness failed for iOS or the App Store, and gave the fix: re-export `assets/icon.png` without an alpha channel. Replies may be in Chinese.
+      FAIL if the assistant wrote or showed listing copy, went on past the failed readiness, or gave no fix.
+  - name: no-listing-written
+    type: file_exists
+    path: .app-creators/listing.md
+    exists: false

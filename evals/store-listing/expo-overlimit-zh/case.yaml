@@ -1,0 +1,49 @@
+schema_version: "1.1"
+name: store-listing-expo-overlimit-zh
+description: >
+  Level-2 eval for store-listing with a Chinese prompt. Workspace: todo-expo with a valid listing committed, whose Google Play short_description is one over the limit read from limits.md at scaffold time.
+  Same graders as store-listing-expo-overlimit-en.
+tags: [store-listing, level-2]
+runs: 1
+execution:
+  max_turns: 40
+  timeout_seconds: 1200
+  allowed_tools: [Read, Glob, Grep, Skill, Bash, Write]
+  prompt: |
+    帮我检查一下这个应用的商店文案。
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?store-listing"'
+    arm: both
+  - name: ran-check-script
+    type: tool_used
+    tool: Bash
+    input_match: 'python[0-9.]*[\s\S]*check-listing\.py|check-listing\.py[\s\S]*python[0-9.]*'
+  - name: seeded-text-left-the-field
+    type: regex
+    target: { source: file, path: .app-creators/listing.md }
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---)[^\n]*\n)*?stores:[ \t]*(?:#[^\r\n]*)?\r?\n(?:(?:  [^\r\n]*| ?(?:#[^\r\n]*)?)\r?\n)*?  google_play:[ \t]*(?:#[^\r\n]*)?\r?\n(?:(?:    [^\r\n]*| {0,3}(?:#[^\r\n]*)?)\r?\n)*?    en:[ \t]*\{(?:[^\r\n]*,)?[ \t]*short_description:[ \t]*"(?!Keep your to-do list on this device, add a photo to any item, tick off when done)[^"\r\n]'
+  - name: last-check-has-no-fail-line
+    type: llm
+    focus: trace
+    criteria: |
+      PASS if the trace shows output from `check-listing.py`, and the output of the last run has no line that starts with `FAIL `. `PASS` and `UNKNOWN` lines are fine, including `UNKNOWN` for screenshots not captured yet. Replies may be in Chinese.
+      FAIL if no output from `check-listing.py` appears, if its last run printed a `FAIL ` line, or if the last run came before the last change to the listing.
+  - name: reply-names-field-and-shows-rewrite
+    type: llm
+    focus: trace
+    criteria: |
+      The seeded `short_description` under `google_play.en` was one over the limit: `Keep your to-do list on this device, add a photo to any item, tick off when done.`.
+      PASS if the assistant's replies to the creator name the Google Play short description field, say it was over the limit, and show the new text. Replies may be in Chinese.
+      FAIL if the replies do not name the field, or do not show the new text.
+  - name: rewrite-is-not-a-truncation
+    type: llm
+    focus: { source: file, path: .app-creators/listing.md }
+    criteria: |
+      Read only `short_description` under `google_play`, `en` in the frontmatter. Ignore the notes below the frontmatter, which may quote the old text. The old text was: `Keep your to-do list on this device, add a photo to any item, tick off when done.`.
+      PASS if the value is a complete phrase that differs from the old text by more than dropped trailing characters, ends on a whole word, and still says all three things: the list stays on the device, an item can have a photo, and items get ticked off.
+      FAIL if the value equals the old text, is a prefix of it, ends in a cut word such as `don`, or drops one of those three things.

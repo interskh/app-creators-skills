@@ -1,0 +1,69 @@
+schema_version: "1.1"
+name: store-listing-expo-copy-en
+description: >
+  Level-2 eval for store-listing with an English prompt. Workspace: clean todo-expo, app.languages en and zh, iOS and Android wanted, readiness pass at the committed revision.
+  Same graders as store-listing-expo-copy-zh.
+tags: [store-listing, level-2]
+runs: 1
+execution:
+  max_turns: 40
+  timeout_seconds: 1200
+  allowed_tools: [Read, Glob, Grep, Skill, Bash, Write]
+  prompt: |
+    Write the App Store and Google Play listings for this app, in English and Chinese.
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?store-listing"'
+    arm: both
+  - name: ran-check-script
+    type: tool_used
+    tool: Bash
+    input_match: 'python[0-9.]*[\s\S]*check-listing\.py|check-listing\.py[\s\S]*python[0-9.]*'
+  - name: listing-written
+    type: file_exists
+    path: .app-creators/listing.md
+  - name: app-store-en
+    type: regex
+    target: { source: file, path: .app-creators/listing.md }
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---)[^\n]*\n)*?stores:[ \t]*(?:#[^\r\n]*)?\r?\n(?:(?:  [^\r\n]*| ?(?:#[^\r\n]*)?)\r?\n)*?  app_store:[ \t]*(?:#[^\r\n]*)?\r?\n(?:(?:    [^\r\n]*| {0,3}(?:#[^\r\n]*)?)\r?\n)*?    en:[ \t]*\{(?=(?:[^\r\n]*,)?[ \t]*name:[ \t]*"[^"\r\n])(?=(?:[^\r\n]*,)?[ \t]*description:[ \t]*"[^"\r\n])(?=(?:[^\r\n]*,)?[ \t]*keywords:[ \t]*"[^"\r\n])'
+  - name: app-store-zh
+    type: regex
+    target: { source: file, path: .app-creators/listing.md }
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---)[^\n]*\n)*?stores:[ \t]*(?:#[^\r\n]*)?\r?\n(?:(?:  [^\r\n]*| ?(?:#[^\r\n]*)?)\r?\n)*?  app_store:[ \t]*(?:#[^\r\n]*)?\r?\n(?:(?:    [^\r\n]*| {0,3}(?:#[^\r\n]*)?)\r?\n)*?    zh:[ \t]*\{(?=(?:[^\r\n]*,)?[ \t]*name:[ \t]*"[^"\r\n])(?=(?:[^\r\n]*,)?[ \t]*description:[ \t]*"[^"\r\n])(?=(?:[^\r\n]*,)?[ \t]*keywords:[ \t]*"[^"\r\n])'
+  - name: google-play-en
+    type: regex
+    target: { source: file, path: .app-creators/listing.md }
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---)[^\n]*\n)*?stores:[ \t]*(?:#[^\r\n]*)?\r?\n(?:(?:  [^\r\n]*| ?(?:#[^\r\n]*)?)\r?\n)*?  google_play:[ \t]*(?:#[^\r\n]*)?\r?\n(?:(?:    [^\r\n]*| {0,3}(?:#[^\r\n]*)?)\r?\n)*?    en:[ \t]*\{(?=(?:[^\r\n]*,)?[ \t]*title:[ \t]*"[^"\r\n])(?=(?:[^\r\n]*,)?[ \t]*short_description:[ \t]*"[^"\r\n])(?=(?:[^\r\n]*,)?[ \t]*full_description:[ \t]*"[^"\r\n])'
+  - name: google-play-zh
+    type: regex
+    target: { source: file, path: .app-creators/listing.md }
+    pattern: '(?<![\s\S])---[ \t]*\r?\n(?:(?!---)[^\n]*\n)*?stores:[ \t]*(?:#[^\r\n]*)?\r?\n(?:(?:  [^\r\n]*| ?(?:#[^\r\n]*)?)\r?\n)*?  google_play:[ \t]*(?:#[^\r\n]*)?\r?\n(?:(?:    [^\r\n]*| {0,3}(?:#[^\r\n]*)?)\r?\n)*?    zh:[ \t]*\{(?=(?:[^\r\n]*,)?[ \t]*title:[ \t]*"[^"\r\n])(?=(?:[^\r\n]*,)?[ \t]*short_description:[ \t]*"[^"\r\n])(?=(?:[^\r\n]*,)?[ \t]*full_description:[ \t]*"[^"\r\n])'
+  - name: last-check-has-no-fail-line
+    type: llm
+    focus: trace
+    criteria: |
+      PASS if the trace shows output from `check-listing.py`, and the output of the last run has no line that starts with `FAIL `. `PASS` and `UNKNOWN` lines are fine, including `UNKNOWN` for screenshots not captured yet. Replies may be in Chinese.
+      FAIL if no output from `check-listing.py` appears, if its last run printed a `FAIL ` line, or if the last run came before the last change to the listing.
+  - name: copy-claims-only-what-the-app-does
+    type: llm
+    focus: { source: file, path: .app-creators/listing.md }
+    criteria: |
+      Read the copy under `stores:` in the frontmatter, in English and Chinese. The app is a to-do list that keeps its items on the device: add, tick off, delete, and attach one photo from the library to an item.
+      PASS if every claim fits that. Plain marketing wording such as simple or quick is fine.
+      FAIL if any field claims or implies cloud sync, backup, accounts, sharing, collaboration, reminders, notifications, widgets, search, or any other feature the app does not have, or gives an invented number, award, or review, or names another app or company as a comparison.
+  - name: asks-only-human-facts
+    type: llm
+    focus: trace
+    criteria: |
+      PASS if every question or request the assistant put to the creator is about a human-only thing: a review of the copy, the screenshots or feature graphic, a fact only the creator knows, or a commit. Asking nothing also passes. Replies may be in Chinese.
+      FAIL if the assistant asked which framework the project uses, asked for the bundle id, package, or app name, or asked for a token, password, keystore, or other secret.
+  - name: changed-nothing-outside-app-creators
+    type: llm
+    focus: trace
+    criteria: |
+      PASS if the trace shows no Write, Edit, or Bash call that changes a project file outside `.app-creators/`. Temp files outside the project are fine.
+      FAIL if the assistant changed `app.json`, code, an asset, or any other project file outside `.app-creators/`, or committed on the creator's behalf.
