@@ -132,7 +132,7 @@ Reply "yes" to do this for exactly this release. Anything else stops here.
 
 9. 从 bundle 读取目标 API 级别和发布身份。默认：路线的读取方式，按 `references/target-api.md`。备选：创作者在 Android Studio 的 APK Analyzer 里读。
    执行：从构建出的 bundle 里读包名、版本名、版本代码和 `targetSdkVersion`。包名、版本名或版本代码和项目或构建记录不一致时，停在这里，把两边都列出来。
-   预期：目标 API 不低于 Google 对这个应用要求的数字；这个数字在本次会话里从 `references/target-api.md` 读取，绝不凭记忆。进入任何下一步之前，先说出读到的数字和要求的数字。低于时，在任何上传之前停下，说出读到的数字、要求的数字和路线给的修复方法。读不到时，按 `references/target-api.md` 处理，并在每个 block 里重申。
+   预期：目标 API 不低于 Google 对这个应用要求的数字；这个数字在本次会话里从 `references/target-api.md` 读取，绝不凭记忆。进入任何下一步之前，先说出读到的数字和要求的数字。低于时，在任何上传之前停下，说出读到的数字、要求的数字和路线给的修复方法。这次停下不给出任何上传途径，修复之后的步骤也不预告。读不到时，按 `references/target-api.md` 处理，并在每个 block 里重申。
 
 10. **effective** 上传，作为不触达任何人的草稿（draft）。默认和备选：路线文件。每条路线的第一次上传都在 Play Console 里做。
     先查：请创作者在 All app bundles（所有 app bundle）里查这个版本代码。然后在任何上传之前，看路线文件里的 `Upload:` 备注行和续传规则。已经列出、而且对应这个 commit，就跳过。

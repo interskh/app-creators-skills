@@ -157,7 +157,7 @@ Every step below is marked **human-only**, **effective**, or **go-ahead**, excep
 
 9. Target API level and identity, from the bundle. Default: the route's read, per `references/target-api.md`. Alternative: Android Studio's APK Analyzer, read by the creator.
    Run: read the package, version name, version code, and `targetSdkVersion` from the built bundle. A package, version, or version code that differs from the project or the build record stops here with both shown.
-   Expect: the target at or above Google's number for this app, read from `references/target-api.md` in this session, never from memory. State the number read and the number required before any next step. Below it, stop before any upload, with the number read, the number required, and the route's fix. No reading: follow `references/target-api.md`, and restate it in every block.
+   Expect: the target at or above Google's number for this app, read from `references/target-api.md` in this session, never from memory. State the number read and the number required before any next step. Below it, stop before any upload, with the number read, the number required, and the route's fix. That stop gives no upload path, not even as a preview of what follows the fix. No reading: follow `references/target-api.md`, and restate it in every block.
 
 10. **effective** Upload, as a draft that reaches no one. Default and alternative: the route file. The first upload is in Play Console on every route.
     Check first: ask the creator to read All app bundles for this version code. Then the route file's `Upload:` notes line and resume rules, before any upload. If listed with this commit, skip.

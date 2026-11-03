@@ -43,7 +43,7 @@
 
 每条命令都在项目根目录运行。
 
-**当前（current）。** `git status --porcelain -- . ':(exclude).app-creators'` 没有输出，并且 `git diff --quiet <revision> HEAD -- . ':(exclude).app-creators'` 退出码为 0，这个 revision 才算当前。`revision` 为空或命令失败，都算不是当前。两个 revision 之间这条 `git diff` 退出码为 0，就算一致。`git` 在这里跑不了时，用一句话说明。在拿到读取结果之前，所有 revision 都算不是当前、也不一致：第一次遇到要看 revision 是否当前来决定停下或重新构建的关口或步骤时，请创作者在自己的终端里，对这一步需要的每个已记录 revision 运行这些命令，并报告输出。这个输出就是一次读取，和商店状态一样。步骤用不到时不要问：第 1 步的问题仍然单独成一条消息。
+**当前（current）。** `git status --porcelain -- . ':(exclude).app-creators'` 没有输出，并且 `git diff --quiet <revision> HEAD -- . ':(exclude).app-creators'` 退出码为 0，这个 revision 才算当前。`revision` 为空或命令失败，都算不是当前。两个 revision 之间这条 `git diff` 退出码为 0，就算一致。`git` 在这里跑不了时，用一句话说明。在拿到读取结果之前，所有 revision 都算不是当前、也不一致：第一次遇到要看 revision 是否当前来决定停下或重新构建的关口或步骤时，请创作者在自己的终端里，对这一步需要的每个已记录 revision 运行这些命令，并报告输出。这个输出就是一次读取，和商店状态一样。步骤用不到时不要问：第 1 步的问题仍然单独成一条消息。第 1 步提问时，第一次回复不索要 git 输出，也不让创作者运行任何命令。
 
 **关口。** 每一行只在它写的时机生效。readiness、listing 或 state 已经记下的，绝不再问。挡住同一步的关口，放在一条消息里全部说明。停在关口上，这一步就结束：不出 go-ahead block，预览也不出，也不出填写清单。
 
