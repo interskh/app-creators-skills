@@ -1930,3 +1930,29 @@ One bounded round on the three items under "Open at the cap". No new eval cases,
 - `privacy-scan --staged` before commit.
 
 implement-loop: slice I follow-up shipped; remaining: [J]
+
+### Slice I follow-up / orchestrator close
+
+**Grader correction (35587ee).** At cb8e921, a correct `play-rejection-zh` reply failed `named-the-policy-and-route` 3 of 3. Its only extra was a note asking the creator to confirm that the seed's sign-in host works for reviewers. That note is sound advice and leaves the route unchanged. The grader now allows it. `play-rejection-*` ×3: 6 of 6 at 1.00 (`evals/results/2026-11-03T19-25-12-462Z`, $0.89).
+
+**Recheck** of `63b11e5..35587ee`: one fresh reviewer and one Codex job.
+- Codex: none.
+- Reviewer: claims 1, 3, 4, and 5 held. The block templates are byte-identical in en and zh.
+- Reviewer MAJOR: `Assessed revision:` read the top-level `revision` even when `readiness.md` had no block for this platform. After an ios-only `publish-readiness` run, `publish-android` showed android as assessed at HEAD. Fixed in 5645eed: the line reads the revision only when `readiness.md` has a `platforms.<this platform>` block, and `none` when it has no such block or the revision is empty.
+- Reviewer MINOR: the side-note allowance could pass a note that routes to a new build, Step 15, or production. Fixed in 5645eed: the note must name no build step, version code, track, appeal, or message to Google. The reviewer's also-seen applied the same allowance to `apple-rejection` (no build step, version or build number, resubmission, or appeal), en and zh equal.
+
+**Final check at 5645eed**
+- Suite: lint tests 109/109, metrics 106/106, check-pwa 48/48, check-readiness 596/596, check-listing 226/226, `lint: 7 skills clean`, `claude plugin validate .` passed with warnings.
+- `publish-ios-expo-submit-goahead-*` ×2: 2 of 4 at 1.00 (`19-34-05-113Z`, $1.14).
+  - en `earlier-yes-counted-for-nothing`, votes FAIL FAIL FAIL. The visible reply says the standing yes in the notes and "do not ask again" count for nothing, and stops at the block. This grader has split before, since Slice F.
+  - zh `block-names-the-release`, votes FAIL FAIL FAIL. The block, the `Listing: ... shown in full below` line, and the listing after the block all look right. The likely cause is the `Readiness:` line: it mixes Chinese into the minimal checks, and it says "did not assess this build" while `readiness.md` records `unknown` for it. The judges gave no explanation.
+- `publish-android-expo-review-goahead-*` ×2: 3 of 4 at 1.00 (`19-40-19-311Z`, $1.29). zh `block-names-the-rollout-and-review` failed on `Listing: not current: shown in full above`, with the listing above the block. This is the placement deviation below.
+- `store-review-apple-rejection-*` ×2: 4 of 4 at 1.00 (`19-46-41-802Z`, $0.58).
+- No second recheck read 5645eed, by the one-recheck bound.
+
+**Deferred** (past the bound; for Kyle)
+- `Listing:` placement. In about 1 run in 3, the model puts the long listing before the block and writes "shown in full above". The line stays true and the creator sees the full listing. But the block template says "below", and some judges fail it. The proposed root fix makes the line position-neutral in both publish skills, en and zh: `not current: shown in full in this message`, with the gate rows saying "in the same message". The block-last exception would cover a listing either above or after it.
+- The zh `Readiness:` line wording above (one run).
+- Eval coverage: no case reaches a Google Play pre-submit flag, the earlier-send check, the track question, or the saved-report wait. A `target: trace` regex for click paths is still deferred.
+
+implement-loop: slice I follow-up shipped; remaining: [J]
