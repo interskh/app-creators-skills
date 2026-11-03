@@ -1149,3 +1149,33 @@ Run `2026-11-02-slice1-publish-design`, task G/T3. Uncommitted, for the orchestr
 
 **Touches**
 - `skills/publish-ios/references/flutter.md`, `skills/publish-ios/references/xcode.md`. New notes line form `Upload:`, route files only. `SKILL.md`, `SKILL.zh.md`, `expo.md`, and `evals/` unchanged.
+
+## Slice G / whole-run gate close
+
+Gate on `git diff c1d564d...HEAD`. Both fix rounds are spent (597e7a4, 9a1e843). A blocker-only recheck of round 2 ran on `git diff 597e7a4..9a1e843` with a fresh reviewer and one Codex job. Findings at the cap are not fixed in this run.
+
+Suite at 9a1e843 passes: lint tests 109/109, metrics 106/106, check-pwa 48/48, check-readiness 596/596, check-listing 226/226, `lint: 5 skills clean`, `claude plugin validate .` passed with one warning (no plugin icon).
+
+Evals not recorded above: after round 1, the session that ended ran `publish-ios-flutter-*` (`evals/results/2026-11-03T07-51-29-912Z`, $1.36) and `publish-ios-xcode-*` (`07-57-32-571Z`, $1.33), both complete, 6 of 6 at 1.00 each, one run per case, no shell. Round 2 had no eval run. All evals in this slice: $12.65 ($9.96 before the gate, plus these two).
+
+**Recheck verdicts**
+- Reviewer: no blockers; two MAJOR. It confirmed the round-2 claims by name: no path accepts another revision's listed number; "matches" reaches `SKILL.md`'s Current rule through "matches the current tree"; raising is safe; `commit unknown` does not loop; the Organizer guard sits in Step 9's alternative in both files; **A dirty tree after a build** exists in both files; [49] and [11] are cited as the round says.
+- Codex: three MAJOR, no CRITICAL. Two are the reviewer's two.
+
+**Deferred: open at the cap** (found in the recheck, so unfixed)
+- Both routes, `flutter.md:191`, `xcode.md:191`, reviewer and Codex, MAJOR: `; finished` has no success condition. If `altool` exits non-zero before sending, or the store's upload state is Failed, the line still reads `started; finished` with this commit. Step 8 sees a matching line, **New build number** sees no taken number, and Step 9's "With `finished` and not listed, say so and stop" fires on every rerun. The number is free and this revision's, and only a hand edit of the notes gets past the stop.
+- Xcode, `xcode.md:189`, reviewer and Codex, MAJOR: on the `no ipa` path, the `git status` check comes after the Organizer Upload text. If Product, Archive rewrote `project.pbxproj`, the creator uploads a binary that matches no commit before the check sees the dirty tree, and the `Upload` line records the pre-build HEAD. **A dirty tree after a build** (`xcode.md:143`) then says the same number is still free, which is false here. Recovery holds only because Step 8 then finds a non-matching `Upload` line and raises the number. Flutter (`flutter.md:173`) runs the check before Upload.
+- Both routes, `flutter.md:191`, `xcode.md:191`, Codex, MAJOR: a resumed `started` line with the number not listed sends the agent to upload again, with no check that the first upload is still transferring or processing. A creator who resumes mid-transfer gets a second upload of the same number. The reviewer rated it below the bar and notes the text had this before round 2.
+- Below the bar: `flutter.md:173` lacks a space in `**A dirty tree after a build**.Before`; `git check-ignore` exit 128 is described as "not ignored" (it still stops); an `Upload` line is matched by number without the version.
+
+**Orchestrator docs edits** (the two items round 2 left for the orchestrator)
+- `skills/publish-ios/references/verified-runs.md`, Flutter and Xcode rows: the eval sentence now says both 6-case runs and their text, that the level 3 steps ran on the first 0.2.0 text (7 and 5 fixed workflow paths, checked against b763b3f), and that the `Upload:` line (and on Xcode, the Organizer Version and Build check) has no eval run.
+- `docs/ROADMAP.md`: the Flutter and Xcode level 3 line said "They have not run"; both ran and stop at Step 1 and Step 2's check. It now lists the unverified checks for a machine with a full Xcode and a fixture Apple account, and that `todo-swift` was never opened in Xcode. New Kyle line: push the fixtures branch at `de83d0f`.
+
+**Level 3 blocked steps**, both routes: Step 1 (no fixture Apple account) and Step 2's check (Command Line Tools only, no full Xcode). Never ran: `altool`, App Store Connect, `xcodebuild -help`, `-showBuildSettings`, a build or archive, the `.ipa` read, the team commit round, Steps 3 to 16, any store reading.
+
+**Process**
+- Advisor not called. No Fable. No account login, no toolchain install, no push.
+- The orchestrator broke the `git -C` rule once, for a read-only `git check-ignore` on `evals/results/`.
+
+implement-loop: slice G deferred: gate at the fix cap with three open MAJOR findings at 9a1e843 (finished-without-success dead end, Xcode no-ipa check after upload, resumed started re-upload); remaining: [H, I, J]
