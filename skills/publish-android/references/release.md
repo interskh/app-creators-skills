@@ -70,7 +70,7 @@ Once a staged rollout has started, its countries cannot be removed [6].
 | change | what Google says | here |
 |---|---|---|
 | Store listing, store settings, category, App content, country targeting | Listed on the Publishing overview and sent with Send for review [1] | Make the edit, which reaches no one. Then the Send for review block, and the Publish changes block if managed publishing is on |
-| Price | Not held back by managed publishing [1] | **Go-ahead.** Action: "change the price of the live app to <price> in <countries>" |
+| Price | Not held back by managed publishing [1]. After a price change, "it can take a few hours for your changes to be shown on Google Play" [8] | **Go-ahead.** Action: "change the price of the live app to <price> in <countries>" |
 | Free to paid | Not possible once offered free [8] | Stop: a new app with a new package name |
 | Unpublish | New users can no longer find it; existing users keep it and get updates. Needs managed publishing off [9] | **Go-ahead.** Action: "unpublish the app from Google Play". Turning managed publishing off for it is its own block first |
 | Tester list membership | Not held back [1] | **Go-ahead**: `references/tracks.md` |

@@ -55,6 +55,8 @@ With a dynamic `app.config.js` or `app.config.ts`, what `eas init` writes is unv
 
 `[eas skip]` in a commit message skips only that push [12], so it does not count. A workflow with no automatic trigger runs only when someone starts it with `eas workflow:run` [12]; this skill never does.
 
+Then every other CI file: the file list, the three rules, and their sources in the workflow check of `references/flutter.md`, unchanged and on this repo, with `fastlane/Fastfile` and `android/fastlane/Fastfile` included. Match by meaning, in any CI file. On this route, `eas submit`, or `eas build` with `--auto-submit` or `--auto-submit-with-profile`, also counts as an upload there [1]. It is pinned only when the submit profile it names, or `production` when it names none, carries the three pins above [9].
+
 ## Release identity
 
 | part | where it comes from |
@@ -84,6 +86,13 @@ Default: Play App Signing with an upload keystore that Expo generates and keeps 
 
 Alternative: a keystore the creator holds, with `"credentialsSource": "local"` on the build profile and a `credentials.json` at the root naming its path and passwords [9][16]. The creator writes both files and adds `credentials.json` and the keystore to `.gitignore` [16]; the agent never reads them. The profile change is a Step 4 commit.
 
+**Secret files, on every run that uses either alternative, before Step 8.** Read no secret. Ask the creator for the keystore's path and the service account key file's path: paths only. For `credentials.json` and each path inside the project:
+
+1. `git ls-files -- credentials.json '*.jks' '*.keystore' <path>` prints nothing [27]. If it prints anything, stop: a key or its passwords are committed. The creator removes them from the index in a commit. The history still holds them, so a key that was ever pushed counts as compromised: before any upload, a new upload key; after one, an upload key reset (`references/app-signing.md`); for a service account key, a new key, and the old one deleted in Google Cloud.
+2. If the file exists, `git check-ignore -q <path>` exits 0, which means ignored [28]. Exit 1 stops the run until the creator adds it to `.gitignore`, as Expo says [16]. Never open the file.
+
+A secret path that shows in `git status` is never something to commit: it is this check's fix.
+
 A lost upload key: Expo's path is to download the credentials with `eas credentials`, export the certificate with `keytool`, and ask Google for an upload key reset [15]. Google's own path is in `references/app-signing.md`.
 
 ## Step 7: Google service account key
@@ -92,13 +101,13 @@ Needed only from the second upload: Step 10's first upload goes through Play Con
 
 Record in the notes: `Step 7: service account key on Expo servers, reported <date>`. No command reads it; with no key, `eas submit --non-interactive` fails with `Google Service Account Keys cannot be set up in --non-interactive mode.` [7]
 
-Alternative: `serviceAccountKeyPath` in the submit profile, set to an env var such as `$GOOGLE_SERVICE_ACCOUNT_KEY_PATH`, with the key file outside the repo [7][9]. Record `provided.publish-android.service_account_key_path_env: GOOGLE_SERVICE_ACCOUNT_KEY_PATH`. The profile change is a Step 4 commit.
+Alternative: `serviceAccountKeyPath` in the submit profile, set to an env var such as `$GOOGLE_SERVICE_ACCOUNT_KEY_PATH`, with the key file outside the repo [7][9]. Record `provided.publish-android.service_account_key_path_env: GOOGLE_SERVICE_ACCOUNT_KEY_PATH`. The profile change is a Step 4 commit. A key file inside the project goes through the secret file check in Step 6.
 
 ## Step 8: build
 
 Check first:
 
-1. `git status --porcelain -- . ':(exclude).app-creators'` prints nothing. If it prints anything, ask for a commit. The default workflow uploads uncommitted and untracked files, and the service records only the commit [18], so the record alone does not prove the tree. **This clean check at build time, written in the notes, is what makes a record's commit the build's revision.**
+1. `git status --porcelain -- . ':(exclude).app-creators'` prints nothing. If it prints `credentials.json`, a keystore, or a key file, stop and run Step 6's secret file check; never ask for that commit. If it prints anything else, ask for a commit. The default workflow uploads uncommitted and untracked files, and the service records only the commit [18], so the record alone does not prove the tree. **This clean check at build time, written in the notes, is what makes a record's commit the build's revision.**
 2. A version code taken by another binary, per Step 10's rules, is never reused. On the `remote` source, `autoIncrement` gives each build a new version code [3]: build again, and confirm from the record that the code is new. If it is not, stop and show both.
 3. Read the newest `Build ...` line in the notes. If its commit matches the current tree, confirm it with the filter above. Reuse it.
 4. `eas build:list --platform android --distribution store --git-commit-hash <HEAD> --json` [1]. A build `in-queue` or `in-progress` is this build: wait, and do not start another. A finished one with no clean record in the notes is not proved: build again.
@@ -167,7 +176,7 @@ Alternative to `eas submit`: the creator uploads each bundle in Play Console the
 | symptom | cause | fix |
 |---|---|---|
 | `Google Service Account Keys cannot be set up in --non-interactive mode.` | No key assigned to the app, documented by Expo [7] | Step 7 |
-| `EAS project not configured` | `extra.eas.projectId` is missing, documented by Expo [4] | `eas init` per Step 4, or with a token `EXPO_TOKEN=... eas init --force --non-interactive` |
+| `EAS project not configured` | `extra.eas.projectId` is missing, documented by Expo [4] | `eas init` per Step 4. On a token login, `eas init --force --non-interactive`, with `EXPO_TOKEN` already set by the creator in their own environment [4]. Never put a token on a command line or in chat |
 | `Project archive is too big. Maximum allowed size is 2.0 GB.` | The project archive, documented by Expo [18] | Exclude files with `.easignore` |
 | A build fails on the server | Read the earliest failed phase on the build details page [26] | Compare tool versions; `eas build --local` reproduces it [19][26] |
 | A submission failed | `eas submit:view <id>` shows it [1] | Fix, then Step 10's resume rules before `eas submit:retry <id>` [1] |
@@ -202,3 +211,5 @@ All fetched with curl and read 2026-11-03. Expo pages carry a `modificationDate`
 24. Version your app, Android Developers: https://developer.android.com/studio/publish/versioning
 25. Create and set up your app, Play Console Help: https://support.google.com/googleplay/android-developer/answer/9859152?hl=en
 26. Troubleshoot build errors and crashes, Expo: https://docs.expo.dev/build-reference/troubleshooting/
+27. git-ls-files, Git documentation: https://git-scm.com/docs/git-ls-files
+28. git-check-ignore, Git documentation: exit 0 ignored, 1 not ignored, 128 a fatal error: https://git-scm.com/docs/git-check-ignore

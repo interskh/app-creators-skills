@@ -1391,3 +1391,23 @@ Run `2026-11-02-slice1-publish-design`, task H/T2b. Uncommitted, for the orchest
 **Touches**
 - New: `skills/publish-android/references/flutter.md`, `gradle.md`. Edited: `references/verified-runs.md` (two rows).
 - Shared: `skills/app-creators/SKILL.md`, `SKILL.zh.md` (0.1.5, routing, Expect). Labels in `publish-ios`, `publish-web`, `store-listing`, `publish-readiness`, en and zh. `README.md`, `llms.txt`, `.claude-plugin/plugin.json`, `marketplace.json`, `docs/launch/awesome-lists.md`, `docs/ROADMAP.md`. No schema change.
+
+### Slice H / T2 review fix round
+
+**Decisions**
+- 1: In Step 12, an action that goes to review uses Step 15's form. It names every row under "Changes not yet sent for review", and `After approval:` names who each row reaches. On an app that is already available, Step 14's proof must hold first in Steps 12 and 15 and on every resubmission. "Already available" is read as app status other than Draft. That is our reading of Google's term, and the file says so.
+- 2: `expo.md` applies `flutter.md`'s CI file list and three rules unchanged, and adds the `.eas/workflows/` rules. `eas submit` and `eas build --auto-submit` count as uploads in any CI file unless their profile has the pins.
+- 3: `expo.md` adds a secret file check for `credentials.json`, the keystore, and a service account key file inside the project. It uses the same `git ls-files` and `git check-ignore -q` checks as `gradle.md` and `flutter.md`. Step 8's clean-tree check never asks for a commit of a secret path.
+- 4: Step 17 stops when "Changes ready to publish" holds a production release with a different version code.
+- 5: Troubleshooting no longer shows a token on a command line. The creator sets `EXPO_TOKEN` in their own environment.
+- 6: Step 11 leaves a price change on a live app out of the worksheet and sends it to its own go-ahead block. `release.md` cites the prices page (answer 6334373): it can take a few hours for the change to show on Google Play. Country changes are Publishing overview rows (answer 9859654), so they go with Step 15.
+
+**Rejected**
+- Copying `flutter.md`'s CI rules into `expo.md`: two copies would drift. The skill installs as one folder, so the cross-reference always resolves.
+- Moving Step 14 before Step 12: Step 14 does not apply to a first publish. A precondition check in each step that sends for review covers both cases.
+
+**Deferred**
+- The zh file (T3), an Expo signer read, and the same CI gap in `publish-ios`'s Expo route, as the orchestrator directed.
+
+**Touches**
+- `skills/publish-android/SKILL.md` (264 lines), `references/expo.md`, `references/release.md`.

@@ -170,13 +170,15 @@ Every step below is marked **human-only**, **effective**, or **go-ahead**, excep
     - Content rating from `age_rating.answers`: `references/content-rating.md`.
     - Data safety from `data_inventory` items whose `platforms` holds `android`: `references/data-safety.md`.
     - The creator's own: free or paid, countries, category, contact details.
+    On an app on Google Play, a price change is not held for review and shows on Google Play within hours: leave it out of the worksheet, and give it its own **go-ahead** block, per `references/release.md`. Country changes join the rows Step 15 sends.
     Proof: the creator reports each section saved and App content's Needs attention tab empty. On an app on Google Play, these changes wait in "Changes not yet sent for review" for Step 15.
 
 12. **go-ahead** Testing release (only when the creator asks, or Step 13 needs a closed test). Each action reaches testers, and sometimes a reviewer, so each is its own block and proof, and a yes to one does not cover the next. Default: Play Console, per `references/tracks.md`. Alternative: none; the route file forbids releasing from the upload tool.
-    Check first: ask for the track's releases and their version codes, the tester lists the track uses with their counts, the app status, and the Publishing overview. Only an action whose own proof already holds is skipped.
+    Check first: ask for the track's releases and their version codes, the tester lists the track uses with their counts, the app status, every row of the Publishing overview's three sections, and the Managed publishing status. Only an action whose own proof already holds is skipped.
+    An action that goes to review: on an app already available, Step 14's proof must hold first; if not, do Step 14 and come back. Its block takes Step 15's form, because Send for review sends every row under "Changes not yet sent for review": the action names every row, and `After approval:` names who each row reaches, the public included.
     Run: the block for one action. After the yes, the creator clicks, then reads back what its proof names.
-    - "roll out version code <code> to internal testing, for tester lists <lists> (<count> testers)". The first roll-out, and any after a rejection, goes to review first.
-    - "promote version code <code> to closed testing track <track>, for tester lists <lists> (<count> testers)", and, if Play Console asks, send it for review in the same yes, with `After approval:` filled.
+    - "roll out version code <code> to internal testing, for tester lists <lists> (<count> testers)". The first roll-out, and any after a rejection, goes to review: add ", and send for review with these other changes: <every row>".
+    - "promote version code <code> to closed testing track <track>, for tester lists <lists> (<count> testers)". If Play Console sends it for review, add ", and send for review with these other changes: <every row>".
     - Open testing: only after production access; anyone can join, so name it as public.
     Proof: the track's release with this version code is no longer a draft, and the app status shows that track, or the change is in review.
 
@@ -184,8 +186,8 @@ Every step below is marked **human-only**, **effective**, or **go-ahead**, excep
     Check first: ask whether Test and release, Production, is enabled. If it is, go to Step 14.
     Ask, and stop: the requirement in `references/accounts.md`: 12 testers opted in continuously for 14 days, then the application, whose answers the creator writes. Never fill it in.
 
-14. **effective** Managed publishing, before anything goes to review on an app that is already available. Default: on. Alternative: none.
-    Check first: ask what the Publishing overview's Managed publishing status shows. If on, go to Step 15.
+14. **effective** Managed publishing, before any send for review on an app that is already available: in Step 12, Step 15, and every resubmission. Already available, our reading of Google's term: the app status read this session is not Draft. Default: on. Alternative: none.
+    Check first: ask what the Publishing overview's Managed publishing status shows. If on, go back to the step that sent you, or to Step 15.
     Run: ask the creator to turn it on and Save, then read it back. Google does not allow it on an app's first publish: say so, and Step 15's block says approval publishes.
     Proof: "Managed publishing is turned on".
 
@@ -193,7 +195,7 @@ Every step below is marked **human-only**, **effective**, or **go-ahead**, excep
     Check first: ask for the production track's releases and their version codes, every row of the Publishing overview's three sections, the Managed publishing status, and the latest submission status.
     - In review, or Ready to publish, holding this version code on production: submitted. Record it, go to Step 16 or 17.
     - Any of those holding a different version code: stop, name both, and say a yes here would not reach this build.
-    - Rejected, or not sent: only now run the Step 11 gates and the Step 15 gates. If the production release does not exist, the creator creates it from this bundle and clicks Save, which reaches no one, then reads the rows back.
+    - Rejected, or not sent: only now run the Step 11 gates and the Step 15 gates. On an app already available, Step 14's proof must hold, as in Step 12. If the production release does not exist, the creator creates it from this bundle and clicks Save, which reaches no one, then reads the rows back.
     Then compare revisions: if the build's revision is not current, rebuild from Step 8, unless the creator refuses; then readiness reads stale.
     Run: the block, with the action "send for review: production release <name>, version code <code>, <rollout percentage or "first release, all users">, and these other changes: <every row>". If Play Console offers Publish instead, the action is "publish now, with no review: <every row>". After the yes, the path in `references/release.md`.
     Proof: the rows sit in "Changes in review", or the submission is In review. Record `review`, or keep `live`.
@@ -202,7 +204,7 @@ Every step below is marked **human-only**, **effective**, or **go-ahead**, excep
     Run: state the times in `references/review.md`, and stop. A later session asks for the status and maps it per `references/statuses.md`. On a rejection, read `references/review.md`: a resubmission is a new Step 15 block. An appeal reaches Google, so it is a **go-ahead** with its own block, in the words that file gives.
 
 17. **go-ahead** Publish changes. Default: Publishing overview, Publish changes. Alternative: none.
-    Check first: ask for the three sections' rows. "Changes in review" must be empty. Published, with production holding this version code, reuses the step.
+    Check first: ask for the three sections' rows. "Changes in review" must be empty. Published, with production holding this version code, reuses the step. A production release under "Changes ready to publish" with a different version code: stop, name both, and say a yes here would publish that build, not this one.
     Run: the block, with the action "publish these changes on Google Play now: <every row under Changes ready to publish>". After the yes, the path in `references/release.md`.
     Proof: app status Production, and the production release holds this version code. Record `live`.
 
