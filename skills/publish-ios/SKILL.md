@@ -156,7 +156,7 @@ Every step below is marked **human-only**, **effective**, or **go-ahead**, excep
    Proof: the build is finished, as the route file proves it (on `references/expo.md`, the build service says finished), and the route's read gives the full release identity, or as much of it as the route says that build has. This is not a store state. If it fails, show the first error and use Troubleshooting.
 
 9. **effective** Upload. Default and alternative: the route file. `references/testflight.md` says what follows.
-   Check first: read the store for a build with this version and build number, or what the route says for a build with no number yet. If listed, skip the upload.
+   Check first: read the store for a build with this version and build number, or what the route says for a build with no number yet. If listed, skip the upload. If not, any route file check on an earlier upload attempt comes before any upload.
    Run: only after the reading came back, the route's upload command, for this exact build. Never put this command in the message that asks for the reading, not even as what comes next.
    Proof: the build is listed in TestFlight with a status from `references/statuses.md`, and not Invalid Binary, which is recorded as Step 13 says and goes back to Step 8. A finished upload command is not that. If still Processing, say so and stop; a rerun resumes here. On Missing Compliance, follow `references/export-compliance.md`. Record `targets.ios.status` per `references/statuses.md`; with a version on sale it stays `live`.
 

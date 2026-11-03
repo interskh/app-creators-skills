@@ -127,6 +127,8 @@ Read the store first: `eas submit:status --platform ios --json --non-interactive
 
 Before uploading, `eas submit:list --platform ios --json` [1]. A submission in progress for this build is this upload: do not start another.
 
+When the creator runs these reads, the message that asks for them ends there. It holds no upload command, and it does not say which command comes next, even as a preview. The command below goes only in a later message, after the readings came back.
+
 ```sh
 eas submit --platform ios --profile production --id <build id> --non-interactive
 ```

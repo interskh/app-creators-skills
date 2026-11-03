@@ -133,7 +133,7 @@ Reply "yes" to do this for exactly this release. Anything else stops here.
    证据：构建已完成，由路线文件说明怎么证明（在 `references/expo.md` 上，就是构建服务显示已完成），并且路线的读取方式能给出完整的发布身份，或者路线说明的、这个构建此时能有的那部分身份。这不是商店状态。失败时，给出第一条错误，再看“排查”。
 
 9. **effective** 上传。默认和备选：路线文件。之后怎么走见 `references/testflight.md`。
-   先查：在商店里查这个版本号和 build number 的构建；还没有 build number 的构建，按路线说的查。已经列出就跳过上传。
+   先查：在商店里查这个版本号和 build number 的构建；还没有 build number 的构建，按路线说的查。已经列出就跳过上传。没有列出时，路线文件对之前某次上传尝试的检查，要在任何上传之前做。
    执行：读取结果回来之后，才给路线的上传命令，指定这个构建。请创作者读取的那条消息里绝不放这条命令，当作“下一步”预告也不行。
    证据：这个构建列在 TestFlight 里，状态来自 `references/statuses.md`，且不是 Invalid Binary；遇到 Invalid Binary，按第 13 步说的记下来，回到第 8 步。上传命令跑完不算。还在 Processing 时，说明情况后停下；重跑会从这里继续。遇到 Missing Compliance，按 `references/export-compliance.md` 处理。按 `references/statuses.md` 记 `targets.ios.status`；有在售版本时保持 `live`。
 

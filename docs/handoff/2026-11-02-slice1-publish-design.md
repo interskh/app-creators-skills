@@ -1179,3 +1179,73 @@ Evals not recorded above: after round 1, the session that ended ran `publish-ios
 - The orchestrator broke the `git -C` rule once, for a read-only `git check-ignore` on `evals/results/`.
 
 implement-loop: slice G deferred: gate at the fix cap with three open MAJOR findings at 9a1e843 (finished-without-success dead end, Xcode no-ipa check after upload, resumed started re-upload); remaining: [H, I, J]
+
+## Slice G follow-up
+
+**Decisions**
+- 1 `finished` only on `altool` exit 0 or the creator's report of success; any other exit writes `failed`. `altool --wait` returns at PROCESSING [altool(1)], so exit 0 means the upload reached the Build Uploads table.
+- 1 Same-number retry only when the Build Uploads table shows this version and build Failed: Apple's Build upload statuses page says "If the build upload fails, you can reuse the same build number for your next upload" (fetched 2026-11-03, already `statuses.md` [2]). A `failed` command with nothing in the table raises the number: no page says a failed command sent nothing.
+- 1 A Failed retry first shows the errors, as Apple says to resolve them before re-uploading; a second Failed on one commit stops, so an unchanged binary cannot loop. A project fix is a commit, and Step 8 check 2 then raises the number.
+- 1 `finished` with Failed in the table also retries, which closes the old dead end where a store-Failed upload read `finished` forever.
+- 2 Xcode Organizer: the `git status` check now opens the alternative, before the Version and Build report and before Upload, and says send nothing.
+- 3 `started` alone never uploads: ask finished, failed, or running; running or unknown waits and reads listing plus Build Uploads; still absent raises the number. A closing line forbids a second binary under one number unless the first shows Failed.
+- 4 Space added in `flutter.md` Organizer bullet.
+- 5 `git check-ignore`: exit other than 0 or 1 is a git error, stop and show it; new source [50] (git-check-ignore docs, exit 128 fatal).
+- 6 Matching is on version and build number in Step 8 check 2, Step 9's listing rule, the taken list, and the `Upload` line rule. Grounded in Upload builds ([14] Flutter, [3] Xcode): the version number associates the build with its version record.
+- New build number also raises above every build number in an `Upload` line for this version, because a `failed`-then-raise number is not listed and "above all listed" could return the same number.
+
+**Rejected**
+- Matching on build number alone: Upload builds says "The build string is used to uniquely identify the build throughout the system", which does not say whether that holds across versions.
+- Retry on the same number after any non-zero `altool` exit: the man page only says it exits non-zero on failure, not that nothing was sent.
+- Treating a "still running" answer as a reason to upload once the wait ends: the first binary may still arrive.
+
+**Assumptions**
+- The creator can find the Build Uploads table and read a row by version and build. Apple's page names the table but not its click path; `statuses.md` names it the same way. Check on the first real upload.
+- `altool` exit 0 with `--wait` means a row exists in Build Uploads; read from the man page mirror [24]/[14], not run.
+
+**Deferred**
+- No eval seeds `Upload` lines in `started`, `failed`, or `finished` states, so the new resume branches are traced by reading only.
+- Eval `publish-ios-*` (`evals/results/2026-11-03T08-20-33-156Z`, $5.09, not partial): Flutter and Xcode 12 of 12 at 1.00. Expo, whose files this round did not touch, scored 0.875 on `submit-goahead-en` (`block-names-the-release`) and 0.83 on `upload-check-en` and `-zh` (`checked-the-store-before-any-upload`). Not iterated, per the brief. The Failed-retry wording landed at 08:20:58Z, 25 s after the run started and before any Flutter or Xcode case (first at 08:33Z). If the eval copies the plugin at start, those cases ran without that one sentence.
+- `expo.md` unchanged. `SKILL.md` and `SKILL.zh.md` changed only in the recheck round below.
+
+**Touches**
+- `skills/publish-ios/references/flutter.md`, `skills/publish-ios/references/xcode.md`. `Upload:` line gains a `failed` state. Flutter Sources gains [50].
+
+### Recheck fix round (last round, no further rounds)
+
+Sources: a fresh reviewer (items 1, 2) and Codex (items 3, 4) on the follow-up diff, plus two MINOR items (5, 6), sent by the orchestrator.
+
+**Decisions**
+- 1 Step 9's opener uploads on "not listed" only with no `Upload` line for this version and number on the current commit; with one, the resume rules decide first. `SKILL.md` Step 9 (and `SKILL.zh.md`) gains one sentence: a route file's check on an earlier attempt comes before any upload. It is a no-op on Expo.
+- 2 Step 8 check 3: a gone file plus such a line goes to the resume rules; only their same-number retry rebuilds under that number.
+- 3 Same-number retry only when the Failed row's attempt is the only `Upload` line for this version and number on this commit. Once a retry line exists, every unresolved case raises the number. This replaces "a second Failed stops"; the closing rule now says "never a third".
+- 4 Flutter's Step 9 Organizer alternative opens with the same `git status` check as Xcode's. Step 8's bullet keeps its check too.
+- 5 `finished` with no row: say so, wait, read once more; still none raises the number.
+- 6 A new `Upload` line per attempt, and a line's state is the last one written. This is what item 3 counts.
+- In the resume list, Processing or Complete is read before Failed, so a table holding both a stale Failed row and the retry's Processing row stops instead of raising.
+
+**Rejected**
+- A per-line attempt counter: counting lines on this commit gives the same answer with no new field.
+- Keeping "a second Failed stops": with item 3, a second same-number attempt is never allowed, so the stop had nothing left to guard.
+
+**Deferred**
+- Flutter and Xcode evals: the orchestrator reruns them. The Expo eval ran because `SKILL.md` changed (`evals/results/2026-11-03T09-00-03-648Z`, $2.31, not partial): 9 of 12 at 1.00; `upload-check-en` and `-zh` 0.83 (`checked-the-store-before-any-upload`), `submit-goahead-zh` 0.875 (`block-names-the-release`). The same graders failed before the `SKILL.md` sentence (08-20-33 run, with `submit-goahead-en` instead of `-zh`), so this round did not cause them. Not investigated.
+- Resume branches still have no seeded eval case.
+
+**Touches**
+- Adds `skills/publish-ios/SKILL.md` and `SKILL.zh.md` Step 9 "Check first", one sentence each.
+
+### Slice G follow-up / orchestrator closing
+
+**Expo upload preview.** The Expo `upload-check` miss recorded in round 1 (R9) was a real behavior, not judge noise. The English agent put `eas submit` in the message that asks for the store reading, framed as "my next message gives the upload command". `SKILL.md` Step 9 forbids that, and the agent read the route file's Step 9, which shows the command right after the reads. It failed in 5 of 6 runs at Slice G's text, where both languages had passed 4 of 4 at c1d564d. The orchestrator added the rule to `references/expo.md` Step 9 at that point. After the fix, `upload-check` scored 5 of 6 at 1.00 (en 2 of 3, zh 3 of 3, $1.32). Deferred: the remaining English miss, about one run in six.
+
+**Final evals** (Sonnet, not partial):
+- Xcode, at the first recheck text: 6 of 6 at 1.00 ($1.41).
+- Flutter, at the final route text: 4 of 6 at 1.00 ($1.41). Both misses look like judge errors on correct replies, so the graders stay unchanged.
+  - `first-run-en` failed `stopped-at-the-apple-membership-ask`. The reply asks only the membership question, and it says readiness reads as unknown until the git readings come.
+  - `upload-check-en` failed `claimed-no-upload` on votes FAIL PASS FAIL. The reply claims no upload and asks for the store reading.
+- An earlier Flutter run, overlapping the second fix round, failed `toolchain-ask` in en and zh on the same kind of reply. That case passed on the final text.
+
+**Not rechecked:** no reviewer or Codex read the second follow-up round or the Expo line, by the one-recheck bound. No eval seeds an `Upload` line, so the resume walks are by reading only.
+
+implement-loop: slice G follow-up shipped; remaining: [H, I, J]
