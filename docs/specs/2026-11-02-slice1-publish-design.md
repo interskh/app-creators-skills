@@ -291,12 +291,15 @@ stores:
     en: { title: "", short_description: "", full_description: "" }
 screenshots:
   - { store: app_store, device_class: "", path: "", size: "" }
+  - { store: app_store, device_class: "", locale: en, path: "", size: "" }
 ---
 ```
 
 `check-listing.py` enforces field limits and image sizes from one table in
 `references/limits.md`, which carries the source and check date. Locales
-follow `app.languages`; en and zh are the two the skill generates.
+follow `app.languages`; en and zh are the two the skill generates. A screenshot
+row's optional `locale` ties it to that key under `stores.<store>`; a row without
+it applies to every locale of that store.
 
 ### 4.3 `state.md`
 

@@ -625,6 +625,104 @@ screenshots:
 run_check "$p" --limits "$syn"
 expect "n is the 1-based position" 0 '^PASS image\.s\.ex\.1:' '^UNKNOWN image\.s\.ex\.2:' '^UNKNOWN image\.s\.""\.3:'
 
+# --- screenshot locale rows ---
+# rows <dir> <row...>: a listing on the synthetic store with en and zh-Hans, plus the given screenshot rows.
+rows() {
+  local d="$1" t r
+  shift
+  t='---
+schema: "1.0"
+stores:
+  s:
+    en: { req: "x" }
+    zh-Hans: { req: "x" }
+  t:
+    fr: { req: "x" }
+screenshots:'
+  for r in "$@"; do
+    t="$t
+  - { $r }"
+  done
+  listing "$d" "$t
+---"
+}
+pngh "$p/en.png" 100 200 2
+pngh "$p/zh.png" 100 200 2
+pngh "$p/wide.png" 100 201 2
+rows "$p" 'store: s, device_class: ex, locale: zh-Hans, path: zh.png, size: ""'
+run_check "$p" --limits "$syn"
+expect "a row with a valid locale passes and prints it" 0 '^PASS image\.s\.zh-Hans\.ex\.1: "zh\.png" PNG 100x200 ' '!^(PASS|UNKNOWN|FAIL) image\.s\.ex\.'
+rows "$p" 'store: s, locale: en, device_class: ex, path: "", size: ""'
+run_check "$p" --limits "$syn"
+expect "an uncaptured locale row keeps its locale" 0 '^UNKNOWN image\.s\.en\.ex\.1: empty path, not captured yet$'
+rows "$p" 'store: s, device_class: ex, locale: en, path: wide.png, size: ""'
+run_check "$p" --limits "$syn"
+expect "a locale row still meets the limits row" 1 '^FAIL image\.s\.en\.ex\.1: "wide\.png" is 100x201; '
+rows "$p" 'store: s, device_class: ex, path: en.png, size: ""'
+run_check "$p" --limits "$syn"
+expect "a row without locale is unchanged" 0 '^PASS image\.s\.ex\.1: "en\.png" PNG 100x200 ' '!^(PASS|UNKNOWN|FAIL) image\.s\.(en|zh-Hans)\.'
+rows "$p" 'store: nowhere, device_class: ex, path: "", size: ""'
+run_check "$p" --limits "$syn"
+expect "a row without locale on an unlisted store still runs" 0 '^UNKNOWN image\.nowhere\.ex\.1: empty path'
+rows "$p" 'store: s, device_class: ex, locale: en, path: en.png, size: ""' 'store: s, device_class: ex, locale: zh-Hans, path: zh.png, size: ""'
+run_check "$p" --limits "$syn"
+expect "two locales for one device class are told apart" 0 '^PASS image\.s\.en\.ex\.1: "en\.png" ' '^PASS image\.s\.zh-Hans\.ex\.2: "zh\.png" '
+rows "$p" 'store: s, device_class: ex, locale: en, path: en.png, size: ""' 'store: s, device_class: ex, locale: zh-Hans, path: wide.png, size: ""'
+run_check "$p" --limits "$syn"
+expect "only the failing locale fails" 1 '^PASS image\.s\.en\.ex\.1: ' '^FAIL image\.s\.zh-Hans\.ex\.2: ' '!^FAIL image\.s\.en\.'
+rows "$p" 'store: s, device_class: ex, locale: en, path: en.png, size: ""' 'store: s, device_class: loose, path: zh.png, size: ""'
+run_check "$p" --limits "$syn"
+expect "locale and no-locale rows side by side" 0 '^PASS image\.s\.en\.ex\.1: ' '^PASS image\.s\.loose\.2: '
+listing "$p" '---
+schema: "1.0"
+stores:
+  s:
+    en: { req: "x", opt: "aaaaaaaaaaa" }
+    zh-Hans: { req: "x" }
+screenshots:
+  - { store: s, device_class: ex, locale: en, path: en.png, size: "" }
+  - { store: s, device_class: ex, locale: zh-Hans, path: zh.png, size: "" }
+---'
+run_check "$p" --limits "$syn"
+expect "an over-limit field beside locale rows still fails" 1 '^FAIL field\.s\.en\.opt: 11/10 chars; ' '^PASS image\.s\.en\.ex\.1: ' '^PASS image\.s\.zh-Hans\.ex\.2: '
+pngh "$p/r.png" "$real_w" "$real_h" 2
+listing "$p" '---
+schema: "1.0"
+stores:
+  app_store:
+    zh: { description: "x" }
+screenshots:
+  - { store: app_store, device_class: iphone_dynamic_island_medium, locale: zh, path: r.png, size: "" }
+---'
+run_check "$p"
+expect "a locale row on the real table" 1 "^PASS image\.app_store\.zh\.iphone_dynamic_island_medium\.1: \"r\.png\" PNG ${real_w}x${real_h} "
+for case in 'unknown|s|de|locale de is not under stores\.s; ' 'another store|s|fr|locale fr is not under stores\.s; ' 'store not listed|nowhere|en|locale en is not under stores\.nowhere; ' 'empty|s|""|locale "" is not under stores\.s; '; do
+  IFS='|' read -r label store locale want <<<"$case"
+  rows "$p" 'store: s, device_class: ex, locale: en, path: en.png, size: ""' "store: $store, device_class: ex, locale: $locale, path: en.png, size: \"\""
+  run_check "$p" --limits "$syn"
+  stops "locale row: $label" "^screenshots item 2: $want"
+done
+rows "$p" 'store: s, device_class: ex, locale: "de\u001b[31m\u202e", path: en.png, size: ""'
+run_check "$p" --limits "$syn"
+stops "locale row: control characters in an unknown locale" '^screenshots item 1: locale "de\[31m" is not under '
+clean "locale row: an unknown locale is not printed raw" 1
+shape "locale row with an extra key" 'screenshots item 1' '---
+schema: "1.0"
+stores:
+  s:
+    en: { a: "x" }
+screenshots:
+  - { store: s, device_class: a, locale: en, path: "", size: "", extra: b }
+---'
+shape "locale row missing a key" 'screenshots item 1' '---
+schema: "1.0"
+stores:
+  s:
+    en: { a: "x" }
+screenshots:
+  - { store: s, device_class: a, locale: en, path: "" }
+---'
+
 # --- the reader accepts ---
 listing "$d" '---
 # comment first

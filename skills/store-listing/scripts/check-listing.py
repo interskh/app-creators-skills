@@ -146,7 +146,8 @@ def check_shape(doc):
     shots = doc.get("screenshots", [])
     need(isinstance(shots, list), "screenshots", 'write [] or items of the form - { store: "x" }')
     for n, row in enumerate(shots, 1):
-        need(set(row) == {"store", "device_class", "path", "size"}, "screenshots item %d" % n, "give the item exactly store, device_class, path, and size")
+        need(set(row) - {"locale"} == {"store", "device_class", "path", "size"}, "screenshots item %d" % n, "give the item exactly store, device_class, path, and size, plus locale when it belongs to one locale")
+        need("locale" not in row or row["locale"] in doc["stores"].get(row["store"], {}), "screenshots item %d" % n, "locale %s is not under stores.%s; add that locale's text there, correct the locale, or remove it so the row applies to every locale" % (token(row.get("locale", "")), token(row["store"])))
     return doc["stores"], shots
 
 def parse_rule(kind, rule, required):
@@ -223,7 +224,7 @@ def image_info(data):
 
 def check_image(project, n, shot, rows):
     device, path = shot["device_class"], shot["path"]
-    cid = "image.%s.%s.%d" % (token(shot["store"]), token(device), n)
+    cid = "image.%s.%d" % (".".join(token(shot[k]) for k in ("store", "locale", "device_class") if k in shot), n)
     row = rows.get(shot["store"], {}).get(device)
     shown = show(path)
     if not path:

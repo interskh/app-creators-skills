@@ -13,7 +13,7 @@ license: MIT
 metadata:
   stage: publish
   platform: all
-  version: "0.1.0"
+  version: "0.2.0"
   verified: "unverified"
   verified_version: ""
   zh: SKILL.zh.md
@@ -89,10 +89,11 @@ No step here is **effective**: this skill touches no external system. It creates
    Run: from `references/limits.md`, list the device classes this app needs. This is judgment, and the script enforces none of it.
    - `app_store`: `iphone_dynamic_island_medium`, because the page's required list names it. Add `ipad_13in` when the app supports iPadOS. Expo shows that as `ios.supportsTablet` (false when absent); Xcode and Flutter as `TARGETED_DEVICE_FAMILY` (value `2` is iPad). Say that Apple's iPhone sections differ from that list, as `references/limits.md` states, and that the creator should read the page in App Store Connect before submission. Name the future requirement that file gives for `iphone_duo_outer` and `iphone_duo_inner`.
    - `google_play`: `phone`, plus a row for `feature_graphic`, which is made rather than captured.
-   - Meet each store's screenshot count in `references/limits.md` with one row per shot. A store's count across device types can need several `phone` rows.
+   - Decide the sets per store from the language rules in `references/limits.md`. The interface differs per language, because the project holds translated interface strings or the creator says so: plan one set per locale under `stores.<store>`, with `locale` on every row. The interface is the same: plan one set with no `locale`, which applies to every locale of that store. Text added on an image, such as a caption or the words on a `feature_graphic`, needs one set per locale whatever the interface does. For one device class in one store, never mix rows with and without `locale`.
+   - Meet each store's screenshot count in `references/limits.md` with one row per shot, in each set. A store's count across device types can need several `phone` rows.
    - Platforms outside this plan, such as Mac, Apple TV, Apple Vision Pro, Apple Watch, Wear OS, and Android TV, are not covered: name any the project targets. Preview videos are optional per that file: plan none unless the creator asks.
 
-   Each shot gets a row with `path: ""` and `size: ""` until captured. A capture lives at `.app-creators/screenshots/<store>/<device_class>/<n>.png`, which keeps the revision clean. On a rerun, fill `path` for each planned file that now exists. Give no capture command: this skill has no sourced one for every route.
+   Each shot gets a row with `path: ""` and `size: ""` until captured. A capture lives at `.app-creators/screenshots/<store>/<device_class>/<n>.png`, or `.app-creators/screenshots/<store>/<locale>/<device_class>/<n>.png` for a row with `locale`, which keeps the revision clean. On a rerun, fill `path` for each planned file that now exists. If a rerun moves a store from one set to one set per locale, replace its rows and name the captures to retake in Step 7. Give no capture command: this skill has no sourced one for every route.
    Expect: rows for Step 5, and one line per shot in the notes saying which screen it shows.
 
 5. Write `.app-creators/listing.md`. Default: the Write tool, the whole file in one write. Alternative: none.
@@ -115,12 +116,13 @@ No step here is **effective**: this skill touches no external system. It creates
      - { store: app_store, device_class: ipad_13in, path: "", size: "" }
      - { store: google_play, device_class: phone, path: "", size: "" }
      - { store: google_play, device_class: feature_graphic, path: "", size: "" }
+     # one set per locale, per Step 4: - { store: app_store, device_class: ipad_13in, locale: zh, path: "", size: "" }
    ---
    ```
 
    - Every string is double-quoted on one line, with JSON escapes: `\n` for a line break, `\"` for a quote. Never a block scalar.
    - Each locale is one line. Never write an empty `{ }`: omit the locale, or the store with no locale.
-   - Each screenshot row holds exactly `store`, `device_class`, `path`, and `size`. `device_class` is an `id` from the table in `references/limits.md`. `size` is `WxH`.
+   - Each screenshot row holds exactly `store`, `device_class`, `path`, and `size`, plus `locale` when it belongs to one locale. `locale` must be a key under `stores.<store>` in this file, or the script exits 2. `device_class` is an `id` from the table in `references/limits.md`. `size` is `WxH`.
 
    Below the frontmatter, write notes in plain words: what the creator has not reviewed yet, each replaced text with its old and new versions, each claim with its file, which screen each shot shows, each locale not generated, and why `revision` is empty.
    Expect: the file exists, even if nobody ever answers.
@@ -138,14 +140,14 @@ No step here is **effective**: this skill touches no external system. It creates
 7. Show it, then ask once. Default: one message. Alternative: none.
    Run: show every field per store and locale, the screenshot plan, every `UNKNOWN` line as printed, and any readiness status from Before you start. Then ask together, and only for what is missing:
    - a review of the copy, with any old and new text side by side;
-   - the captures: "Capture these shots on your device or a simulator, save each as a PNG at its path, and tell me when they are there." List each path with the sizes its row accepts, read from `references/limits.md`. For `feature_graphic`, ask for an image at the accepted size with no alpha;
+   - the captures: "Capture these shots on your device or a simulator, save each as a PNG at its path, and tell me when they are there." List each path with the sizes its row accepts, read from `references/limits.md`. For a row with `locale`, say to set the device or app to that language first, and give the total number of shots, because each locale repeats the set. When one set covers several locales, say why, so the creator can correct it. For `feature_graphic`, ask for an image at the accepted size with no alpha;
    - any fact only the creator knows that the copy needs;
    - a commit, if `revision` is `""`.
 
    Expect: the creator answers, or the session ends with the file already recording the state.
 
 8. Apply the answers. Default: the Write tool. Alternative: none.
-   Run: write the creator's text as they gave it. If it fails the script, show them the line and a shorter version that keeps the meaning. For each capture, set `path`, run the script, and copy the `WxH` its line prints to `size`, from a `PASS` line or an `UNKNOWN` line that states it. Remove what is now reviewed from the notes. Repeat Step 1, then Steps 5 and 6.
+   Run: write the creator's text as they gave it. If it fails the script, show them the line and a shorter version that keeps the meaning. For each capture, set `path` on the row with its store, locale, and device class, run the script, and copy the `WxH` its line prints to `size`, from a `PASS` line or an `UNKNOWN` line that states it. A row with `locale` prints as `image.<store>.<locale>.<device_class>.<n>`. If the creator corrects whether the interface differs per language, rewrite the rows per Step 4. Remove what is now reviewed from the notes. Repeat Step 1, then Steps 5 and 6.
    Expect: the script's lines reflect the answers, and `state.md` has one more `history` row if `result` changed.
 
 9. Name the next skill and stop. Default: this list. Alternative: none.
@@ -171,7 +173,7 @@ No step here is **effective**: this skill touches no external system. It creates
 Read the whole frontmatter, change only these fields, and write the whole frontmatter back in one write. Keep the notes below it. Secrets never.
 
 - `updated`: today.
-- `history`: append one `{ skill: store-listing, version: "0.1.0", date: <YYYY-MM-DD>, result: <pass | fail | unknown> }`, where `result` is `fail` on a failing line, else `unknown` on any `UNKNOWN`, else `pass`. If the creator's answers later change it, append one more row; never edit a row.
+- `history`: append one `{ skill: store-listing, version: "0.2.0", date: <YYYY-MM-DD>, result: <pass | fail | unknown> }`, where `result` is `fail` on a failing line, else `unknown` on any `UNKNOWN`, else `pass`. If the creator's answers later change it, append one more row; never edit a row.
 
 This skill reads `app.name` and `app.description` and never writes them.
 

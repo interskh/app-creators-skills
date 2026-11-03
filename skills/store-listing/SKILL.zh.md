@@ -66,10 +66,11 @@
    执行：根据 `references/limits.md` 列出这个应用需要的设备类别。这一步靠判断，脚本不强制其中任何一条。
    - `app_store`：`iphone_dynamic_island_medium`，因为页面的必填列表写的是它。应用支持 iPadOS 时加 `ipad_13in`。Expo 看 `ios.supportsTablet`（没写就是 false）；Xcode 和 Flutter 看 `TARGETED_DEVICE_FAMILY`（值 `2` 表示 iPad）。要说明 Apple 的 iPhone 各节和这个列表不一致，说法照 `references/limits.md`，并请创作者在提交前到 App Store Connect 读一遍这个页面。也要说出该文件给出的 `iphone_duo_outer` 和 `iphone_duo_inner` 的未来要求。
    - `google_play`：`phone`，再加一行 `feature_graphic`。这一项是做出来的，不是截出来的。
-   - 用每张截图一行的方式，满足 `references/limits.md` 里各商店的数量要求。如果商店按所有设备类型合计数量，可能要写几行 `phone`。
+   - 按 `references/limits.md` 里关于语言的规则，逐个商店决定做几组。界面随语言变化（项目里有翻译好的界面文案，或者创作者这么说）：`stores.<store>` 下每种语言一组，每行都写 `locale`。各语言界面都一样：只做一组，不写 `locale`，它对这个商店的所有语言都适用。图上另外加了文字的，比如说明文字或 `feature_graphic` 上的文案，不管界面变不变，都要每种语言一组。同一商店的同一设备类别，带 `locale` 和不带 `locale` 的行不要混用。
+   - 用每张截图一行的方式，让每一组都满足 `references/limits.md` 里各商店的数量要求。如果商店按所有设备类型合计数量，可能要写几行 `phone`。
    - 这份规划不覆盖其他平台，例如 Mac、Apple TV、Apple Vision Pro、Apple Watch、Wear OS、Android TV：项目针对其中哪个，就说出来。那个文件写明预览视频是可选的：创作者没要，就不规划。
 
-   每张截图一行，截好之前 `path: ""`、`size: ""`。截图放在 `.app-creators/screenshots/<store>/<device_class>/<n>.png`，这样 revision 仍然算干净。重跑时，规划好的文件已经存在，就填上 `path`。不给截图命令：本 skill 没有覆盖所有路线、又有出处的命令。
+   每张截图一行，截好之前 `path: ""`、`size: ""`。截图放在 `.app-creators/screenshots/<store>/<device_class>/<n>.png`，带 `locale` 的行放在 `.app-creators/screenshots/<store>/<locale>/<device_class>/<n>.png`，这样 revision 仍然算干净。重跑时，规划好的文件已经存在，就填上 `path`。重跑时某个商店从一组改成每种语言一组的，替换它的行，并在第 7 步说明哪些截图要重拍。不给截图命令：本 skill 没有覆盖所有路线、又有出处的命令。
    预期：得到第 5 步要写的行，备注里每张截图一行，说明它拍哪个界面。
 
 5. 写 `.app-creators/listing.md`。默认：Write 工具，一次写完整个文件。备选：无。
@@ -92,12 +93,13 @@
      - { store: app_store, device_class: ipad_13in, path: "", size: "" }
      - { store: google_play, device_class: phone, path: "", size: "" }
      - { store: google_play, device_class: feature_graphic, path: "", size: "" }
+     # 按第 4 步每种语言一组时：- { store: app_store, device_class: ipad_13in, locale: zh, path: "", size: "" }
    ---
    ```
 
    - 每个字符串都用双引号写在一行里，转义按 JSON：换行写 `\n`，引号写 `\"`。绝不用块标量。
    - 每种语言占一行。绝不写空的 `{ }`：省掉这种语言；一种语言都没有时，省掉这个商店。
-   - 每个截图行只有 `store`、`device_class`、`path`、`size` 这四个键。`device_class` 取 `references/limits.md` 表格里的 `id`。`size` 写成 `WxH`。
+   - 每个截图行只有 `store`、`device_class`、`path`、`size` 这四个键；属于某一种语言的行再加 `locale`。`locale` 必须是本文件 `stores.<store>` 下已有的键，否则脚本以退出码 2 停下。`device_class` 取 `references/limits.md` 表格里的 `id`。`size` 写成 `WxH`。
 
    frontmatter 下方用大白话写备注：创作者还没审的内容，每处替换的新旧两版，每条声明和它的文件，每张截图拍哪个界面，每种没有生成的语言，以及 `revision` 为空的原因。
    预期：文件已存在，哪怕一直没人回答。
@@ -115,14 +117,14 @@
 7. 给创作者看，然后问一次。默认：一条消息。备选：无。
    执行：按商店和语言列出每个字段，加上截图规划、每行照原样打印的 `UNKNOWN`，以及“开始之前”得到的就绪情况。然后把缺的一次问完：
    - 审文案，有替换的把新旧两版并排列出；
-   - 截图：“请在你的设备或模拟器上截下面这些图，每张存成 PNG，放到对应路径，放好告诉我。”列出每个路径和它那一行接受的尺寸，尺寸从 `references/limits.md` 读。`feature_graphic` 则请创作者做一张接受尺寸、不带 alpha 的图；
+   - 截图：“请在你的设备或模拟器上截下面这些图，每张存成 PNG，放到对应路径，放好告诉我。”列出每个路径和它那一行接受的尺寸，尺寸从 `references/limits.md` 读。带 `locale` 的行，要说明先把设备或应用切到那种语言；每种语言都要再截一遍，所以要给出总张数。一组覆盖多种语言时，说明理由，创作者觉得不对可以纠正。`feature_graphic` 则请创作者做一张接受尺寸、不带 alpha 的图；
    - 文案用得上、只有创作者知道的事实；
    - `revision` 是 `""` 时，请创作者 commit。
 
    预期：创作者回答；或者会话就此结束，文件已经记下当时的状态。
 
 8. 写入回答。默认：Write 工具。备选：无。
-   执行：创作者给的文字原样写入。脚本不通过时，把那一行和一个意思不变的更短版本给创作者看。每张截图先填 `path`，运行脚本，再把这一行打印的 `WxH` 抄到 `size`，`PASS` 行或写明尺寸的 `UNKNOWN` 行都算。已经审过的内容从备注里删掉。然后重做第 1 步，再做第 5、6 步。
+   执行：创作者给的文字原样写入。脚本不通过时，把那一行和一个意思不变的更短版本给创作者看。每张截图先按商店、语言和设备类别找到对应的行，填上 `path`，运行脚本，再把这一行打印的 `WxH` 抄到 `size`，`PASS` 行或写明尺寸的 `UNKNOWN` 行都算。带 `locale` 的行打印成 `image.<store>.<locale>.<device_class>.<n>`。创作者纠正了界面是否随语言变化时，按第 4 步重写这些行。已经审过的内容从备注里删掉。然后重做第 1 步，再做第 5、6 步。
    预期：脚本的输出反映了这些回答；`result` 变了的话，`state.md` 多一行 `history`。
 
 9. 说出下一个 skill，然后停下。默认：下面的列表。备选：无。
@@ -148,7 +150,7 @@
 读取整个 frontmatter，只改下列字段，然后一次性写回整个 frontmatter。下方的备注保留。绝不写 secret。
 
 - `updated`：今天。
-- `history`：追加一行 `{ skill: store-listing, version: "0.1.0", date: <YYYY-MM-DD>, result: <pass | fail | unknown> }`。有失败的行时 `result` 写 `fail`；否则有 `UNKNOWN` 时写 `unknown`；都没有才写 `pass`。创作者的回答之后让它变了，就再追加一行；绝不修改已有的行。
+- `history`：追加一行 `{ skill: store-listing, version: "0.2.0", date: <YYYY-MM-DD>, result: <pass | fail | unknown> }`。有失败的行时 `result` 写 `fail`；否则有 `UNKNOWN` 时写 `unknown`；都没有才写 `pass`。创作者的回答之后让它变了，就再追加一行；绝不修改已有的行。
 
 本 skill 只读 `app.name` 和 `app.description`，从不写它们。
 

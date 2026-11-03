@@ -594,3 +594,40 @@ The reviewer spot-checked `limits.md` against live pages, every fetch returned 2
 - The orchestrator made the small T2 eval fixes and round 2 itself.
 
 implement-loop: slice E shipped c25ba17; remaining: [F, G, H, I, J]
+
+## Slice F / T1 screenshot locale rows
+
+**Decisions**
+- Unknown `locale` is a shape error, exit 2, with a fix message. It is a broken reference inside the file, not a store limit. `FAIL` means a store limit or a capture is wrong, and `UNKNOWN` exits 0, which would pass silently. Step 6 already says to fix the file on exit 2.
+- The lookup is per store: a locale present only under another store stops. A store absent from `stores` also stops when the row has `locale`. Without `locale`, that row still runs as before, so every existing file stays valid.
+- Line id: `image.<store>.<locale>.<device_class>.<n>`, the same order as `field.<store>.<locale>.<key>`. Without `locale` the id is byte-identical to before.
+- Net +1 line in the script (294). No reader change, no new grammar. `locale` passes `token()` in both the id and the stop message, so a control sequence in it is not printed raw; a test covers this.
+- Store rule beyond the brief's sentence: Google says text overlays and the feature graphic's text should be localized. So Step 4 gives text on an image one set per locale, even when the interface is the same.
+- Each set meets the store's count. Neither store says whether counts are per language, so this is the plan that cannot fall short.
+- Step 7 states the total number of shots and asks for the device or app language, because a per-locale plan multiplies capture time. When one set covers several locales, Step 7 says why, so the creator can correct it. This also covers an agent's wrong guess from the files.
+- `SKILL.zh.md` has no frontmatter, so only its `history` string changes. `metadata.version` lives in `SKILL.md`.
+
+**Rejected**
+- `FAIL` for an unknown locale: exit 1 sends the agent to Step 6's rewrite-or-recapture path, and the output would mix it with store findings.
+- `UNKNOWN` for an unknown locale: exit 0, and `result: unknown` looks like a capture not done yet.
+- A script check for mixed rows or a partly covered plan: it adds logic to an over-budget script for a planning rule. Stated in Step 4 and in `limits.md` instead.
+- An example `locale` row in the template body: an agent copying it would mix rows for one device class. It is a comment line that the reader skips, and both templates were run through the script.
+- Enumerating translation file names per route in Step 4: "translated interface strings" holds on every route, and the list would be unsourced.
+
+**Assumptions**
+- Apple's "default to those of the primary language" sentence is about adding a language. I read it as: a row without `locale` goes to the primary language and others inherit it. No page states this for a language added earlier. T2 should see the result in App Store Connect's own screen rather than assume it.
+- Apple's old upload URL redirects to `manage-your-app-store-assets`. `limits.md` cites the final URL.
+
+**Deferred**
+- No check for mixed rows, or for a plan that skips a locale. Safe for now: both stores fall back to a default language, per the fetched pages. T2 must decide what to do if it reads a mixed file. Suggested: a `locale` row wins for that locale.
+- `check-listing.py` stays over its budget of about 250 lines. See Slice E's open note.
+- `verified-runs.md` rows and the eval rerun at 0.2.0: orchestrator. Eval cases and `evals/store-listing/README.md` are unchanged: no grader reads screenshot rows, and no README statement became false.
+- Not stated on any page read, and recorded in `limits.md`: whether a differing interface requires its own Apple set, what submission does without one, whether either store's counts are per language, and whether Google falls back asset by asset.
+- The "not shipped yet" labels: T2.
+
+**Touches**
+- `skills/store-listing/scripts/check-listing.py`: `check_shape`, the id in `check_image`. Shared surface: the `.app-creators/listing.md` row shape and the image line id, which T2 reads.
+- `tests/check-listing.test.sh`: a new section after the images cases, with a `rows` helper.
+- `skills/store-listing/references/limits.md`: `## Not checked by the script` and `## Sources`. The limits table is unchanged.
+- `skills/store-listing/SKILL.md`, `SKILL.zh.md`: Steps 4, 5, 7, 8, the template, version 0.2.0.
+- `docs/specs/2026-11-02-slice1-publish-design.md`: §4.2 only.
