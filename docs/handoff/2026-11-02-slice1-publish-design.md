@@ -1854,3 +1854,42 @@ Run `2026-11-02-slice1-publish-design`, whole-run gate fix round 2 (last), items
 - `publish-ios-expo-submit-goahead-{en,zh}` (item 3 miss), `store-review-play-rejection-{en,zh}` (item 4 miss).
 - `store-review-apple-rejection-{en,zh}` (Step 9 wording), `publish-android-expo-review-goahead-{en,zh}` (gate row), `publish-ios-expo-login-submit-{en,zh}` (gate row).
 - If budget allows: `store-review-expo-login-presubmit-{en,zh}` (Step 4 wording).
+
+## Slice I / whole-run gate close
+
+Gate on `git diff 79e337c...HEAD`: full suite, one fresh reviewer, Codex via codex-companion, two fix rounds (40ca5a3, 55edcc2). Both rounds are spent. The same reviewer and a Codex job rechecked each round, blocker-only. The last rechecks found nothing new.
+
+Suite at 4f26aca, 40ca5a3, and 55edcc2 passes: lint tests 109/109, metrics 106/106, check-pwa 48/48, check-readiness 596/596, check-listing 226/226, `lint: 7 skills clean`, template lint clean, manifests parse, `claude plugin validate .` passed with warnings.
+
+**What the gate caught**
+- Reviewer and Codex, independently: `Route:` lines and the Response routes tables named controls and click paths ("select Appeal", "Publishing overview, Send for review", Reply to App Review) before any yes. The first eval run caught the same thing in `apple-rejection`, en and zh.
+- Reviewer: Step 9 did not check the store for an earlier send; a Play testing-track rejection went to production Step 15; publish skills disowned messages store-review does not list; a reply block could get a yes before the fix it reports was saved; two quotes were not verbatim; Step 15's publish-now action was gated by the review; `app-creators` could not run in a no-shell session.
+- Codex: a privacy policy URL only in config or state cleared the privacy row; two graders passed for the wrong reason (a click path inside a block; a block in a non-final message).
+- Round 1 rechecks: the earlier-send check blocked reply-then-appeal (both); no rule picked the Play track with no source (reviewer).
+- Evals at 40ca5a3: `publish-ios-expo-submit-goahead-en` skipped the block after store-review returned `clear` and gave the Submit for Review click path. Loading the second skill displaced the caller's block rule. Round 2 says from both sides that a clear review is not a yes and the block follows. 0 of 6 runs since. `store-review-play-rejection-en` skipped the `REJECTION READING` block once; Step 8 now always prints it.
+
+**Evals** (Sonnet, no shell, none partial)
+- At 4f26aca: `store-review-*` 4 of 6 at 1.00, $0.90 (`apple-rejection` en and zh failed on the Route line above). `publish-ios-expo-*` 13 of 14 at 1.00, $3.21. `publish-android-expo-*` 12 of 12 at 1.00, $2.71; `review-goahead` used 22 and 23 of 24 turns, so its `max_turns` is now 32.
+- At 40ca5a3: $2.71 for the affected cases; the two misses above, plus a zh `Listing:` line and an Android `After approval:` line missing one row.
+- At 55edcc2 (final): `store-review-*` ×2, $1.87: presubmit 4 of 4, apple-rejection 4 of 4, play-rejection 3 of 4 at 1.00. `publish-ios-expo-login-submit-*` ×2, $1.05: 4 of 4. `publish-ios-expo-submit-goahead-*` ×3, $1.82: block shown in 6 of 6, 3 of 6 at 1.00. `publish-android-expo-review-goahead-*` ×2, $1.26: 3 of 4 at 1.00.
+- All evals in this slice: $15.52.
+- Slice proof holds at the final text: on the seeded sign-in with no demo account, store-review flags 2.1(a) before submission (4 of 4), and `publish-ios` Step 13 stops on it with no block (4 of 4). Given a pasted rejection, it names the guideline or policy and the route (Apple 4 of 4; Google 3 of 4, the miss had the right route).
+
+**Open at the cap** (found in the final eval run, so unfixed; each has a one-clause fix)
+- `publish-ios-expo-submit-goahead-en`, 2 of 3 runs: `Listing:` reads "not current: shown in full above", with the listing above the block, where the template says below. The creator still sees the listing and the block is last, but the block's fixed text is not followed. The rate rose once the pre-submit review output came before the block. Fix: in the Step 13 listing gate row of `publish-ios` (and the Steps 12 and 15 row of `publish-android`), en and zh, say "show it below the block".
+- `publish-android-expo-review-goahead-en`, 1 of 2 runs: `Assessed revision: none` while `readiness.md` holds the revision (readiness `unknown`). Fix: the block line reads `Assessed revision: <the revision in readiness.md, whatever its result; none only when it is absent>`, in both publish skills, en and zh equal.
+- `store-review-play-rejection-en`, 1 of 4: a correct reply added that the seed's `example.com` sign-in URL might need a code change and a new build; the judges failed the aside. Eval seed, not skill: the grader can allow a conditional note about the backend, or the seed can drop the URL from `auth.ts`.
+
+**Deferred**
+- A `target: trace` regex over assistant lines for click paths, because an llm trace judge sees only the first and last 12 messages. It must tell assistant text from tool results and thinking; check a kept trace first.
+- No eval reaches a Google Play pre-submit flag, the earlier-send check, the track question, or the saved-report wait. Traced by reading only.
+- The judge split on `earlier-yes-counted-for-nothing` (one zh run) continues from earlier slices.
+
+**Privacy.** `privacy-scan --staged` passed on every commit. No names, emails, home paths, or private repo references in the diff; the eval seeds use `example.com`. The full branch scan belongs to the slice loop.
+
+**Process**
+- Advisor not called. No Fable. No account login, no submission, no push, no install.
+- Bash rule slip: one empty `python3 -I -` call inside a sed one-liner (T3), which did nothing.
+- No eval overlapped an edit: every fix round started after its eval batch ended.
+
+implement-loop: slice I deferred: gate at the fix cap with two open eval defects at 55edcc2 (publish-ios submit block says the listing is "above" in 2 of 3 en runs; publish-android block wrote Assessed revision none in 1 of 2 en runs; one-clause fixes named); remaining: [J]
