@@ -166,6 +166,7 @@ about another.
 | `publish-ios` | expo+app-store | unverified, level 3 open: stops at Step 1, no Apple or Expo fixture account |
 | `publish-ios` | flutter+app-store | unverified, level 3 open: stops at Step 1, no Apple fixture account; Step 2's check fails too, no full Xcode |
 | `publish-ios` | xcode+app-store | unverified, level 3 open: stops at Step 1, no Apple fixture account; Step 2's check fails too, no full Xcode |
+| `publish-android` | expo+google-play | unverified, level 3 open: no Google Play or Expo fixture account |
 | `publish-web` | vite+vercel | unverified, no run recorded |
 | `publish-web` | nextjs+vercel | unverified, no run recorded |
 | `publish-web` | static+vercel | unverified, no run recorded |

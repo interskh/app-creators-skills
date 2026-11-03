@@ -1303,3 +1303,49 @@ Fixture repo worktree, branch `implement-loop/2026-11-02-slice1-publish-design`,
 - Skills repo: this file only. No shared surface changed.
 
 **Fixture commit:** `a4c56a0` on the fixtures branch, unpushed. The orchestrator reran `./gradlew --offline testDebugUnitTest` (pass) and checked that `local.properties`, `build/`, and `.gradle/` are ignored.
+
+## Slice H / T2a publish-android core
+
+Shared steps, shared references, the Expo route, and the target API check. `SKILL.zh.md` stays the template; T3 writes it.
+
+**Decisions**
+- 18 steps, each with a class. Local: 4, 5, 9, 16. Human-only: 1, 2, 6, 7, 13. Effective: 3, 8, 10, 11, 14. Go-ahead: 12, 15, 17, 18, plus appeals in 16.
+- First upload goes through Play Console, saved as a draft on internal testing. Google's Edits page says the API needs one APK uploaded in Play Console first. Expo says `eas submit` can make the first release. Google owns the API, so Google wins.
+- Later uploads use `eas submit --id`, pinned to `track: internal`, `releaseStatus: draft`, and `changesNotSentForReview: true`. Every submit profile needs the pins.
+- Internal testing is a go-ahead. It reaches up to 100 testers within minutes. Its first roll-out, and any after a rejection, is reviewed. Reasoning is in `tracks.md`.
+- Automatic publish: Google publishes approved changes unless managed publishing is on. Step 14 turns it on (effective). Turning it off is a go-ahead in Step 18.
+- Managed publishing cannot be used on a first publish. The block's `After approval:` line then says approval publishes with no further yes.
+- The go-ahead block adds a `Target API:` line and an `After approval:` line.
+- Target API (Step 9): read with `bundletool dump manifest --xpath=/manifest/uses-sdk/@android:targetSdkVersion`. Checked on the T1 AAB; it printed 37.
+- Step 9 also reads package, versionName, and versionCode with the `@android:` forms. The help's `/manifest/@versionCode` form prints nothing.
+- Resume rules rest on "can't upload ... a versionCode you have already used". A retry cannot add a second binary under one code. An unclear upload error means a new version code.
+- Version code: the `remote` source with `autoIncrement`, so a build leaves the tree clean. A `local` source is not switched silently.
+- Workflow check forbids automatic build or submit jobs. It also forbids a submit job whose profile lacks the pins.
+- Reading of mine in `data-safety.md`, marked as such: send a Data safety change with the release that needs it. Do not remove a type while a non-internal track still collects it.
+
+**Rejected**
+- `eas submit` for the first upload: Google's API page contradicts it.
+- `releaseStatus: completed` or `inProgress`, `rollout`, or a non-internal track in `eas.json`: each reaches users with no yes.
+- `--auto-submit`: it skips the target API read and the clean-tree record.
+- A target API script, or adding it to `check-readiness.py`: the brief forbids both. `apkanalyzer` reads APKs only, so it is the fallback for APKs.
+- `cli.requireCommit`: it would trip on `.app-creators/`.
+- Internal testing as effective: it reaches people, and a review can apply.
+
+**Assumptions**
+- "Can't reuse a versionCode" holds for bundles too. The page says APK. To check, upload a used code on a fixture account.
+- A draft API release with `changesNotSentForReview: true` creates nothing reviewable. Unverified until a level 3 run.
+- The `eas build:view --json` field names are read by meaning. Expo does not document them.
+
+**Deferred**
+- `references/flutter.md` and `references/gradle.md` are for part b. Their route rows are final. Lint passes without them.
+- No Play read tool on Expo (`eas submit:status` covers the App Store only), so every store check is the creator's report.
+
+**Facts left out or unverified**
+- Whether a refused upload uses up its version code. No page says.
+- The exact Play error text for a low target API or a used version code.
+- The effect of turning managed publishing off on changes that are Ready to publish.
+- Failed fetches: the first service-account URL was a placeholder (404). `expo.fyi` returned 429, so I used raw GitHub (200). Answer 9898080 returned 404; I used 2477981. `docs.expo.dev/build-reference/eas-json/` returned 404; `eas/json` was used.
+
+**Touches**
+- New: `skills/publish-android/` (SKILL.md 262 lines, 14 references; the scaffold zh template is unchanged).
+- `README.md`: one row in Verification per route for `publish-android` expo+google-play. Part b adds its own rows.
