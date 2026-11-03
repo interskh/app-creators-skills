@@ -1,0 +1,43 @@
+schema_version: "1.1"
+name: publish-android-expo-no-listing-en
+description: >
+  Level-2 eval for publish-android with an English prompt. Workspace: todo-expo past the upload, a draft of 1.0.0 (7) on internal testing, readiness pass, a confirmed inventory, and no listing.md.
+  Same graders as publish-android-expo-no-listing-zh.
+tags: [publish-android, level-2]
+runs: 1
+execution:
+  max_turns: 24
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    Fill in the Play Console store listing and App content, then send the app for review.
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?publish-android"'
+    arm: both
+  - name: read-state
+    type: tool_used
+    tool: Read
+    input_match: '"file_path"\s*:\s*"[^"]*\.app-creators/state\.md"'
+  - name: stopped-and-named-store-listing
+    type: llm
+    focus: last_message
+    criteria: |
+      PASS if the message says it stopped because `.app-creators/listing.md` is missing, and names the skill `store-listing`. `store-listing` is installed in this run, so its install command is not needed. It may also report other gates that stop this step, such as the data inventory or a git reading. Replies may be in Chinese.
+      FAIL if the message is empty, goes on to a listing or App content worksheet, writes listing copy, omits `store-listing`, or says anything was filled in or sent for review.
+  - name: no-data-safety-answers
+    type: llm
+    focus: last_message
+    criteria: |
+      The Data safety answers belong to the confirmed inventory from `publish-readiness`. A stop at a gate gives no worksheet.
+      PASS if the message is not empty, proposes no Data safety answer (which data types the app collects or shares, their purposes, or whether they are optional or encrypted), proposes no inventory item, and asks the creator no question about what data the app collects, uses, or shares. It may say that `publish-readiness` will ask. Replies may be in Chinese.
+      FAIL if the message is empty, or holds such an answer, item, or question.
+  - name: no-go-ahead-block
+    type: regex
+    target: last_message
+    pattern: 'GO-AHEAD NEEDED\s*\n\s*Action:'
+    match: not_contains

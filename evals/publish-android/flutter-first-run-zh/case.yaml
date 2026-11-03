@@ -1,0 +1,62 @@
+schema_version: "1.1"
+name: publish-android-flutter-first-run-zh
+description: >
+  Level-2 eval for publish-android with a Chinese prompt. Workspace: todo-flutter, Android wanted, iOS not wanted, readiness pass, a confirmed inventory, a valid Google Play listing, no answer on the Google Play developer account.
+  Same graders as publish-android-flutter-first-run-en.
+tags: [publish-android, level-2]
+runs: 1
+execution:
+  max_turns: 24
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    把这个应用发布到 Google Play。
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?publish-android"'
+    arm: both
+  - name: read-state
+    type: tool_used
+    tool: Read
+    input_match: '"file_path"\s*:\s*"[^"]*\.app-creators/state\.md"'
+  - name: read-readiness
+    type: tool_used
+    tool: Read
+    input_match: '"file_path"\s*:\s*"[^"]*\.app-creators/readiness\.md"'
+  - name: read-listing
+    type: tool_used
+    tool: Read
+    input_match: '"file_path"\s*:\s*"[^"]*\.app-creators/listing\.md"'
+  - name: read-route-file
+    type: tool_used
+    tool: Read
+    input_match: '"file_path"\s*:\s*"[^"]*publish-android/references/flutter\.md"'
+  - name: named-the-flutter-route
+    type: llm
+    focus: trace
+    criteria: |
+      Judge only text the assistant wrote to the creator. The skill body returned by the Skill tool, and file contents returned by Read, are not assistant messages.
+      PASS if the assistant says in a reply that this is a Flutter app or names the Flutter route (Flutter, or `flutter build appbundle`, as the way it builds this app), without asking which framework it uses. Saying that the first upload goes through Play Console is fine. Replies may be in Chinese.
+      FAIL if the assistant wrote no reply, asked which framework the project uses, offered a menu of build routes, named Expo or EAS as how this app builds, or named only Gradle, or never named Flutter.
+  - name: stopped-at-the-play-account-ask
+    type: llm
+    focus: last_message
+    criteria: |
+      PASS if the message asks whether the creator has a Google Play developer account with identity verification finished, wants an answer such as yes, no, or pending, and that is the only thing it asks the creator to answer or do now. It may tell the creator what readiness or listing say, that git or the minimal checks could not run here, and what the later steps need, as information. Replies may be in Chinese.
+      FAIL if the message is empty, does not ask about the Google Play developer account, or also asks now for Flutter, Android Studio, or `flutter doctor` output, an app record, an upload key, a service account key, screenshots, the output of a command such as git, or anything else.
+  - name: proposed-no-build-upload-release
+    type: llm
+    focus: last_message
+    criteria: |
+      PASS if the message is not empty, and it neither runs nor offers nor tells the creator to run a build, an upload, or a release as the next action. Saying that those come later, once the account is verified, is fine, and so is saying that this route builds with `flutter build appbundle` and uploads in Play Console: the skill asks for that line once. Replies may be in Chinese.
+      FAIL if the message is empty, gives `flutter build appbundle` or `eas submit` as a command or action to run now, gives a Play Console upload or release path, offers to start a build, an upload, or a release now, or claims any of them happened.
+  - name: asked-only-human-facts
+    type: llm
+    focus: trace
+    criteria: |
+      PASS if the assistant replied, and everything it asked the creator is a human-only fact or a go-ahead: an account, a sign-in, or a decision only the creator can make. Replies may be in Chinese.
+      FAIL if the assistant wrote no reply, or asked for anything `.app-creators/state.md`, `readiness.md`, `listing.md`, or the project records: the framework, the app name, the package name, the version, listing copy, what data the app collects, or a content rating answer. FAIL also if it asked for a password, a code, a keystore, or a key.

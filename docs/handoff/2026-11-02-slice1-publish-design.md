@@ -1411,3 +1411,74 @@ Run `2026-11-02-slice1-publish-design`, task H/T2b. Uncommitted, for the orchest
 
 **Touches**
 - `skills/publish-android/SKILL.md` (264 lines), `references/expo.md`, `references/release.md`.
+
+### Slice H / T2 review recheck (orchestrator)
+
+Same reviewer, blocker-only, on `2854bcd..86836d7`: findings 2, 3, 4 and the three minors closed; finding 1 (zh template) closes in T3. No new path reaches a reviewer or the public with no yes, and none commits a secret.
+
+**Deferred to the whole-run gate** (found in the recheck, per-task cap spent)
+- `SKILL.md` Step 12 and Step 14: an app at Internal testing counts as available, so Step 12 needs managed publishing on first. If Play does not allow managed publishing before a first publish, Step 14 cannot hold and Step 12 has no way on: the closed test never starts. Unverified whether Play allows it at Internal testing.
+- `references/expo.md`: the secret check runs at Step 6, after Step 4's commit ask. With the local `credentials.json` alternative written before that commit, a stage-all commit could include it; Step 6 then stops and a new key is needed.
+- `publish-ios` `references/expo.md` has the same workflow-check gap fixed here for Android (non-EAS CI uploaders not read). Outside this slice; for Kyle.
+
+## Slice H / T3 zh, evals, level 3
+
+Run `2026-11-02-slice1-publish-design`, task H/T3. Uncommitted, for the orchestrator. Evals not run. `SKILL.md` unchanged.
+
+**Decisions**
+- zh block is byte-identical to en: sha256 `0744641a…` in both. Action strings stay English. Step 1's reply words are 有, 没有, 办理中. Play menu and status names stay English, with a Chinese gloss on first use.
+- Eleven cases, en and zh, 22 runs. Graders are generated, so each pair is equal; a Ruby parse confirms it.
+- `expo-review-goahead` uses Step 12's first internal roll-out. It is the earliest go-ahead a no-shell run can reach, and Google reviews it, so it is the send-for-review case.
+- `expo-rollout-goahead` uses Step 18, raise 20% to 50%, on a live app. Step 15 on a first publish was rejected: see below.
+- Prompts carry every reading the run cannot take: git, `shasum`, `eas build:list`, the Play Console screens, and `check-listing.py` output on the review case. Same lesson as Slice F and G.
+- Flutter and Kotlin past-build seeds write a placeholder at the ignored bundle path, so a Glob finds the file and the notes hash is real.
+- `read-route-file` matches `publish-android/references/...`, so `publish-ios`'s `expo.md` or `flutter.md` does not count.
+- Two deterministic `block-release-line` regexes check the identity in the `Release:` line, beside the llm graders.
+- `kotlin-target-api-low` commits `targetSdk = 35`, so the project and the reported bundle agree.
+- Level 3: as Slice G, every later local step ran after the Step 1 stop, on `/tmp/cc-sliceH-t3/` copies. Keys are throwaway, under `/tmp`.
+- Replaced the `not run` rows for kotlin and flutter on google-play in `publish-readiness` and `store-listing`: both scripts ran on those fixtures here.
+
+**Rejected**
+- Step 15 for the rollout case. An app at Internal testing reads as available, so Step 14 would need managed publishing first. That is the open Step 12/14 question from the T2 recheck.
+- `max_turns` above 24: a trace judge sees 12 and 12 messages.
+- A real `keystore.properties` in the seeds: it would put password-shaped lines in a workspace. The notes and prompt say Step 6 holds.
+- Downloading `bundletool-all`: the route says the creator downloads it. T1's cached library jar ran with a classpath.
+
+**Assumptions**
+- Expo SDK 58 targets API 36. Only the notes say so; no Expo build ran. Check on the first `eas build`.
+- A judge reads the Expo route line ("later uploads use `eas submit`") as information, not an upload command. Check `checked-the-store-before-any-upload` verdicts.
+
+**Deferred**
+- Eval scores: `eval pending` in all three `verified-runs.md` rows.
+- No bundle was built at target 35. The low-target stop is eval-only.
+
+**Skill text questions, not changed**
+- Step 9 has no reuse rule. A later session may re-read the bundle or trust the notes. The prompts report the reads, so both paths reach Step 10.
+- `gradle.md` and `flutter.md` Step 6 have no no-shell line; Step 2 does. Prompts say nothing changed since Step 6.
+- `expo.md` Step 9 needs the `.aab` on this machine and has no no-shell line.
+- Step 18's action has no fixed wording. The grader takes "increase" or "update".
+- The block's `After approval:` line says "only on a send for review" but not whether to drop it. The grader allows either.
+- `flutter doctor` here prints `✗ Android license status unknown` while builds succeed. Step 2's check stops there. Kyle line added.
+- `signingReport` with no key prints `Cannot query the value of this provider because it has no value available.` `gradle.md` paraphrases it. A Troubleshooting row could quote it.
+- No case is unreachable.
+
+**Orchestrator must check in the eval verdicts**
+- `stopped-at-the-play-account-ask`: a fail for "git could not run, readiness unknown" as information is a judge error. A git ask is a real fail.
+- `checked-the-store-before-any-upload` on Expo: a fail for the route line naming `eas submit` with no command is a judge error.
+- `block-names-the-rollout-and-review`: a reply that leaves out the zh locale fails, by design.
+- `stopped-before-upload-with-the-fix`: a reply naming 36 and the `targetSdk` fix but no commit word is borderline. Read the reply.
+- A `partial: true` result is not a score.
+
+**Evidence**
+- `bash scripts/lint-skills.sh`: 6 skills clean. `bash tests/lint-skills.test.sh`: 109/109. `claude plugin validate .`: passed with warnings.
+- Regex graders: `node /tmp/cc-sliceH-t3-regex.mjs`, 102 checks, 12 patterns, mutants 41/41. File mutants: `bash /tmp/cc-sliceH-t3-filemut.sh`, 7/7, each restored by `cp`, sha256 equal.
+- Scaffolds: `bash /tmp/cc-sliceH-t3-scaffold.sh`, 22/22. Clean tree, intents right, `check-listing.py` exit 0 with 9 `PASS` and no `UNKNOWN`, bundle hash in notes.
+- Level 3 logs: `/tmp/cc-sliceH-t3/rerun/<route>/log.txt`. The first runs in `/tmp/cc-sliceH-t3/<route>/` had a broken `git revert` in my script; reruns fixed it, same results.
+
+**Process**
+- No advisor, no Fable. No account login, no install, no license accepted. Gradle fetched build dependencies into its cache; the SDK listing did not change.
+- Bash rule slips: one empty heredoc, one multi-line `python3 -c` to edit the test file, one `git -C /dev/null` no-op.
+
+**Touches**
+- New: `evals/publish-android/` (README, `lib/`, 22 cases). Edited: `skills/publish-android/SKILL.zh.md`, `references/verified-runs.md`.
+- Shared: `README.md` (7 status rows), `docs/ROADMAP.md` (2 ticks, 3 Kyle lines), `skills/publish-readiness/references/verified-runs.md` and `skills/store-listing/references/verified-runs.md` (2 rows each).

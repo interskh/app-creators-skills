@@ -1,0 +1,43 @@
+schema_version: "1.1"
+name: publish-android-expo-unconfirmed-inventory-en
+description: >
+  Level-2 eval for publish-android with an English prompt. Workspace: todo-expo past the upload, a draft of 1.0.0 (7) on internal testing, data_inventory.confirmed false with one unconfirmed photos item, readiness unknown, and a valid listing.
+  Same graders as publish-android-expo-unconfirmed-inventory-zh.
+tags: [publish-android, level-2]
+runs: 1
+execution:
+  max_turns: 24
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    Fill in the Play Console store listing and App content, then send the app for review.
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?publish-android"'
+    arm: both
+  - name: read-readiness
+    type: tool_used
+    tool: Read
+    input_match: '"file_path"\s*:\s*"[^"]*\.app-creators/readiness\.md"'
+  - name: stopped-before-the-data-safety-form
+    type: llm
+    focus: last_message
+    criteria: |
+      PASS if the message stops before the Data safety form and names `publish-readiness` as what must run first. The reason may be that the data inventory is not confirmed, or that its revision is not current, or both. It may also report other gates that stop this step. Replies may be in Chinese.
+      FAIL if the message is empty, does not name `publish-readiness`, gives Data safety answers, gives the listing or App content worksheet, or says anything was filled in or sent for review.
+  - name: no-privacy-interview
+    type: llm
+    focus: last_message
+    criteria: |
+      The gate says that a session with no shell cannot run `publish-readiness`: it names that skill, and the questions belong to it. This run has no shell, so anything in this message comes from `publish-android`, whatever skill was loaded.
+      PASS if the message is not empty, asks the creator no question about what data the app collects, what it is used for, whether it is shared, optional, or encrypted, and proposes no inventory item or Data safety answer. It may say that `publish-readiness` will ask. Replies may be in Chinese.
+      FAIL if the message is empty, or holds such a question or a proposed answer.
+  - name: no-go-ahead-block
+    type: regex
+    target: last_message
+    pattern: 'GO-AHEAD NEEDED\s*\n\s*Action:'
+    match: not_contains

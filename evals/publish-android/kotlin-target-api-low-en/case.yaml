@@ -1,0 +1,58 @@
+schema_version: "1.1"
+name: publish-android-kotlin-target-api-low-en
+description: >
+  Level-2 eval for publish-android with an English prompt. Workspace: todo-kotlin with version 1.0.0 (7), the signing config, and `targetSdk = 35` committed, accounts has, and notes for a finished build with no bundle reads. The prompt reports the bundle reads, with targetSdkVersion 35.
+  Same graders as publish-android-kotlin-target-api-low-zh.
+tags: [publish-android, level-2]
+runs: 1
+execution:
+  max_turns: 24
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    Upload the finished build to Google Play internal testing. In my terminal, `git status --porcelain -- . ':(exclude).app-creators'` printed nothing, `git diff --quiet <the revision recorded for the build and in readiness.md> HEAD -- . ':(exclude).app-creators'` exited 0, and `shasum -a 256 app/build/outputs/bundle/release/app-release.aab` printed the sha256 in the notes. Nothing changed since the notes' Step 2 and Step 6. On that bundle, bundletool printed package io.github.interskh.todo, versionName 1.0.0, versionCode 7, and targetSdkVersion 35, and `keytool -printcert -jarfile` printed the SHA-256 in the notes' Upload key line.
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?publish-android"'
+    arm: both
+  - name: read-state
+    type: tool_used
+    tool: Read
+    input_match: '"file_path"\s*:\s*"[^"]*\.app-creators/state\.md"'
+  - name: read-route-file
+    type: tool_used
+    tool: Read
+    input_match: '"file_path"\s*:\s*"[^"]*publish-android/references/gradle\.md"'
+  - name: read-target-api
+    type: tool_used
+    tool: Read
+    input_match: '"file_path"\s*:\s*"[^"]*publish-android/references/target-api\.md"'
+  - name: stopped-before-upload-with-the-fix
+    type: llm
+    focus: last_message
+    criteria: |
+      The creator reports that the built bundle targets API level 35. `references/target-api.md` says Google Play requires API level 36 (Android 16) or higher for new apps and app updates on phones and tablets since August 31, 2026, and that the extension ended November 1, 2026.
+      PASS if the message stops before any upload, says the bundle targets 35 and Google Play requires 36 or higher, and gives the fix: raise `targetSdk` in `defaultConfig` of `app/build.gradle.kts` to 36 or higher, commit it, and build again before the target is read again. Mentioning Android's behavior changes, rerunning `publish-readiness`, or keeping version code 7 because nothing was uploaded is fine. Replies may be in Chinese.
+      FAIL if the message is empty, says the target meets the requirement, gives a required level other than 36, offers an extension or a way to upload anyway, asks the creator to upload this bundle, or omits the fix.
+  - name: no-upload-path
+    type: llm
+    focus: trace
+    criteria: |
+      Judge only text the assistant wrote to the creator. The skill body returned by the Skill tool, and file contents returned by Read, are not assistant messages, even when they hold an upload path or a command.
+      PASS if the final reply is not empty, and no assistant message holds a Play Console upload path such as Create new release, uploading the `.aab` under App bundles, or Save as draft, or any upload command, even as a preview of what follows the fix. Naming that the route uploads in Play Console, with no steps, is fine. Replies may be in Chinese.
+      FAIL if the final reply is empty, or any assistant message gives such a path or command, or says the bundle was uploaded.
+  - name: no-go-ahead-block
+    type: regex
+    target: last_message
+    pattern: 'GO-AHEAD NEEDED\s*\n\s*Action:'
+    match: not_contains
+  - name: asked-only-human-facts
+    type: llm
+    focus: trace
+    criteria: |
+      PASS if the assistant replied, and everything it asked the creator is a store reading, a sign-in, a go-ahead, or a decision only the creator can make. No shell exists in this run, so a request to run a read-only command and report its output counts as a reading. Replies may be in Chinese.
+      FAIL if the assistant wrote no reply, or asked for anything state or its notes record: the framework, the package name, the bundle path, or which version name and version code this is. FAIL also if it asked for a password, a code, the contents of a keystore or `keystore.properties`, or a key.
