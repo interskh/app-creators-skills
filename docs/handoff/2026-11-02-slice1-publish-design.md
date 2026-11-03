@@ -1812,3 +1812,45 @@ Run `2026-11-02-slice1-publish-design`, whole-run gate fix round 1, items 1 to 1
 **Eval cases to rerun**
 - `store-review-apple-rejection-{en,zh}`, `store-review-play-rejection-{en,zh}`, `publish-ios-expo-login-submit-{en,zh}`, `publish-android-expo-review-goahead-{en,zh}`.
 - Should be unaffected, rerun if budget allows: `store-review-expo-login-presubmit-{en,zh}` (privacy row wording), `publish-ios-expo-submit-goahead-{en,zh}`.
+
+## Slice I / gate fix round 2
+
+Run `2026-11-02-slice1-publish-design`, whole-run gate fix round 2 (last), items 1 to 5. Uncommitted. Evals not run.
+
+**Decisions**
+- Step 9 earlier send (1): the stop is now "this same kind of message, sent for this submission, with no answer from the store since". Another kind, or an answered one, does not stop. This keeps the reference's reply-then-appeal, call-after-reply, and bug-fix-after-reply routes open.
+- Apple appeal (1): the creator's own record of sending the contact form counts as the reading. The text claims nothing about what Apple's thread shows.
+- Track (2): with neither the message nor state's notes, ask which track, as the only question, before the block and its `Route:` line. In Step 8's resubmission sentence, so it applies only where the track matters.
+- Caller hand-back (3): store-review Step 4 says to go back to the calling publish skill's step, whose block comes next; `clear` is not a yes and gives no submit path, route, or click path. Both publish gate rows say the same from the caller's side. Two sides, because the miss was the callee's text displacing the caller's.
+- Block always printed (4): one sentence in Step 8, after the `Route:` paragraph.
+- READMEs (5): all three now say the window is first 12 and last 12 at any `max_turns`, a run can exceed 24 messages, a middle click path would not be seen, and the safeguard is the skill text plus the `last_message` graders. Removed "the middle holds the pre-submit review" and "so `max_turns` is 24" (which implied full coverage).
+
+**Rejected**
+- Editing `references/google-play.md`: it maps track to step but never says where the track comes from, so the new ask belongs only in Step 8.
+- Changing any block: no item needed it. Hashes unchanged.
+- A trace regex this round: the brief defers it.
+
+**Assumptions**
+- The apple-rejection prompt's "no earlier reply" still answers the narrowed question, so the block stays reachable. Check on the rerun.
+- The play seed's notes name internal testing, so the new track ask does not fire there. Check `named-the-policy-and-route`.
+
+**Deferred**
+- Item 5: add a `target: trace` regex over assistant lines once a kept trace shows how thinking blocks appear.
+- `verified-runs.md` rows: orchestrator.
+
+**Evidence** (`bash /tmp/cc-sliceI-fix2-proof.sh`)
+- `bash scripts/lint-skills.sh`: 7 skills clean. `bash tests/lint-skills.test.sh`: 109/109. `claude plugin validate .`: passed with warnings.
+- Blocks en = zh, same as HEAD: PRE-SUBMIT `6d2b09e1…5271`, REJECTION READING `5ef458c4…a958`, GO-AHEAD `5498f744…3e86`; publish-ios `78d62d14…2315`; publish-android `3fd7d196…8ed6`.
+- New rules grep: 19/19 (en and zh skill text, three READMEs). Stale README claims: 0 hits.
+- Lines: store-review 186/160, publish-ios 266/243, publish-android 266/241.
+- Prose only; no mutation battery.
+
+**Touches**
+- `skills/store-review/SKILL.md`, `SKILL.zh.md` (Steps 4, 8, 9).
+- `skills/publish-ios/SKILL.md`, `SKILL.zh.md`; `skills/publish-android/SKILL.md`, `SKILL.zh.md` (pre-submit gate row).
+- `evals/publish-ios/README.md`, `evals/publish-android/README.md`, `evals/store-review/README.md`.
+
+**Eval cases to rerun**
+- `publish-ios-expo-submit-goahead-{en,zh}` (item 3 miss), `store-review-play-rejection-{en,zh}` (item 4 miss).
+- `store-review-apple-rejection-{en,zh}` (Step 9 wording), `publish-android-expo-review-goahead-{en,zh}` (gate row), `publish-ios-expo-login-submit-{en,zh}` (gate row).
+- If budget allows: `store-review-expo-login-presubmit-{en,zh}` (Step 4 wording).

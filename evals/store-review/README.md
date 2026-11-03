@@ -6,7 +6,7 @@ Run, from the repo root. It grants no tool, so nothing can reach a store or an a
 
     claude plugin eval . --case 'store-review-*' --runs 1 --ablation none --scaffold --no-publish --trust-plugin --model sonnet --max-cost-usd 3
 
-Each case allows `Read`, `Glob`, `Grep`, and `Skill`: no shell, no Write, and no AskUserQuestion. A question tool would stop a run that no one can answer, so the agent's reply is where its questions appear. `max_turns` is 24, because a `trace` judge sees only the first 12 and last 12 messages.
+Each case allows `Read`, `Glob`, `Grep`, and `Skill`: no shell, no Write, and no AskUserQuestion. A question tool would stop a run that no one can answer, so the agent's reply is where its questions appear. `max_turns` is 24. A `trace` judge sees only the first 12 and last 12 messages at any `max_turns`, and a run can hold more than 24 messages, so the window need not cover the run.
 
 Each `scaffold.sh` sources `lib/scaffold.sh`, which finds the app-creators-fixtures repo next to this repo, or next to the main checkout from inside a git worktree, and extracts `todo-expo` at `ff71355` with `git archive`. It stops with a message if the repo or the commit is absent. The scaffold runs with the harness's shell before the agent starts, so it can use `git`.
 
@@ -29,7 +29,7 @@ No store reading can happen. The skill needs none: it reads the project and the 
 
 ## Cases and what each grader proves
 
-Each `read-*` grader is a `tool_used` count on Read, matched on `file_path`, so it fails on an empty run and on a run that asks instead of reading. Each llm judge takes the majority of three votes. A `last_message` judge sees the final reply. A `trace` judge sees only the first 12 and last 12 messages. Every llm criterion fails an empty reply. Each regex was proven on positive and negative samples, including mutants of the pattern.
+Each `read-*` grader is a `tool_used` count on Read, matched on `file_path`, so it fails on an empty run and on a run that asks instead of reading. Each llm judge takes the majority of three votes. A `last_message` judge sees the final reply. A `trace` judge sees only the first 12 and last 12 messages. A click path in a middle assistant message would not be seen by a trace judge. The safeguard against it is the skill text and the `last_message` graders. Every llm criterion fails an empty reply. Each regex was proven on positive and negative samples, including mutants of the pattern.
 
 - `expo-login-presubmit`: the sign-in seed, iOS wanted, build 7 in TestFlight, readiness `pass`, a confirmed inventory, a valid `app_store` listing. The prompt says the creator is about to submit and asks whether anything will be rejected. It says nothing about a demo account. This is spec §5 Slice I's first proof: on a seeded app with a login and no demo account, the skill flags it before submission.
   - `skill-fired`: the Skill tool loaded `store-review`.

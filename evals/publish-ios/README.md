@@ -29,7 +29,7 @@ Each `scaffold.sh` sources `lib/scaffold.sh`, which finds the app-creators-fixtu
 
 ## Cases and what each grader proves
 
-Each `read-*` and `read-route-file` grader is a `tool_used` count on Read, matched on `file_path`, so it fails on an empty run and on a run that asks instead of reading. Each llm judge takes the majority of three votes. A `last_message` judge sees the final reply. A `trace` judge sees only the first 12 and last 12 messages, so `max_turns` is 24. Every llm criterion fails an empty reply. The one grader that passes on an empty run is `no-go-ahead-block`, which means nothing alone, as noted below.
+Each `read-*` and `read-route-file` grader is a `tool_used` count on Read, matched on `file_path`, so it fails on an empty run and on a run that asks instead of reading. Each llm judge takes the majority of three votes. A `last_message` judge sees the final reply. A `trace` judge sees only the first 12 and last 12 messages, at any `max_turns`. `max_turns` is 24, and a run can hold more than 24 messages, so the window need not cover the run. A click path or command in a middle assistant message, such as one right after `store-review`'s pre-submit review, would not be seen by a trace judge. The safeguard against it is the skill text and the `last_message` graders. Every llm criterion fails an empty reply. The one grader that passes on an empty run is `no-go-ahead-block`, which means nothing alone, as noted below.
 
 - `expo-first-run`: `targets.ios.intent: wanted`, readiness `pass`, a confirmed inventory, a valid listing, `accounts.apple_developer: ""`. The prompt asks to publish to the App Store.
   - `skill-fired`: the Skill tool loaded `publish-ios`.

@@ -98,7 +98,7 @@ This skill itself reaches no store. Messages to a reviewer are **go-ahead** step
    - Ids and short names come from the reference table. Lines go flags first, then notes, then clears. `Result:` is `stop: N flags` when any `flag` exists, otherwise `clear, N notes`.
    - The fix for a sign-in `flag` asks the creator to enter the account in the store's form and report "saved". It never asks for the account.
 
-   A calling skill stops before its go-ahead block on any `flag`, and shows the `note` lines with its block. Run on your own, after the block, list each fix in one message and stop. With `clear`, name the next step: `publish-ios` Step 13, or `publish-android` Step 12 for a testing track or Step 15 for production. Never say the app will pass review.
+   A calling skill stops before its go-ahead block on any `flag`, and shows the `note` lines with its block. When a publish skill called this review, go back to that skill's step: its go-ahead block comes next. A `clear` result is not a yes, and gives no submit path, route, or click path. Run on your own, after the block, list each fix in one message and stop. With `clear`, name the next step: `publish-ios` Step 13, or `publish-android` Step 12 for a testing track or Step 15 for production. Never say the app will pass review.
    Expect: one block per store, as the last thing in the message apart from that list.
 
 5. After a fix. Default: rerun Steps 2 to 4. Alternative: none.
@@ -125,13 +125,13 @@ This skill itself reaches no store. Messages to a reviewer are **go-ahead** step
    Route: <one route from the reference>: <who acts next>
    ```
 
-   The `Route:` line is the route kind and who acts, as the reference's Response routes table words them, such as "reply: this skill's message block". It names no control, click path, form, or link: those come only after a yes, in Step 10.
-   A resubmission is never this skill's: hand it to `publish-ios` Step 13, or to `publish-android`'s send-for-review step for the rejected release's track: Step 12 for a testing track, Step 15 for production. The track comes from the message, or from state's notes. Start from Step 8 when code changed, because a new build needs a new build number or version code. A sign-in fix is the creator typing the account into the store's form and reporting "saved", never into this chat. State the review time from the reference.
+   The `Route:` line is the route kind and who acts, as the reference's Response routes table words them, such as "reply: this skill's message block". It names no control, click path, form, or link: those come only after a yes, in Step 10. Print this block in every rejection reading, whatever the route, including a route with no message.
+   A resubmission is never this skill's: hand it to `publish-ios` Step 13, or to `publish-android`'s send-for-review step for the rejected release's track: Step 12 for a testing track, Step 15 for production. The track comes from the message, or from state's notes. With neither, ask which track the rejected release was on, as the only question, before the block and its `Route:` line. Start from Step 8 when code changed, because a new build needs a new build number or version code. A sign-in fix is the creator typing the account into the store's form and reporting "saved", never into this chat. State the review time from the reference.
    Expect: every item has a fix and one route.
 
 9. **go-ahead** Draft the message. Default: this skill writes the draft from the reference's "What to write". Alternative: the creator's own text.
    Check first, one question per message, each the only question in it; stop until the answer comes:
-   - Earlier send: unless the creator reported it in this session, ask them to read the App Review thread (Apple) or the Policy status page (Google) and say whether a reply or appeal was already sent on this submission. Sent: stop; never send it twice.
+   - Earlier send: unless the creator reported it in this session, ask them to read the App Review thread (Apple) or the Policy status page (Google) and say whether this same kind of message was already sent for this submission with no answer from the store since. For an Apple appeal, which goes through a contact form, the creator's own record that they sent the form counts as that reading. Sent and unanswered: stop; never send it twice. An earlier message of another kind, or one the store has answered, does not stop.
    - Store-side fix: when the draft states a fix made in the store, such as a demo account entered, the block waits for the creator's report in this session that it is saved. Without it, ask for that report alone, never for the account.
    Ask nothing else before the block, apart from a missing `Submission:` value, below.
    Run: when the route is a reply, a bug-fix acceptance, a call request, an expedite request, or an appeal, write the draft. Fill and show this block, then the message in full below it, as the last thing in your message:
