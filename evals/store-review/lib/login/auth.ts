@@ -1,4 +1,4 @@
-const SIGN_IN_URL = 'https://example.com/api/sign-in';
+const SIGN_IN_URL = 'https://api.todo.example/sign-in';
 
 export async function signIn(email: string, password: string): Promise<string> {
   const response = await fetch(SIGN_IN_URL, {

@@ -54,7 +54,7 @@
 | 现在 | readiness 是 `unknown`、不是当前的，或者没有 | 说“就绪结果未知，正在跑最小检查”，然后跑。结果要在每个 go-ahead block 里重申。不是当前的 `fail` 还要加一句：“上一份报告在较旧或未提交的 revision 上记录了 fail，请重跑 `publish-readiness`”。这个 skill 没装时，说出它的名字并给出 `npx skills add interskh/app-creators-skills --skill publish-readiness`。没有 git 读取时，记录的 `pass` 在 go-ahead block 里按未知处理。之后的 git 读取显示记录的 `fail` 是当前的时，按上一行停下。第 1 步提问时，第一次回复不索要 git 输出：第 1 步的问题是其中唯一的问题。 |
 | 第 11 步，Data safety 表单之前 | `data_inventory.confirmed` 不是 true，或者它的 `revision` 不是当前的 | 停下。这次会话有 shell、能写文件时，运行 `publish-readiness`；否则说出它，它没安装时再加上上面的安装命令。不问任何隐私问题，不提议清单内容或 Data safety 答案，也绝不设置 `confirmed`：这些都由 `publish-readiness` 来做。不描述它会问哪些问题，也不指向任何文件、商品详情文字或条目，暗示答案。 |
 | 第 11 步 | 没有 `listing.md`，或者某项限制不通过 | 停下。这次会话有 shell、能写文件时，运行 `store-listing`；否则说出它，它没安装时再加上 `npx skills add interskh/app-creators-skills --skill store-listing`。限制检查见下。 |
-| 第 12 步和第 15 步 | listing 的 `revision` 不是当前的 | 随 go-ahead block 完整展示文案和图片，每个语言的每个字段都要有，并问它们是否还和应用相符。 |
+| 第 12 步和第 15 步 | listing 的 `revision` 不是当前的 | 在同一条消息里、go-ahead block 下方完整展示文案和图片，每个语言的每个字段都要有，并问它们是否还和应用相符。 |
 | 第 12 步和第 15 步，送审之前，没有别的关口挡住这一步时 | 提交前审查 | 第 12 步里会送审的动作出 block 之前，以及第 15 步为送审出 block 之前，运行 `store-review` 针对 `google_play` 的提交前审查，也就是它的第 2 到 4 步。只认本次会话里它最新的一次审查。只要有一行 `flag`，这一步就像被关口挡住一样停下：逐条列出每个 `flag` 和它的修复办法。它的 `note` 行放进出 block 的那条消息里，排在 block 前面。审查之后，继续这一步：`clear` 的审查结果不是 yes，后面仍要出 block，拿到 yes 之前不给点击路径或命令。这个 skill 没装时，说“提交前审查已跳过：没有安装 `store-review`”，给出 `npx skills add interskh/app-creators-skills --skill store-review`，然后继续到 go-ahead。“publish now, with no review”之前不运行：Google 不审核它。 |
 
 **停下时有改动在审核中。** workflow 检查或 readiness 的 `fail` 让这次运行停下，而 state（`targets.android.status: review`、最新的 `history` 行或备注）或创作者说明有改动在审核中时，停下的消息里还要直白地说：Google 审核通过后会自动发布这些改动，除非托管发布（managed publishing）是开着的；这里只认本次会话针对这个应用从 Publishing overview（发布概览）读到的状态。备注里的读取或之前会话的读取都不算。没有这样的读取时，还要在这条消息里问。不做其他任何动作。
@@ -80,7 +80,7 @@ GO-AHEAD NEEDED
 Action: <one action, in the words of the step>
 Release: google_play, package <package>, version <version name>, version code <version code>, track <track>
 Build revision: <commit>
-Assessed revision: <readiness revision, or none>
+Assessed revision: <the revision in readiness.md, whatever its result; none only when readiness.md or its revision is absent>
 Readiness: <pass | unknown | stale>. <when unknown or stale: "publish-readiness did not assess this build. Minimal checks only: <each check and its result>.">
 Target API: <n, read from the bundle; Google requires m | unknown: <why>>
 Listing: <current at <commit> | not current: shown in full below. Does it still match the app?>

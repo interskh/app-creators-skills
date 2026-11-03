@@ -1893,3 +1893,40 @@ Suite at 4f26aca, 40ca5a3, and 55edcc2 passes: lint tests 109/109, metrics 106/1
 - No eval overlapped an edit: every fix round started after its eval batch ended.
 
 implement-loop: slice I deferred: gate at the fix cap with two open eval defects at 55edcc2 (publish-ios submit block says the listing is "above" in 2 of 3 en runs; publish-android block wrote Assessed revision none in 1 of 2 en runs; one-clause fixes named); remaining: [J]
+
+### Slice I follow-up
+
+One bounded round on the three items under "Open at the cap". No new eval cases, no grader change.
+
+**Decisions**
+- `Listing:` placement (1): the listing gate rows (publish-ios Step 13; publish-android Steps 12 and 15), en and zh, now say the listing is shown in full below the go-ahead block, in the same message. Matches the block's fixed `not current: shown in full below` and the block intro's "apart from a listing ... that it says is shown below". No other place in either skill or its references puts the listing elsewhere.
+- `Assessed revision:` (2): the template line in both skills, en and zh, is now `Assessed revision: <the revision in readiness.md, whatever its result; none only when readiness.md or its revision is absent>`. Identical text in all four, so en = zh per skill.
+- Play seed (3): `evals/store-review/lib/login/auth.ts` posts to `https://api.todo.example/sign-in` (reserved `.example` name) instead of `https://example.com/api/sign-in`. README line updated.
+
+**Rejected**
+- A play-only copy of `auth.ts`: forks the one sign-in seed; the shared file is what the brief names.
+- `process.env.EXPO_PUBLIC_API_URL` in `auth.ts`: no file in the seed sets it, so a reply could rightly flag an unset URL, a worse aside.
+- A non-reserved domain: points the seed at a host someone may own.
+- Loosening `named-the-policy-and-route`: ruled out by the brief.
+
+**Deferred**
+- Listing still "shown in full above" in 4 of 12 goahead runs (below). No grader checks it. Next lever, if wanted: say in the block intro that a long listing goes after the block, not before it; or a regex grader on the `Listing:` line plus position.
+- Play seed aside still fires in 1 of 4 (below). The `.example` host still reads as a placeholder to the model. Remaining options are a grader that allows a conditional backend note, or a seed with no visible host; both need a decision outside this round.
+- `store-review-expo-login-presubmit-*` and `apple-rejection-*` share `auth.ts` and were not rerun. Only the URL string changed.
+- `evals/publish-ios/lib/login/auth.ts` keeps its `example.com` URL: out of scope.
+
+**Touches**
+- `skills/publish-ios/SKILL.md`, `SKILL.zh.md`; `skills/publish-android/SKILL.md`, `SKILL.zh.md` (listing gate row, block template line).
+- `evals/store-review/lib/login/auth.ts`, `evals/store-review/README.md`.
+- Block hashes changed (en = zh): publish-ios `4764f7d2…5cca`, publish-android `1a35ec58…cfe5`.
+
+**Evidence**
+- Suite (`bash /tmp/cc-ifu-suite.sh`): lint tests 109/109, metrics 106/106, check-pwa 48/48, check-readiness 596/596, check-listing 226/226, `lint: 7 skills clean`, `claude plugin validate .` passed with warnings.
+- Evals (Sonnet, no shell, none partial; `bash /tmp/cc-ifu-evals.sh`, read with `python3 -I /tmp/cc-ifu-scores.py` and `/tmp/cc-ifu-detail2.py`):
+  - `publish-ios-expo-submit-goahead-*` ×3, $1.72, 6 of 6 at 1.00 (`evals/results/2026-11-03T19-00-57-924Z`). `Assessed revision:` a hash in 6 of 6. `Listing:` "below" in 4 of 6, "above" in en run 3 and zh run 3 (was 2 of 3 en).
+  - `publish-android-expo-review-goahead-*` ×3, $1.85, 6 of 6 at 1.00 (`evals/results/2026-11-03T19-09-44-748Z`). `Assessed revision:` a hash in 6 of 6 (was `none` in 1 of 2 en). `Listing:` "above" in en run 2 and zh run 3.
+  - `store-review-play-rejection-*` ×2, $0.58, 3 of 4 at 1.00 (`evals/results/2026-11-03T19-19-33-557Z`). zh run 1 scored 0.80: `named-the-policy-and-route` FAIL 3/3 on an aside that `api.todo.example` "looks like a placeholder domain; confirm it points to a real server". Block, policy, Step 12 route, and "no new build or version code" were right. Seed, not skill.
+  - Follow-up evals: $4.15.
+- `privacy-scan --staged` before commit.
+
+implement-loop: slice I follow-up shipped; remaining: [J]
