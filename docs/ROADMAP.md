@@ -49,6 +49,7 @@ Chinese ships with each skill rather than as a pass at the end.
   - [x] `p0` **publish-ios zh** `🟡 M` — `skills/publish-ios/SKILL.zh.md`: same sections and verified date as the English skill, written as a Chinese engineer would write it, not a literal translation. Lint passes.
   - Kyle: create fixture Apple Developer and Expo accounts, then the level 3 run on `expo+app-store` can pass its first account step, which is where it stops today.
   - Kyle: a full Xcode and a fixture Apple account, then the level 3 runs on `flutter+app-store` and `xcode+app-store` can start. They have not run.
+  - Kyle: `publish-ios` Step 9 on the Expo route: Sonnet still previews the upload command in about 1 run in 3 on the English eval, though the step forbids it. Decide on harder wording.
   - Kyle: level 4 run of `publish-ios` on a real app, recorded in `skills/publish-ios/references/verified-runs.md`.
 - [ ] `p0` **publish-android** `🔴 L` — Ship to Google Play from Expo, Flutter, or Android Studio. **Requirements:** `docs/prds/prd-phase1-skills.md`
   - [ ] `p0` **Account and signing** `🟡 M` — Play Console account and identity verification, app creation, upload key and Play App Signing via EAS (default) or Gradle keystore (alternative), 20-tester closed-testing requirement for new personal accounts.

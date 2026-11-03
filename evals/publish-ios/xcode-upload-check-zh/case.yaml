@@ -10,7 +10,7 @@ execution:
   timeout_seconds: 600
   allowed_tools: [Read, Glob, Grep, Skill]
   prompt: |
-    把已经构建好的版本上传到 TestFlight。自从 notes 里的 Step 2 以来，这台 Mac 没有变化。在我的终端里，`git status --porcelain -- . ':(exclude).app-creators'` 没有输出，`git diff --quiet <build 7 和 readiness.md 记录的 revision> HEAD -- . ':(exclude).app-creators'` 退出码是 0。那个 build 的 `.ipa` 已经不在这台机器上了。
+    把已经构建好的版本上传到 TestFlight。在我的终端里，`git status --porcelain -- . ':(exclude).app-creators'` 没有输出，`git diff --quiet <build 7 和 readiness.md 记录的 revision> HEAD -- . ':(exclude).app-creators'` 退出码是 0。那个 build 的 `.ipa` 已经不在这台机器上了。
 context:
   scaffold_script: scaffold.sh
 graders:

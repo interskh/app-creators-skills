@@ -1081,3 +1081,40 @@ Run `2026-11-02-slice1-publish-design`, task G/T3. Uncommitted, for the orchestr
 - Regression test for that miss. `publish-ios-expo-upload-check-*`, 3 runs each, on this text and on an archive of the slice base `c1d564d` ($1.23 each, both complete). Both: en 1 of 3 at 0.83, zh 3 of 3 at 1.00. Same rate, so Slice G did not cause it. Across this slice's runs at this text, en missed 3 of 5. It stays open: an Expo reader on a no-shell run can see the upload command as a preview, and Sonnet still holds to a later message before it runs anything. Not changed here, per the brief to leave the Expo route as it is. For Kyle: Step 9's wording may need a harder form.
 - `app-creators-vite-*` at 0.1.4, `07-25-01-061Z`, $0.22: 1.00 and 1.00.
 - All evals in this slice so far: $9.75.
+
+## Slice G / gate fix round 1
+
+**Decisions**
+- 1 Workflow check: same list on both routes, match by meaning in any form, GitLab and CircleCI added; altool counts only for an upload.
+- 2 Xcode Cloud question: goes with the first store reading of each session, whatever files exist; ci_scripts is evidence only.
+- 3 `<project>` always carries `-scheme`, per the man page forms with `archive` and `-destination`.
+- 4 No shell and no Xcode are separate could-not-run lines; a Step 2 reading in the notes counts in a later session; Step 6 has its own reading; eval prompts lost the Step 2 sentence.
+- 5 Flutter clears `build/ios/ipa` before the build, because build_ios.dart returns success after a failed export; Xcode export goes to a new empty folder.
+- 6 New build number: raise where the value comes from; Flutter restores `$(FLUTTER_BUILD_NUMBER)`, Xcode raises a literal and the setting together.
+- 7 `Dirty build:` notes line, so a later session can see a repeat.
+- 8 Different hash or identity on reuse means that file is not this build: treat as gone.
+- 9 Notes hold a project-relative or `~` path; commands use `"$HOME/..."`.
+- 10 Archive path: export gives the `.ipa` read; direct Organizer upload writes `no ipa`, and Step 9 listing confirms the number.
+- 11 Ask for every build number listed under the version, since Step 13 returns one.
+- 12 Run-internal wording replaced with dated plain words; the no-Xcode disclosure stays.
+- 13 Quoted placeholders in commands.
+
+**Rejected**
+- `rm -f build/ios/ipa/*.ipa`: zsh, the macOS default, stops on no match. `rm -rf build/ios/ipa` after `git check-ignore` works in any shell.
+- Saying a plist literal wins over the setting: the page says values merge and does not rank them. Raise both, and the `.ipa` read confirms.
+- Matching on `altool` alone: `--validate-app` and `--list-apps` would false-stop.
+- Xcode Cloud question only when `ci_scripts/` exists: its absence proves nothing.
+- Reading the Xcode Cloud question as a question of its own: it would break the single-ask messages.
+
+**Assumptions**
+- `-showBuildSettings` accepts `-scheme` with `-project`: the man form names it only with a workspace, and no Xcode ran here. The route says to drop it if rejected.
+- `rm -rf build/ios/ipa` and the plist read are not run on a full Xcode. Check on the first real build.
+
+**Deferred**
+- `--list-providers` with an API key and the `xcodebuild -help` gate on `manageAppVersionAndBuildNumber`: out of this round by the brief.
+- The workflow-file stop and the Xcode Cloud stop have no eval seed: README says so.
+
+**Touches**
+- `skills/publish-ios/references/flutter.md`, `skills/publish-ios/references/xcode.md`, `evals/publish-ios/README.md`, four `*-upload-check-*/case.yaml` prompts. `SKILL.md`, `SKILL.zh.md`, `expo.md`, and graders unchanged. No shared schema change.
+
+**Orchestrator notes on this round.** Item R9 of the review: the Expo 0.2.0 row in `verified-runs.md` and a Kyle line on the roadmap record the upload-preview miss. Two corrections to earlier entries, which stay as written: the T3 eval sum was $9.96, not $9.75. The T1 entry says 18 iOS icon slots; the fixture commit holds 15 PNGs in that set, because the set's `Contents.json` lists some files twice.

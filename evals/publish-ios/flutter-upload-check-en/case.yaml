@@ -10,7 +10,7 @@ execution:
   timeout_seconds: 600
   allowed_tools: [Read, Glob, Grep, Skill]
   prompt: |
-    Upload the finished build to TestFlight. Nothing has changed on this Mac since Step 2 in the notes. In my terminal, `git status --porcelain -- . ':(exclude).app-creators'` printed nothing and `git diff --quiet <the revision recorded for build 7 and in readiness.md> HEAD -- . ':(exclude).app-creators'` exited 0. The `.ipa` from that build is no longer on this machine.
+    Upload the finished build to TestFlight. In my terminal, `git status --porcelain -- . ':(exclude).app-creators'` printed nothing and `git diff --quiet <the revision recorded for build 7 and in readiness.md> HEAD -- . ':(exclude).app-creators'` exited 0. The `.ipa` from that build is no longer on this machine.
 context:
   scaffold_script: scaffold.sh
 graders:
