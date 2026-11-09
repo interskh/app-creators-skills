@@ -9,10 +9,10 @@ This repo on that date: first commit 2026-10-25, repo created 2026-10-26,
 We have no measurement of what a listing does for discovery, so treat each
 submission as a cheap bet.
 
-`publish-readiness`, `store-listing`, `publish-ios`, `publish-android`, and `store-review` landed after that check. The drafts
-below name seven skills, which holds only once `main` is pushed; rerun the
-install commands then, because the dated `Public Evidence` line covers the two
-skills public on 2026-11-02.
+`publish-readiness`, `store-listing`, `publish-ios`, `publish-android`, and `store-review` landed after that check. On 2026-11-09
+the public `main` was at `459318d`, with all seven skills. The README install
+commands ran against it that day, and each one installed all seven; the
+`Public Evidence` line below records that run.
 
 The order is what can be filed today first, then by fit and reach. Open one
 submission at a time and read the target list first.
@@ -91,7 +91,7 @@ Category: Deployment & Execution
 Resource Name: App Creators skills
 URL: https://github.com/interskh/app-creators-skills
 Description: Agent skills that install into Claude Code and Codex. app-creators writes a project state file; publish-readiness checks readiness for the App Store, Google Play, or the web; store-listing writes App Store and Google Play listing copy and a screenshot plan; publish-ios takes an Expo, Flutter, or Xcode app to App Store review and release; publish-android takes an Expo, Flutter, or Kotlin app to Google Play review and release; store-review checks an app against store review rules before submission and reads a rejection; publish-web deploys a Next.js, Vite, or static app to Vercel, or a Vite, static, or Next.js static-export app to Cloudflare Pages. Pre-release.
-Public Evidence: The README lists install commands. On 2026-11-02 each one ran against the public repo and installed both skill files; no agent session has loaded the skills yet. Skill source: https://github.com/interskh/app-creators-skills/blob/main/skills/publish-web/SKILL.md
+Public Evidence: The README lists install commands. On 2026-11-09 each one ran against the public repo in a clean config and installed all seven skills. Claude Code's plugin details list the seven, and the prompt Codex builds lists the seven; no model session has run with them yet. Skill source: https://github.com/interskh/app-creators-skills/blob/main/skills/publish-web/SKILL.md
 Access and License: Free, MIT. Deploying needs a Vercel account or a Cloudflare account. The Vercel Hobby plan covers personal, non-commercial apps only.
 Current Availability: A new user can install it today. It is pre-release, and no skill has been verified on a real account.
 Affiliation: I maintain this repo.
@@ -220,8 +220,10 @@ it needs that repo work first.
 ## No submission needed
 
 skills.sh lists a repo automatically once installs report through its CLI
-telemetry, according to its [FAQ](https://skills.sh/docs/faq). The repo's page
-returned 404 on the check date. A Claude Code marketplace is a git repo with
+telemetry, according to its [FAQ](https://skills.sh/docs/faq). On 2026-11-09
+the repo's page returned 404 and its badge read "resource not found". Every
+install run that day set `DISABLE_TELEMETRY=1`.
+A Claude Code marketplace is a git repo with
 `.claude-plugin/marketplace.json`, according to the
 [plugin marketplace docs](https://code.claude.com/docs/en/plugin-marketplaces),
 and this repo already works that way.

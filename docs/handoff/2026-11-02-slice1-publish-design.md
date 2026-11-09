@@ -1969,3 +1969,49 @@ Slice J needs the public repo current, so it waits for Kyle to push `main`. On 2
 - The pass found stale ROADMAP lines that told Kyle to install a JDK. Slice H found JDKs, Android Studio, and an Android SDK already on the run machine, with no JDK on `PATH`. The lines now say so, and the `apkanalyzer` half of the resolved-input check is marked as run. Dated `verified-runs.md` rows stay as recorded.
 
 implement-loop: slice J blocked-prerequisite: Kyle pushing main
+
+## Slice J: registry submission
+
+Run 2026-11-09 against public `main` at `459318d`. One temp root under `/tmp/cc-slicej-*` with its own `HOME`, `CLAUDE_CONFIG_DIR`, `CODEX_HOME`, and npm cache; `DISABLE_TELEMETRY=1` on every `npx skills` run. No login, no submission.
+
+**Decisions**
+- README.md and llms.txt unchanged: every install command and claim matched the runs.
+- Load proof is auth-free: `claude plugin details` for Claude Code, `codex debug prompt-input` for Codex. Docs say no model session ran.
+- awesome-lists.md: the stale "rerun once pushed" paragraph, the `Public Evidence` line, and the skills.sh paragraph now carry the 2026-11-09 result. "This repo on that date" untouched.
+- ROADMAP "Registry submission" stays unticked: a live session on each agent and the skills.sh listing remain, all Kyle steps.
+
+**Rejected**
+- Ticking the item on `plugin details` and `prompt-input` alone: the item says a clean session, and neither is a model session.
+- An install with telemetry on to get the skills.sh listing: that sends data to an external service, so it is Kyle's call.
+- Fixing the two `claude plugin validate` warnings (root `CLAUDE.md` not loaded, `ICON_MISSING`): out of scope; neither blocks install.
+
+**Assumptions**
+- skills.sh lists the repo after one install with telemetry on. The FAQ says installs list a repo; it states no threshold. Check: Kyle's step, then GET the page.
+- The agent detection in B1 and C1 came from this shell's `AI_AGENT` (a Claude Code session), not from a user's terminal. A clean-env run (C2) shows the no-agent path.
+
+**Deferred**
+- Live model sessions and the skills.sh listing: Kyle steps below.
+
+**Touches**
+- `docs/launch/awesome-lists.md`, `docs/ROADMAP.md`, this file. No skill, manifest, or README change.
+
+**Evidence**
+- Versions: claude 2.1.319, codex-cli 0.166.0, skills CLI 1.7.6, node 24.14.0.
+- A1: `claude plugin marketplace add interskh/app-creators-skills` cloned over HTTPS, added marketplace `app-creators`; `claude plugin install app-creators@app-creators` installed at user scope, 0.1.0.
+- A2: `claude plugin details app-creators`: `Skills (7)  app-creators, publish-android, publish-ios, publish-readiness, publish-web, store-listing, store-review`; always-on ~1,025 tokens.
+- A3: installed cache holds 7 `SKILL.md` and 7 `SKILL.zh.md`; `gitCommitSha` and marketplace clone HEAD both `459318d`; cache `skills/` identical to the worktree's (`diff -r`).
+- A4: `claude plugin validate <installed dir>`: passed with 2 warnings (root `CLAUDE.md`, `ICON_MISSING`).
+- A5: `claude auth status` loggedIn false; `claude -p ... --max-turns 1`: `Not logged in · Please run /login`, exit 1.
+- B1: `npx skills add interskh/app-creators-skills -a codex`: "Agent detected — installing non-interactively", "Installed 7 skills", no prompt, no `-y` needed (agent env present).
+- B2: 7 `.agents/skills/*/SKILL.md` plus `SKILL.zh.md`, references, scripts; `skills-lock.json` in the project; nothing under temp `HOME`.
+- B3: `codex debug prompt-input "hi"`: skill root `r1` = the project's `.agents/skills`; all 7 listed as `r1/<name>/SKILL.md` with their descriptions.
+- B4: `codex exec --ephemeral --skip-git-repo-check ...`: `unexpected status 401 Unauthorized: Missing bearer or basic authentication in header`, exit 1.
+- C1: bare `npx skills add interskh/app-creators-skills` with agent env: installed 7 to `.agents/skills/` (universal: Codex and 21 more), 7 symlinks in `.claude/skills/` for Claude Code (checked with `ls -la`).
+- C2: same with `env -i` (no agent vars), stdin not a TTY: "Interactive prompt required but stdin is not a TTY. Nothing was installed. Use --agent <name> (or --agent '*') and -y to run non-interactively.", exit 1. `-a codex` without `-y`: same message. `-a codex -y`: installed 7.
+- D: `skills.sh/...` 308 to `www.skills.sh`. Repo page 404. Badge 200 SVG, text "resource not found". FAQ: listing comes from anonymous `npx skills add` telemetry.
+- Real config shasum before and after (`~/.claude/plugins/installed_plugins.json`, `~/.claude/plugins/known_marketplaces.json`, `~/.codex/config.toml`): unchanged.
+
+**Kyle steps**
+- Logged-in Claude Code session with the plugin installed: ask which app-creators skills it can use; expect all seven.
+- Logged-in Codex session in a project after `npx skills add interskh/app-creators-skills -a codex`: ask which skills it can use; expect all seven.
+- One `npx skills add interskh/app-creators-skills` without `DISABLE_TELEMETRY`, then GET https://skills.sh/interskh/app-creators-skills; expect not 404.

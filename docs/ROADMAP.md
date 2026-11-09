@@ -66,6 +66,10 @@ Chinese ships with each skill rather than as a pass at the end.
 - [x] `p1` **store-review** `🟡 M` — Apple and Google guideline distillation into pre-submit checks: demo account for login, 4.3 spam and minimum functionality, 5.1.1 data collection, subscription disclosure, Play deceptive behavior. How to read a rejection, respond, and appeal. Expected review times. Ships `unverified`, with no run recorded.
 - [x] `p1` **store-review zh** `🟡 M` — `skills/store-review/SKILL.zh.md`: same sections and verified date as the English skill, written as a Chinese engineer would write it, not a literal translation. Lint passes.
 - [ ] `p1` **Registry submission** `🟢 S` — Publish the marketplace, verify `/plugin install` in a clean Claude Code session and `npx skills add` for Codex, submit to skills.sh index. Record install commands in README.
+  - Verified 2026-11-09 against `459318d`, in a clean config: the Claude Code commands install the plugin with all seven skills, and `npx skills add -a codex` writes all seven to `.agents/skills/`, where `codex debug prompt-input` lists them. No model session ran: Claude Code was not logged in and Codex returned 401.
+  - Kyle: in a logged-in Claude Code session with the plugin installed, ask which app-creators skills it can use, and check that it names all seven.
+  - Kyle: in a logged-in Codex session in a project where `npx skills add interskh/app-creators-skills -a codex` ran, ask which skills it can use, and check that it names all seven.
+  - Kyle: run `npx skills add interskh/app-creators-skills` once without `DISABLE_TELEMETRY`, then check that https://skills.sh/interskh/app-creators-skills no longer returns 404. skills.sh has no submission form; it lists a repo from install telemetry.
 
 ## Slice 2 — Acquire and analytics
 
