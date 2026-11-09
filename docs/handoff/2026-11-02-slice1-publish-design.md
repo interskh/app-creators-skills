@@ -2015,3 +2015,12 @@ Run 2026-11-09 against public `main` at `459318d`. One temp root under `/tmp/cc-
 - Logged-in Claude Code session with the plugin installed: ask which app-creators skills it can use; expect all seven.
 - Logged-in Codex session in a project after `npx skills add interskh/app-creators-skills -a codex`: ask which skills it can use; expect all seven.
 - One `npx skills add interskh/app-creators-skills` without `DISABLE_TELEMETRY`, then GET https://skills.sh/interskh/app-creators-skills; expect not 404.
+
+### Slice J / orchestrator close
+
+- Single task, lean path, risk no: no per-task review, no whole-run gate, no Codex job.
+- Suite at ee57aaf: lint tests 109/109, metrics 106/106, check-pwa 48/48, check-readiness 596/596, check-listing 226/226, `lint: 7 skills clean`, template clean, manifests parse, `claude plugin validate .` passed with warnings.
+- Orchestrator re-GET of the skills.sh page and badge on 2026-11-09: 404 and "resource not found", matching D.
+- `privacy-scan --staged` and `--message`: exit 0.
+
+implement-loop: slice J shipped ee57aaf; remaining: []
